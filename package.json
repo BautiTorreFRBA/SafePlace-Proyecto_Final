@@ -1,0 +1,17 @@
+{
+  "name": "safeplace-monorepo",
+  "version": "1.0.0",
+  "description": "SafePlace - Sistema de monitoreo preventivo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=services/backend-api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:gateway": "npm run dev --workspace=services/gateway-ble",
+    "test": "npm test --workspaces"
+  }
+}

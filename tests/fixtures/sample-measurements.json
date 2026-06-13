@@ -1,0 +1,26 @@
+[
+  {
+    "deviceId": "garmin-fr265-001",
+    "workerId": "worker-123",
+    "heartRate": 85,
+    "activityLevel": "moderate",
+    "inactivitySeconds": 0,
+    "timestamp": "2026-06-13T12:00:00Z"
+  },
+  {
+    "deviceId": "garmin-fr265-002",
+    "workerId": "worker-124",
+    "heartRate": 150,
+    "activityLevel": "high",
+    "inactivitySeconds": 0,
+    "timestamp": "2026-06-13T12:01:00Z"
+  },
+  {
+    "deviceId": "garmin-fr265-003",
+    "workerId": "worker-125",
+    "heartRate": 60,
+    "activityLevel": "resting",
+    "inactivitySeconds": 600,
+    "timestamp": "2026-06-13T12:02:00Z"
+  }
+]

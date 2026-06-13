@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: safeplace-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-safeplace_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-safeplace_password}
+      POSTGRES_DB: ${POSTGRES_DB:-safeplace_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - safeplace_net
+
+  backend-api:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    container_name: safeplace-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: development
+      PORT: ${PORT:-8000}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-safeplace_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-safeplace_password}
+      DB_NAME: ${POSTGRES_DB:-safeplace_db}
+      JWT_SECRET: ${JWT_SECRET}
+      DEVICE_TOKEN_SECRET: ${DEVICE_TOKEN_SECRET}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/backend-api:/app/services/backend-api
+      - ./packages/shared:/app/packages/shared
+    networks:
+      - safeplace_net
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    container_name: safeplace-web
+    restart: unless-stopped
+    depends_on:
+      - backend-api
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages/shared:/app/packages/shared
+    networks:
+      - safeplace_net
+
+  # gateway-ble:
+  #   build:
+  #     context: .
+  #     dockerfile: infra/docker/gateway.Dockerfile
+  #   container_name: safeplace-gateway
+  #   restart: unless-stopped
+  #   environment:
+  #     BACKEND_URL: http://backend-api:8000/api/v1
+  #     GATEWAY_ID: ${GATEWAY_ID}
+  #     GATEWAY_TOKEN: ${GATEWAY_TOKEN}
+  #   depends_on:
+  #     - backend-api
+  #   network_mode: "host" # Required for BLE to work correctly
+  #   privileged: true # Often required for raw bluetooth access
+
+volumes:
+  postgres_data:
+
+networks:
+  safeplace_net:
+    driver: bridge

@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: SafePlace API
+  description: API REST para el backend de SafePlace
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Login de usuario
+      responses:
+        '200':
+          description: Exitoso
+  /measurements:
+    post:
+      summary: Ingesta de mediciones
+      responses:
+        '201':
+          description: Creado
+  /alertas:
+    get:
+      summary: Listar alertas
+      responses:
+        '200':
+          description: Exitoso
+  /alertas/{id}/status:
+    patch:
+      summary: Actualizar estado de alerta
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exitoso
+  /workers:
+    get:
+      summary: Listar trabajadores
+      responses:
+        '200':
+          description: Exitoso
+    post:
+      summary: Crear trabajador
+      responses:
+        '201':
+          description: Creado
+  /devices:
+    get:
+      summary: Listar dispositivos
+      responses:
+        '200':
+          description: Exitoso
+    post:
+      summary: Crear dispositivo
+      responses:
+        '201':
+          description: Creado
+  /health:
+    get:
+      summary: Healthcheck
+      responses:
+        '200':
+          description: Exitoso
