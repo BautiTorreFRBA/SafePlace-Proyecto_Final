@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafePlace – Iniciar Sesión</title>
+  <link rel="stylesheet" href="InicioSesion.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- Panel izquierdo -->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <aside class="hero">
+
+      <div class="hero__brand">
+        <div class="hero__icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="hero__name">SafePlace</span>
+      </div>
+
+      <div class="hero__content">
+        <h1 class="hero__headline"> Monitoreo Biométrico<br>en Tiempo Real</h1>
+        <p class="hero__description"> Sistema inteligente de prevención de riesgos laborales mediante wearables y análisis de datos biométricos.</p>
+      </div>
+
+      <div class="hero__stats">
+        <div class="stat"><span class="stat__value">24/7</span><span class="stat__label">Monitoreo continuo</span></div>
+        <div class="stat"><span class="stat__value">&lt;5s</span><span class="stat__label">Tiempo de detección</span></div>
+        <div class="stat"><span class="stat__value">99.2%</span><span class="stat__label">Precisión</span></div>
+      </div>
+
+    </aside>
+
+    <!-- Panel derecho -->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <main class="login-panel">
+      <div class="login-card">
+        <div class="login-card__header">
+          <h2 class="login-card__title">Iniciar Sesión</h2>
+          <p class="login-card__subtitle">Ingrese sus credenciales para acceder al sistema SafePlace</p>
+        </div>
+
+        <div class="login-card__form">
+          <div class="field">
+            <label class="field__label" for="username">USUARIO</label>
+            <input
+              class="field__input"
+              id="username"
+              type="text"
+              placeholder="Ingrese su usuario"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password">CONTRASEÑA</label>
+            <div class="field__wrapper">
+              <input
+                class="field__input field__input--password"
+                id="password"
+                type="password"
+                placeholder="Ingrese su contraseña"
+                autocomplete="current-password"
+              />
+              <button class="field__toggle" id="togglePassword" type="button" aria-label="Mostrar contraseña">
+                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p class="login-card__error" id="errorMsg" aria-live="polite"></p>
+          <button class="btn-primary" id="loginBtn" type="button"> Ingresar </button>
+        </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="InicioSesion.js"></script>
+</body>
+</html>
