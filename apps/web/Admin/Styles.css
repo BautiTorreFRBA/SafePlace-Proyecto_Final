@@ -1112,3 +1112,141 @@ select.cfg-input {
 .cfg-saved--visible {
   opacity: 1;
 }
+
+/* ============================================================
+   ROLES Y PERMISOS
+   ============================================================ */
+
+/* Tabs de selección de rol */
+.roles-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 28px 20px;
+  flex-wrap: wrap;
+}
+
+.roles-tab {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.roles-tab:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.roles-tab--active {
+  background: var(--bg-card);
+  border-color: var(--teal-400);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Grid de tarjetas de módulos */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 28px 28px;
+}
+
+/* Tarjeta de módulo */
+.roles-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roles-card__header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.roles-card__header svg {
+  flex-shrink: 0;
+}
+
+/* Fila permiso: label + toggle */
+.roles-perm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle__track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle__track::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.toggle__input:checked + .toggle__track {
+  background: var(--teal-400);
+}
+
+.toggle__input:checked + .toggle__track::after {
+  transform: translateX(16px);
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .roles-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .roles-grid { grid-template-columns: 1fr; padding: 0 16px 20px; }
+  .roles-tabs { padding: 0 16px 16px; }
+}
+
+.roles-tab--active {
+  background: var(--bg-card-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+}
