@@ -46,28 +46,41 @@ function handleLogin() {
     return;
   }
 
-  // Login exitoso
-  loginBtn.textContent = '✓ Acceso concedido';
-  loginBtn.disabled = true;
+// Login exitoso
+loginBtn.textContent = '✓ Acceso concedido';
+loginBtn.disabled = true;
 
 setTimeout(() => {
-  sessionStorage.setItem('userRole', user.role);
-  sessionStorage.setItem('userName', usernameInput);
 
-  // Solo HTML limpio, sin ningún estilo inline
-  document.body.innerHTML = `
-    <div class="loading-screen">
-      <div class="loading-screen__spinner"></div>
-      <p class="loading-screen__text">Cargando sistema…</p>
-    </div>
-  `;
+    sessionStorage.setItem('userRole', user.role);
+    sessionStorage.setItem('userName', username);
 
-  setTimeout(() => {
-    window.location.href = 'Home.html';
-  }, 1500);
+    document.body.innerHTML = `
+        <div class="loading-screen">
+            <div class="loading-screen__spinner"></div>
+            <p class="loading-screen__text">Cargando sistema…</p>
+        </div>
+    `;
+
+    setTimeout(() => {
+        switch (user.role) {
+            case 'Admin':
+                window.location.href = 'Admin-Home.html';
+                break;
+
+            case 'Supervisor':
+                window.location.href = 'Supervisor-Home.html';
+                break;
+
+            case 'Seguridad':
+                window.location.href = 'Seguridad-Home.html';
+                break;
+        }
+    }, 1500);
 
 }, 800);
-}
+
+} // ← cierre de handleLogin()
 
 // ─── Eventos ─────────────────────────────────────────────────────
 loginBtn.addEventListener('click', handleLogin);

@@ -1250,3 +1250,182 @@ select.cfg-input {
   color: var(--text-primary);
   font-weight: 600;
 }
+
+/* ============================================================
+   MONITOREO EN TIEMPO REAL
+   ============================================================ */
+
+/* ── CAMPANA DE NOTIFICACIONES ──────────────────────────────── */
+
+.notif-bell {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s;
+}
+
+.notif-bell:hover {
+  color: var(--text-primary);
+}
+
+.notif-bell svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ── ENCABEZADO MONITOREO ──────────────────────────────────── */
+
+.mon-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 16px;
+}
+
+.mon-header__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.btn-actualizar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-actualizar:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+.btn-actualizar.spinning svg {
+  animation: spin-once 0.6s linear;
+}
+
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── TABLA MONITOREO ────────────────────────────────────────── */
+
+.mon-table-wrap {
+  padding: 0 28px 28px;
+  overflow-x: auto;
+}
+
+.mon-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.mon-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.mon-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.mon-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mon-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.mon-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.mon-emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mon-emp__name {
+  font-weight: 500;
+}
+
+.bpm-value {
+  font-weight: 700;
+}
+
+.bpm-value--normal   { color: var(--text-primary); }
+.bpm-value--warning  { color: var(--orange); }
+.bpm-value--critical { color: var(--red); }
+
+.mon-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+
+.mon-metric svg {
+  flex-shrink: 0;
+}
+
+.badge--disconnected {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
