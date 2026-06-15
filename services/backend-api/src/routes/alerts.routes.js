@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const alertsController = require('../controllers/alerts.controller');
 
-// TODO: List alerts
-router.get('/', (req, res) => {
-  res.status(200).json({ message: 'Alerts list placeholder' });
-});
-
-// TODO: Update alert status (e.g., acknowledge/close)
-router.patch('/:id/status', (req, res) => {
-  res.status(200).json({ message: 'Alert status update placeholder' });
-});
+router.get('/', alertsController.listAlerts);
+router.patch('/:id/status', alertsController.updateAlertStatus);
 
 module.exports = router;

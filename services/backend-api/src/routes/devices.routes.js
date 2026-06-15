@@ -1,12 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const devicesController = require('../controllers/devices.controller');
 
-router.get('/', (req, res) => {
-  res.status(200).json({ message: 'Devices list placeholder' });
-});
-
-router.post('/', (req, res) => {
-  res.status(201).json({ message: 'Device creation placeholder' });
-});
+router.get('/', devicesController.listDevices);
+router.post('/', devicesController.createDevice);
 
 module.exports = router;

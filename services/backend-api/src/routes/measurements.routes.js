@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const measurementsController = require('../controllers/measurements.controller');
 
-// TODO: Implement measurement ingestion (needs deviceToken middleware)
-router.post('/', (req, res) => {
-  res.status(201).json({ message: 'Measurement ingested placeholder' });
-});
-
-// TODO: Implement historical data fetching
-router.get('/:id_trabajador', (req, res) => {
-  res.status(200).json({ message: 'Measurement history placeholder' });
-});
+router.post('/', measurementsController.ingestMeasurement);
+router.get('/:id_trabajador', measurementsController.getMeasurementsByWorker);
 
 module.exports = router;

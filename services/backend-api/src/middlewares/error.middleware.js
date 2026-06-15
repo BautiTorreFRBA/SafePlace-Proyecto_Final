@@ -1,10 +1,7 @@
-// Global error handler
 function errorHandler(err, req, res, next) {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
-  });
+  const status = err.status || 500;
+  if (status === 500) console.error(err.stack);
+  res.status(status).json({ error: err.message || 'Internal Server Error' });
 }
 
 module.exports = errorHandler;
