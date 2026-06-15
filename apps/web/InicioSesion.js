@@ -1,96 +1,76 @@
-// Credenciales válidas de prueba
-const USERS = {
-  admin:      { password: 'admin123',  role: 'Admin' },
-  supervisor: { password: 'super123',  role: 'Supervisor' },
-  seguridad:  { password: 'seg123',    role: 'Seguridad' },
-};
+const API_URL = 'https://safeplace-backend.onrender.com/api/v1';
 
-// Extraer datos
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
-const toggleBtn = document.getElementById('togglePassword');
-const eyeIcon = document.getElementById('eyeIcon');
-const loginBtn = document.getElementById('loginBtn');
-const errorMsg = document.getElementById('errorMsg');
+const toggleBtn     = document.getElementById('togglePassword');
+const eyeIcon       = document.getElementById('eyeIcon');
+const loginBtn      = document.getElementById('loginBtn');
+const errorMsg      = document.getElementById('errorMsg');
 
-// ─── Mostrar / limpiar error ─────────────────────────────────────
 function showError(msg) { errorMsg.textContent = msg; }
+function clearError()   { errorMsg.textContent = ''; }
 
-function clearError() { errorMsg.textContent = ''; }
-
-// ─── Lógica de login ─────────────────────────────────────────────
-function handleLogin() {
+async function handleLogin() {
   clearError();
 
   const username = usernameInput.value.trim().toLowerCase();
   const password = passwordInput.value;
 
-  if (!username) {
-    showError('Por favor ingrese su usuario.');
-    usernameInput.focus();
-    return;
-  }
+  if (!username) { showError('Por favor ingrese su usuario.'); usernameInput.focus(); return; }
+  if (!password) { showError('Por favor ingrese su contraseña.'); passwordInput.focus(); return; }
 
-  if (!password) {
-    showError('Por favor ingrese su contraseña.');
-    passwordInput.focus();
-    return;
-  }
+  loginBtn.disabled    = true;
+  loginBtn.textContent = 'Verificando...';
 
-  const user = USERS[username];
+  try {
+    const res  = await fetch(`${API_URL}/auth/login`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: username, password }),
+    });
 
-  if (!user || user.password !== password) {
-    showError('Usuario o contraseña incorrectos.');
-    passwordInput.value = '';
-    passwordInput.focus();
-    return;
-  }
+    const data = await res.json();
 
-// Login exitoso
-loginBtn.textContent = '✓ Acceso concedido';
-loginBtn.disabled = true;
+    if (!res.ok) {
+      showError('Usuario o contraseña incorrectos.');
+      passwordInput.value  = '';
+      passwordInput.focus();
+      loginBtn.disabled    = false;
+      loginBtn.textContent = 'Ingresar';
+      return;
+    }
 
-setTimeout(() => {
+    sessionStorage.setItem('token',    data.token);
+    sessionStorage.setItem('userName', data.user.email);
+    sessionStorage.setItem('userRole', data.user.role);
 
-    sessionStorage.setItem('userRole', user.role);
-    sessionStorage.setItem('userName', username);
-
-    document.body.innerHTML = `
-        <div class="loading-screen">
-            <div class="loading-screen__spinner"></div>
-            <p class="loading-screen__text">Cargando sistema…</p>
-        </div>
-    `;
+    loginBtn.textContent = '✓ Acceso concedido';
 
     setTimeout(() => {
-        switch (user.role) {
-            case 'Admin':
-                window.location.href = 'Admin-Home.html';
-                break;
+      document.body.innerHTML = `
+        <div class="loading-screen">
+          <div class="loading-screen__spinner"></div>
+          <p class="loading-screen__text">Cargando sistema…</p>
+        </div>
+      `;
+      setTimeout(() => {
+        const role = data.user.role;
+        if (role === 'admin')           window.location.href = 'Admin-Home.html';
+        else if (role === 'supervisor') window.location.href = 'Supervisor-Home.html';
+        else                            window.location.href = 'Seguridad-Home.html';
+      }, 1500);
+    }, 800);
 
-            case 'Supervisor':
-                window.location.href = 'Supervisor-Home.html';
-                break;
+  } catch (err) {
+    showError('Error de conexión. Intente nuevamente.');
+    loginBtn.disabled    = false;
+    loginBtn.textContent = 'Ingresar';
+  }
+}
 
-            case 'Seguridad':
-                window.location.href = 'Seguridad-Home.html';
-                break;
-        }
-    }, 1500);
-
-}, 800);
-
-} // ← cierre de handleLogin()
-
-// ─── Eventos ─────────────────────────────────────────────────────
 loginBtn.addEventListener('click', handleLogin);
 
-// Permitir login con Enter desde cualquier campo del formulario
 [usernameInput, passwordInput].forEach(input => {
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleLogin();
-  });
-
-  // Limpiar error al escribir
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
   input.addEventListener('input', clearError);
 });
