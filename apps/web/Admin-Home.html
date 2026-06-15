@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafePlace – Dashboard</title><link rel="stylesheet" href="Styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+
+<body> 
+  <div class="app">
+  <!-- BARRA LATERAL --> 
+    <aside class="sidebar">
+      <!-- Titulo y Logo -->
+      <div class="sidebar__brand">
+        <div class="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div><div class="sidebar__name">SafePlace</div><div class="sidebar__sub">BIOMETRIC MONITOR</div></div>
+      </div>
+
+    <!-- Navegación -->
+      <nav class="sidebar__nav">
+        <a class="nav-item nav-item--active" href="Admin-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
+        <a class="nav-item" href="Admin-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Empleados</a>
+        <a class="nav-item" href="Admin-RolesPermisos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Roles y Permisos</a>
+        <a class="nav-item" href="Admin-Configuración.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Configuración</a>
+      </nav>
+
+      <!-- Usuario logueado + cerrar sesión -->
+      <div class="sidebar__footer">
+        <div class="sidebar__user">
+          <div class="avatar avatar--sm">CM</div>
+            <div>
+              <div class="sidebar__user-name">Carlos Mendoza</div>   <!--PONER EL NOMBRE DEL QUE ENTRO-->
+              <div class="sidebar__user-role">Administrador</div>     <!--PONER EL ROL DEL QUE ENTRO-->
+            </div>
+        </div>
+        <a class="sidebar__logout" href='InicioSesion.html'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Cerrar sesión </a>
+      </div>
+
+    </aside>
+
+    <!-- BARRA SUPERIOR --> 
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title"> Home </div>
+        <div class="topbar__right">
+          <div class="status-dot"> <span class="dot dot--green"></span> En línea </div>
+          <div class="avatar"> CM </div> <!--PONER EL avatar-->
+        </div>
+      </header>
+
+      <!-- Bienvenida -->
+      <div class="welcome">
+        <h2 class="welcome__title">Bienvenido, Carlos</h2> <!-- Nombre del que inicio sesion -->
+        <p class="welcome__date" id="currentDate"></p> 
+      </div>
+
+      <!-- PANTALLA HOME -->
+      <section class="kpi-grid">
+
+        <div class="kpi-card kpi-card--teal">
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">TRABAJADORES MONITOREADOS</span>
+            <span class="kpi-card__value">7</span>
+            <span class="kpi-card__trend trend--up">↑ 12% vs. ayer</span>
+          </div>
+          <div class="kpi-card__icon kpi-card__icon--teal">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--red">
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">ALERTAS ACTIVAS</span>
+            <span class="kpi-card__value">3</span>
+          </div>
+          <div class="kpi-card__icon kpi-card__icon--red">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--orange">
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">RIESGOS DETECTADOS</span>
+            <span class="kpi-card__value">3</span><!-- Cantidad de dispositivos que detectaron un risgo -->
+          </div>
+          <div class="kpi-card__icon kpi-card__icon--orange">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--blue">
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">DISPOSITIVOS CONECTADOS</span>
+            <span class="kpi-card__value">5/7</span> <!-- Cantidad de dispositivos conectados -->
+          </div>
+          <div class="kpi-card__icon kpi-card__icon--blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+          </div>
+        </div>
+
+      </section>
+
+      <!--  GRÁFICAS  -->
+      <section class="charts-grid">
+
+        <!-- Alertas por día -->
+        <div class="card">
+          <div class="card__header">
+            <span class="card__icon-label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/> </svg>
+              Alertas por día (última semana)
+            </span>
+          </div>
+          <div class="card__body">
+            <canvas id="alertsChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Frecuencia cardíaca -->
+        <div class="card">
+          <div class="card__header">
+            <span class="card__icon-label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Frecuencia Cardíaca Promedio (hoy)
+            </span>
+          </div>
+          <div class="card__body">
+            <canvas id="heartChart" height="180"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="tables-grid">
+        <!-- Alertas Activas -->
+        <div class="card">
+          <div class="card__header">
+            <span class="card__title">Alertas Activas</span>
+            <span class="badge badge--neutral">3 alertas</span> <!-- Cantidades de Alertas Activas -->
+          </div>
+          <div class="card__body card__body--flush">
+            <ul class="alert-list" id="alertList">
+              <li class="alert-item">
+                <span class="dot dot--red"></span>
+                <div class="alert-item__info">
+                  <strong>Laura Rodríguez</strong>  <!-- Nombre de Trabajadores -->
+                  <span>Frecuencia cardíaca superior a 130 BPM durante más de 5 minutos</span> <!-- Razon por la que se activo la alerta -->
+                </div>
+                <span class="badge badge--critical">Crítico</span> <!-- Estado de Trabajadores -->
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Estado de Trabajadores -->
+        <div class="card">
+          <div class="card__header">
+            <span class="card__title">Estado de Trabajadores</span>
+            <span class="card__icon-label card__icon-label--sm"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Tiempo real
+            </span>
+          </div>
+          <div class="card__body card__body--flush">
+            <ul class="worker-list" id="workerList">
+              <li class="worker-item">
+                <div class="avatar avatar--sm">JP</div> <!-- Codigo del Trabajadores -->
+                <div class="worker-item__info">
+                  <strong>Juan Pérez</strong>  <!-- Nombre de Trabajadores -->
+                  <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    78 BPM <!-- Pulsaciones de Trabajadores --> 
+                  </span>
+                </div>
+                <span class="badge badge--normal">● Normal</span> <!-- Estado de Trabajadores -->
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <script src="Admin-Home.js"></script>
+</body>
+</html>

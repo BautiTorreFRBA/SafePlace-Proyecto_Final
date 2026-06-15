@@ -1112,3 +1112,320 @@ select.cfg-input {
 .cfg-saved--visible {
   opacity: 1;
 }
+
+/* ============================================================
+   ROLES Y PERMISOS
+   ============================================================ */
+
+/* Tabs de selección de rol */
+.roles-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 28px 20px;
+  flex-wrap: wrap;
+}
+
+.roles-tab {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.roles-tab:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.roles-tab--active {
+  background: var(--bg-card);
+  border-color: var(--teal-400);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Grid de tarjetas de módulos */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 28px 28px;
+}
+
+/* Tarjeta de módulo */
+.roles-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roles-card__header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.roles-card__header svg {
+  flex-shrink: 0;
+}
+
+/* Fila permiso: label + toggle */
+.roles-perm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle__track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle__track::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.toggle__input:checked + .toggle__track {
+  background: var(--teal-400);
+}
+
+.toggle__input:checked + .toggle__track::after {
+  transform: translateX(16px);
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .roles-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .roles-grid { grid-template-columns: 1fr; padding: 0 16px 20px; }
+  .roles-tabs { padding: 0 16px 16px; }
+}
+
+.roles-tab--active {
+  background: var(--bg-card-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ============================================================
+   MONITOREO EN TIEMPO REAL
+   ============================================================ */
+
+/* ── CAMPANA DE NOTIFICACIONES ──────────────────────────────── */
+
+.notif-bell {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.15s;
+}
+
+.notif-bell:hover {
+  color: var(--text-primary);
+}
+
+.notif-bell svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ── ENCABEZADO MONITOREO ──────────────────────────────────── */
+
+.mon-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 16px;
+}
+
+.mon-header__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.btn-actualizar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-actualizar:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+.btn-actualizar.spinning svg {
+  animation: spin-once 0.6s linear;
+}
+
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── TABLA MONITOREO ────────────────────────────────────────── */
+
+.mon-table-wrap {
+  padding: 0 28px 28px;
+  overflow-x: auto;
+}
+
+.mon-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.mon-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.mon-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.mon-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mon-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.mon-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.mon-emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mon-emp__name {
+  font-weight: 500;
+}
+
+.bpm-value {
+  font-weight: 700;
+}
+
+.bpm-value--normal   { color: var(--text-primary); }
+.bpm-value--warning  { color: var(--orange); }
+.bpm-value--critical { color: var(--red); }
+
+.mon-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+
+.mon-metric svg {
+  flex-shrink: 0;
+}
+
+.badge--disconnected {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
