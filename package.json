@@ -9,9 +9,14 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:backend\"",
+    "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:backend\" \"npm run dev:gateway\"",
     "dev:backend": "npm run dev --workspace=services/backend-api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:gateway": "npm run dev --workspace=services/gateway-ble",
     "test": "npm test --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
