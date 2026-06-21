@@ -1429,3 +1429,943 @@ select.cfg-input {
   background: rgba(248, 113, 113, 0.18);
   color: var(--red);
 }
+
+/* ============================================================
+   HISTORIAL DE MEDICIONES
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO + EXPORTACIÓN ───────────────────────────────── */
+
+.med-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 0;
+}
+
+.med-header__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.med-export {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-export:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+/* ── BARRA DE FILTROS ───────────────────────────────────────── */
+
+.med-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 28px;
+}
+
+.med-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.med-filter-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.med-select,
+.med-input-date {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+
+.med-select:focus,
+.med-input-date:focus {
+  border-color: var(--teal-500);
+}
+
+/* ── GRID DE GRÁFICAS ───────────────────────────────────────── */
+
+.med-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 28px;
+}
+
+/* ── TABLA DE MEDICIONES ────────────────────────────────────── */
+
+.med-table-wrap {
+  padding: 16px 28px 28px;
+  overflow-x: auto;
+}
+
+.med-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.med-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.med-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.med-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.med-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.med-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.med-table td {
+  padding: 13px 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Valor de FC con color destacado si es alto */
+.med-fc-value {
+  font-weight: 700;
+}
+
+.med-fc-value--alto {
+  color: var(--orange);
+}
+
+.med-fc-value--critico {
+  color: var(--red);
+}
+
+/* Columna de validez: Sí / No */
+.med-valid-si {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.med-valid-no {
+  color: var(--red);
+  font-weight: 500;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .med-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .med-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .med-export { width: 100%; }
+  .btn-export { flex: 1; justify-content: center; }
+  .med-filters { flex-direction: column; gap: 10px; padding: 12px 16px; }
+  .med-select, .med-input-date { min-width: 100%; }
+  .med-table-wrap { padding: 12px 16px 20px; }
+}
+
+/* ============================================================
+   HISTORIAL DE MEDICIONES
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO + EXPORTACIÓN ───────────────────────────────── */
+
+.med-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 0;
+}
+
+.med-header__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.med-export {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-export:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+/* ── BARRA DE FILTROS ───────────────────────────────────────── */
+
+.med-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 28px;
+}
+
+.med-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.med-filter-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.med-select,
+.med-input-date {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+
+.med-select:focus,
+.med-input-date:focus {
+  border-color: var(--teal-500);
+}
+
+/* ── GRID DE GRÁFICAS ───────────────────────────────────────── */
+
+.med-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 28px;
+}
+
+/* ── TABLA DE MEDICIONES ────────────────────────────────────── */
+
+.med-table-wrap {
+  padding: 16px 28px 28px;
+  overflow-x: auto;
+}
+
+.med-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.med-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.med-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.med-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.med-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.med-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.med-table td {
+  padding: 13px 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Valor de FC con color destacado si es alto */
+.med-fc-value {
+  font-weight: 700;
+}
+
+.med-fc-value--alto {
+  color: var(--orange);
+}
+
+.med-fc-value--critico {
+  color: var(--red);
+}
+
+/* Columna de validez: Sí / No */
+.med-valid-si {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.med-valid-no {
+  color: var(--red);
+  font-weight: 500;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .med-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .med-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .med-export { width: 100%; }
+  .btn-export { flex: 1; justify-content: center; }
+  .med-filters { flex-direction: column; gap: 10px; padding: 12px 16px; }
+  .med-select, .med-input-date { min-width: 100%; }
+  .med-table-wrap { padding: 12px 16px 20px; }
+}
+/* ============================================================
+   DISPOSITIVOS WEARABLE
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO ─────────────────────────────────────────────── */
+
+.wear-header {
+  padding: 20px 28px 0;
+}
+
+.wear-header__desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+/* ── SIMULACIÓN DE TRANSMISIÓN ──────────────────────────────── */
+
+.wear-simulation {
+  margin: 20px 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.wear-sim__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wear-sim__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 20px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* Tarjeta de dispositivo simulando transmisión */
+.wear-sim-card {
+  background: var(--bg-main);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.wear-sim-card__id {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.wear-sim-card__name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.wear-sim-card__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--green);
+  font-size: 0.75rem;
+}
+
+.wear-sim-card__status::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.wear-sim-card__packets {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* ── TABLA DE DISPOSITIVOS ──────────────────────────────────── */
+
+.wear-table-wrap {
+  padding: 0 28px 28px;
+  overflow-x: auto;
+}
+
+.wear-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.wear-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.wear-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wear-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.wear-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.wear-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.wear-table td {
+  padding: 13px 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Estado del dispositivo */
+.wear-badge-conectado {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--green);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wear-badge-conectado::before {
+  content: '● ';
+}
+
+.wear-badge-desconectado {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wear-badge-desconectado::before {
+  content: '● ';
+}
+
+.wear-badge-advertencia {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wear-badge-advertencia::before {
+  content: '● ';
+}
+
+/* BLE state badges */
+.wear-ble-vinculado {
+  background: rgba(45, 212, 191, 0.18);
+  color: var(--teal-400);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wear-ble-vinculado::before {
+  content: '● ';
+}
+
+.wear-ble-buscando {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wear-ble-buscando::before {
+  content: '● ';
+}
+
+/* Señal con ícono de dBm */
+.wear-signal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.wear-signal svg {
+  width: 12px;
+  height: 12px;
+}
+
+.wear-signal__strength {
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.wear-signal__quality {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  margin-left: 2px;
+}
+
+/* Barra de batería */
+.wear-battery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wear-battery__bar {
+  width: 60px;
+  height: 6px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.wear-battery__fill {
+  height: 100%;
+  background: var(--teal-400);
+  transition: width 0.3s;
+}
+
+.wear-battery__fill--low {
+  background: var(--orange);
+}
+
+.wear-battery__fill--critical {
+  background: var(--red);
+}
+
+.wear-battery__percent {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 30px;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .wear-sim__grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .wear-sim__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 700px) {
+  .wear-header { padding: 16px 16px 0; }
+  .wear-simulation { margin: 16px 16px; }
+  .wear-sim__grid { grid-template-columns: 1fr; }
+  .wear-table-wrap { padding: 0 16px 20px; }
+}
+
+/* ============================================================
+   PROCESAMIENTO DE DATOS
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO ─────────────────────────────────────────────── */
+
+.proc-header {
+  padding: 20px 28px 0;
+}
+
+.proc-header__desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+/* ── CONTENEDOR FLEX: TABLA + GRÁFICO ───────────────────────── */
+
+.proc-container {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  padding: 20px 28px 28px;
+}
+
+/* ── TABLA DE PROCESAMIENTO ─────────────────────────────────── */
+
+.proc-table-wrap {
+  overflow-x: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.proc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.proc-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.proc-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.proc-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.proc-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.proc-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.proc-table td {
+  padding: 12px 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Hora */
+.proc-hora {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Origen (ID dispositivo) */
+.proc-origen {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Tipo de medición */
+.proc-tipo {
+  color: var(--text-secondary);
+}
+
+/* Valor */
+.proc-valor {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Estado badges */
+.proc-badge-validado {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.proc-badge-validado::before {
+  content: '● ';
+  margin-right: 2px;
+}
+
+.proc-badge-marcado {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.proc-badge-marcado::before {
+  content: '● ';
+  margin-right: 2px;
+}
+
+.proc-badge-rechazado {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.proc-badge-rechazado::before {
+  content: '● ';
+  margin-right: 2px;
+}
+
+/* Detalle */
+.proc-detalle {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── GRÁFICO DONUT ──────────────────────────────────────────── */
+
+.proc-chart {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.proc-chart__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.proc-chart__canvas {
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proc-chart__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.proc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.proc-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.proc-legend-dot--validado {
+  background: var(--green);
+}
+
+.proc-legend-dot--rechazado {
+  background: var(--red);
+}
+
+.proc-chart__percent {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.proc-chart__label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .proc-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .proc-chart {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .proc-chart__canvas {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+@media (max-width: 700px) {
+  .proc-header { padding: 16px 16px 0; }
+  .proc-container { padding: 16px 16px 20px; }
+
+  .proc-chart {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .proc-chart__canvas {
+    width: 140px;
+    height: 140px;
+  }
+}

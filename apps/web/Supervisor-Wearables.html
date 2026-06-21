@@ -19,9 +19,9 @@
             <!-- Navegación -->
             <nav class="sidebar__nav">
             <a class="nav-item" href="Supervisor-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>  <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
-            <a class="nav-item nav-item--active" href="Supervisor-Monitoreo.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/> </svg> Monitoreo </a>
+            <a class="nav-item" href="Supervisor-Monitoreo.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/> </svg> Monitoreo </a>
             <a class="nav-item" href="Supervisor-Mediciones.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>  Mediciones </a>
-            <a class="nav-item" href="Supervisor-Wearables.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/> </svg> Wearables </a>
+            <a class="nav-item nav-item--active" href="Supervisor-Wearables.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/> </svg> Wearables </a>
             <a class="nav-item" href="Supervisor-Procesamiento.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <rect x="2" y="3" width="20" height="14" rx="2"/> <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/> </svg>  Procesamiento </a>
             <a class="nav-item" href="Supervisor-Notificaciones.html"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/> <path d="M13.73 21a2 2 0 0 1-3.46 0"/> </svg> Notificaciones </a>
             </nav>
@@ -42,7 +42,7 @@
         <!-- BARRA SUPERIOR --> 
         <main class="main">
             <header class="topbar">
-                <div class="topbar__title">Monitoreo en Tiempo Real</div>
+                <div class="topbar__title">Dispositivos Wearable</div>
                 <div class="topbar__right">
                     <div class="notif-bell"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/> <path d="M13.73 21a2 2 0 0 1-3.46 0"/> </svg> <span class="notif-badge" id="notifBadge">4</span> </div>
                     <div class="avatar">MG</div> <!--PONER EL avatar-->
@@ -52,68 +52,78 @@
             <!-- Encabezado de sección -->
             <div class="mon-header">
                 <div>
-                    <h2 class="welcome__title">Monitoreo de Trabajadores</h2> <p class="mon-header__status">
-                    <span class="dot dot--green"></span> Datos en tiempo real · Última actualización: <span id="lastUpdate">--:--:--</span>
+                    <h2 class="welcome__title">Dispositivos Wearable</h2> <p class="mon-header__status">
+                    <span class="dot dot--green"></span> Estado de conexión y diagnóstico BLE: <span id="lastUpdate">--:--:--</span>
                     </p>
                 </div>
                 <button class="btn-actualizar" id="btnActualizar"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"> <polyline points="23 4 23 10 17 10"/> <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/> </svg> Actualizar</button>
             </div>
 
-            <!-- KPI cards -->
+            <!-- PANTALLA -->
+            <!-- KPI Cards de dispositivos -->
             <section class="kpi-grid">
-                <div class="kpi-card kpi-card--teal">
+                <div class="kpi-card kpi-card--blue">
                     <div class="kpi-card__body">
-                        <span class="kpi-card__label">TRABAJADORES</span>
-                        <span class="kpi-card__value" id="kpiTrabajadores">7</span>
+                        <span class="kpi-card__label">CONECTADOS</span>
+                        <span class="kpi-card__value" id="kpiConectados">5/7</span>
                     </div>
-                    <div class="kpi-card__icon kpi-card__icon--teal"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/> </svg> </div>
+                    <div class="kpi-card__icon kpi-card__icon--blue"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg></div>
                 </div>
 
                 <div class="kpi-card kpi-card--red">
                     <div class="kpi-card__body">
-                        <span class="kpi-card__label">ALERTAS ACTIVAS</span>
-                        <span class="kpi-card__value" id="kpiAlertas">3</span>
+                        <span class="kpi-card__label">DESCONECTADOS</span>
+                        <span class="kpi-card__value" id="kpiDesconectados">2</span>
                     </div>
-                    <div class="kpi-card__icon kpi-card__icon--red"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/> <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                    <div class="kpi-card__icon kpi-card__icon--red"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><path d="M20.87 20.87a8 8 0 0 1-11.31-11.31"/><path d="M12 4a11.95 11.95 0 0 1 8.485 3.515M4.515 4.515A11.95 11.95 0 0 1 12 4"/></svg></div>
                 </div>
 
                 <div class="kpi-card kpi-card--orange">
                     <div class="kpi-card__body">
-                        <span class="kpi-card__label">ESTADO CRÍTICO</span>
-                        <span class="kpi-card__value" id="kpiCritico">1</span>
+                        <span class="kpi-card__label">BATERÍA BAJA</span>
+                        <span class="kpi-card__value" id="kpiBateria">1</span>
                     </div>
-                    <div class="kpi-card__icon kpi-card__icon--orange"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/> </svg> </div>
-                </div>
-
-                <div class="kpi-card kpi-card--blue">
-                    <div class="kpi-card__body">
-                        <span class="kpi-card__label">DISPOSITIVOS</span>
-                        <span class="kpi-card__value" id="kpiDispositivos">5/7</span>
-                    </div>
-                    <div class="kpi-card__icon kpi-card__icon--blue"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/> <path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/> </svg> </div>
+                    <div class="kpi-card__icon kpi-card__icon--orange"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="18" height="12" rx="2" ry="2"/><line x1="23" y1="13" x2="23" y2="11"/> </svg> </div>
                 </div>
             </section>
 
-            <!-- Tabla de trabajadores -->
-            <div class="mon-table-wrap">
-                <table class="mon-table">
-                    <thead>
-                        <tr>
-                            <th>EMPLEADO</th>
-                            <th>FRECUENCIA CARDÍACA</th>
-                            <th>ACTIVIDAD FÍSICA</th>
-                            <th>TEMP.</th>
-                            <th>SPO₂</th>
-                            <th>ESTADO</th>
-                            <th>ÚLTIMA ACTUALIZACIÓN</th>
-                        </tr>
-                    </thead>
-                    <tbody id="monTableBody">
-                    </tbody>
-                </table>
+            <!-- Simulación de Transmisión -->
+            <div class="wear-simulation">
+            <div class="wear-sim__header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+                </svg>
+                Simulación de Transmisión de Datos
+            </div>
+            <div class="wear-sim__grid" id="simGrid">
+                <!-- Dispositivos inyectados por Wearables.js -->
+            </div>
+            </div>
+
+            <!-- Tabla de dispositivos -->
+            <div class="wear-table-wrap">
+            <table class="wear-table">
+                <thead>
+                <tr>
+                    <th>ID DISPOSITIVO</th>
+                    <th>EMPLEADO</th>
+                    <th>ESTADO</th>
+                    <th>BLE</th>
+                    <th>SEÑAL</th>
+                    <th>BATERÍA</th>
+                    <th>ÚLTIMA SINCRONIZACIÓN</th>
+                </tr>
+                </thead>
+                <tbody id="wearTableBody">
+                <!-- Filas inyectadas por Wearables.js -->
+                </tbody>
+            </table>
             </div>
         </main>
     </div>
-    <script src="Supervisor-Monitoreo.js"></script>
+        <script src="Supervisor-Wearables.js"></script>
 </body>
 </html>
+
+
+        

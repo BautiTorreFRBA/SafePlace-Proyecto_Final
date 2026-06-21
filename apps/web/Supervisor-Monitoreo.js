@@ -1,26 +1,4 @@
-/* ============================================================
-   SAFEPLACE – MONITOREO.JS
-   ------------------------------------------------------------
-   Maneja la pantalla de Monitoreo en Tiempo Real:
-     1. Datos simulados de trabajadores con métricas biométricas
-     2. Render de la tabla con colores según estado
-     3. Actualización automática cada 10 segundos (polling)
-     4. Botón "Actualizar" con animación de spinner
-     5. KPIs calculados dinámicamente desde los datos
-   ============================================================ */
-
-
-/* ------------------------------------------------------------
-   1. DATOS SIMULADOS
-   ------------------------------------------------------------
-   Cada trabajador tiene:
-     bpm        → frecuencia cardíaca actual (null = desconectado)
-     actividad  → nivel de actividad física
-     temp       → temperatura corporal
-     spo2       → saturación de oxígeno
-     estado     → 'normal' | 'warning' | 'critical' | 'disconnected'
-     hora       → última actualización del dispositivo
-   ------------------------------------------------------------ */
+/* DATOS SIMULADOS */
 const trabajadores = [
   { id: 'JP', nombre: 'Juan Pérez',      bpm: 75,  actividad: 'Moderada',     temp: '36.5°C', spo2: '98%', estado: 'normal',       hora: null },
   { id: 'AM', nombre: 'Ana Martínez',    bpm: 113, actividad: 'Alta',         temp: '37.2°C', spo2: '96%', estado: 'warning',      hora: null },
@@ -32,9 +10,7 @@ const trabajadores = [
 ];
 
 
-/* ------------------------------------------------------------
-   2. CONFIGURACIÓN DE BADGES Y COLORES POR ESTADO
-   ------------------------------------------------------------ */
+/*CONFIGURACIÓN DE BADGES Y COLORES POR ESTADO */
 const ESTADO_CONFIG = {
   normal:       { cls: 'badge--normal',       label: '● Normal' },
   warning:      { cls: 'badge--warning',       label: '● Advertencia' },
@@ -51,9 +27,7 @@ const BPM_COLOR = {
 };
 
 
-/* ------------------------------------------------------------
-   3. OBTENER HORA ACTUAL FORMATEADA HH:MM:SS
-   ------------------------------------------------------------ */
+/*  OBTENER HORA ACTUAL FORMATEADA HH:MM:SS */
 function horaActual() {
   const now = new Date();
   return [now.getHours(), now.getMinutes(), now.getSeconds()]
@@ -62,9 +36,7 @@ function horaActual() {
 }
 
 
-/* ------------------------------------------------------------
-   4. RENDER DE LA TABLA
-   ------------------------------------------------------------ */
+/* ENDER DE LA TABLA */
 function renderTabla() {
   const tbody = document.getElementById('monTableBody');
   const ahora = horaActual();
@@ -131,12 +103,7 @@ function renderTabla() {
 }
 
 
-/* ------------------------------------------------------------
-   5. ACTUALIZAR KPIs
-   ------------------------------------------------------------
-   Calcula los valores de las 4 tarjetas superiores a partir
-   del array de trabajadores para que sean siempre coherentes.
-   ------------------------------------------------------------ */
+/* ACTUALIZAR KPIs */
 function actualizarKPIs() {
   const activos   = trabajadores.filter(t => t.estado !== 'disconnected').length;
   const alertas   = trabajadores.filter(t => t.estado === 'warning' || t.estado === 'critical').length;
@@ -154,9 +121,7 @@ function actualizarKPIs() {
 }
 
 
-/* ------------------------------------------------------------
-   6. FUNCIÓN DE ACTUALIZACIÓN COMPLETA
-   ------------------------------------------------------------ */
+/* FUNCIÓN DE ACTUALIZACIÓN COMPLETA */
 function actualizarPantalla() {
   renderTabla();
   actualizarKPIs();
@@ -164,9 +129,7 @@ function actualizarPantalla() {
 }
 
 
-/* ------------------------------------------------------------
-   7. BOTÓN "ACTUALIZAR" CON ANIMACIÓN
-   ------------------------------------------------------------ */
+/* BOTÓN "ACTUALIZAR" CON ANIMACIÓN */
 document.getElementById('btnActualizar').addEventListener('click', function () {
   // Agregamos clase que dispara la animación CSS de rotación
   this.classList.add('spinning');
@@ -180,18 +143,9 @@ document.getElementById('btnActualizar').addEventListener('click', function () {
 });
 
 
-/* ------------------------------------------------------------
-   8. POLLING AUTOMÁTICO CADA 10 SEGUNDOS
-   ------------------------------------------------------------
-   Simula la recepción de datos en tiempo real.
-   En producción esto se reemplazaría por un WebSocket:
-     const ws = new WebSocket('wss://api.safeplace.com/monitor');
-     ws.onmessage = (e) => { Object.assign(trabajadores, JSON.parse(e.data)); actualizarPantalla(); };
-   ------------------------------------------------------------ */
+/* POLLING AUTOMÁTICO CADA 10 SEGUNDOS */
 setInterval(actualizarPantalla, 10_000);
 
 
-/* ------------------------------------------------------------
-   9. INIT
-   ------------------------------------------------------------ */
+/* INIT */
 actualizarPantalla();
