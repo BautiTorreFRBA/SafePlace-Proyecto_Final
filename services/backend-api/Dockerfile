@@ -32,4 +32,4 @@ EXPOSE 3000
 
 # Nos movemos a la carpeta del backend para ejecutar el script
 WORKDIR /app/services/backend-api
-CMD ["node", "src/app.js"]
+CMD ["node", "src/server.js"]
