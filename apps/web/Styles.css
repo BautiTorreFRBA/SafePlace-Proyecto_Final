@@ -2575,3 +2575,576 @@ select.cfg-input {
     padding: 14px;
   }
 }
+
+/* ============================================================
+   DASHBOARD - ESTILOS ADICIONALES
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── BIENVENIDA ─────────────────────────────────────────────── */
+
+.welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+}
+
+.welcome__greeting {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.welcome__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.welcome__badge {
+  background: rgba(45, 212, 191, 0.18);
+  color: var(--teal-400);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* KPI Card con cambio */
+.kpi-card__change {
+  font-size: 0.75rem;
+  color: var(--green);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ── GRID DE DASHBOARD ──────────────────────────────────────── */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 28px 28px;
+}
+
+/* Cards generales */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card__icon-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card__icon-label svg {
+  flex-shrink: 0;
+}
+
+.card__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.card__body {
+  padding: 16px 20px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.card__body canvas {
+  max-width: 100%;
+}
+
+/* ── ITEMS DE ALERTA ────────────────────────────────────────── */
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-item__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.alert-item__dot--critico {
+  background: var(--red);
+}
+
+.alert-item__dot--advertencia {
+  background: var(--orange);
+}
+
+.alert-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-item__name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.alert-item__desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.alert-item badge {
+  flex-shrink: 0;
+}
+
+/* ── ITEMS DE TRABAJADOR ────────────────────────────────────── */
+
+.worker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.worker-item:last-child {
+  border-bottom: none;
+}
+
+.worker-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.worker-item__name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 3px;
+}
+
+.worker-item__bpm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.worker-item__bpm svg {
+  color: var(--teal-400);
+}
+
+/* Badges de estado */
+.badge {
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge--normal {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--green);
+}
+
+.badge--normal::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.badge--warning {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.badge--warning::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.badge--critical {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
+
+.badge--critical::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px;
+  }
+
+  .welcome__greeting {
+    font-size: 1.4rem;
+  }
+
+  .dashboard-grid { padding: 0 16px 20px; }
+}
+
+/* ============================================================
+   ALERTAS ACTIVAS
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO ─────────────────────────────────────────────── */
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+}
+
+.alert-header__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.alert-filter {
+  display: flex;
+  gap: 8px;
+}
+
+.alert-select {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.alert-select:hover,
+.alert-select:focus {
+  border-color: var(--teal-500);
+}
+
+/* ── TABLA DE ALERTAS ───────────────────────────────────────── */
+
+.alert-table-wrap {
+  padding: 0 28px 28px;
+  overflow-x: auto;
+}
+
+.alert-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.alert-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.alert-table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.alert-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.alert-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.alert-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.alert-table td {
+  padding: 14px 20px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+/* Celda de prioridad (badge) */
+.alert-td-prioridad {
+  width: 120px;
+}
+
+.alert-badge-prioridad {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.alert-badge-prioridad::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.alert-badge-critico {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
+
+.alert-badge-advertencia {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+/* Celda de tipo (triángulo + texto) */
+.alert-td-tipo {
+  width: 140px;
+}
+
+.alert-tipo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.alert-tipo svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.alert-tipo--critico svg {
+  color: var(--red);
+}
+
+.alert-tipo--advertencia svg {
+  color: var(--orange);
+}
+
+/* Celda de empleado */
+.alert-td-empleado {
+  width: 160px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Celda de fecha */
+.alert-td-fecha {
+  width: 140px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Celda de estado (badge) */
+.alert-td-estado {
+  width: 120px;
+}
+
+.alert-badge-estado {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.alert-badge-estado::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.alert-badge-activo {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--green);
+}
+
+.alert-badge-enrevision {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.alert-badge-cerrada {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--text-muted);
+}
+
+/* Celda de acciones */
+.alert-td-acciones {
+  width: auto;
+}
+
+.alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alert-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.alert-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Botón Ver */
+.alert-btn--ver {
+  color: var(--text-secondary);
+}
+
+.alert-btn--ver:hover {
+  background: rgba(96, 165, 250, 0.1);
+  color: var(--blue);
+}
+
+/* Botón Revisar */
+.alert-btn--revisar {
+  color: var(--text-secondary);
+}
+
+.alert-btn--revisar:hover {
+  background: rgba(74, 222, 128, 0.1);
+  color: var(--green);
+}
+
+.alert-btn--revisar:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.alert-btn--revisar:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+/* Botón Cerrar */
+.alert-btn--cerrar {
+  color: var(--text-secondary);
+}
+
+.alert-btn--cerrar:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--red);
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .alert-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .alert-filter {
+    width: 100%;
+  }
+
+  .alert-select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .alert-header { padding: 16px 16px; }
+  .alert-table-wrap { padding: 0 16px 20px; }
+  
+  .alert-table th,
+  .alert-table td {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+
+  .alert-td-prioridad,
+  .alert-td-tipo,
+  .alert-td-empleado,
+  .alert-td-fecha,
+  .alert-td-estado {
+    width: auto;
+  }
+
+  .alert-actions {
+    gap: 6px;
+  }
+
+  .alert-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .alert-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+}
