@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafePlace – Monitoreo</title>
+  <title>SafePlace – Notificaciones</title>
   <link rel="stylesheet" href="Styles.css" />
 </head>
 
@@ -52,17 +52,28 @@
             <!-- Encabezado de sección -->
             <div class="mon-header">
                 <div>
-                    <h2 class="welcome__title">Monitoreo de Trabajadores</h2> <p class="mon-header__status">
-                    <span class="dot dot--green"></span> Datos en tiempo real · Última actualización: <span id="lastUpdate">--:--:--</span>
-                    </p>
+                    <h2 class="welcome__title">Notificaciones</h2> <p class="mon-header__status">
                 </div>
                 <button class="btn-actualizar" id="btnActualizar"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"> <polyline points="23 4 23 10 17 10"/> <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/> </svg> Actualizar</button>
             </div>
 
-             <!-- PANTALLA -->
-
+            <!-- PANTALLA -->
+            <!-- Encabezado de sección -->
+            <div class="notif-header">
+                <div>
+                    <h2 class="welcome__title">Notificaciones</h2>
+                    <p class="notif-header__count" id="notifCount">4 sin leer</p> <!-- Cantidad de notificaciones por leer -->
+                </div>
+                <button class="notif-btn-leer" id="btnLeerTodas"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"> <polyline points="20 6 9 17 4 12"/></svg> Marcar todas como leídas </button>
+            </div>
+                
+            <!-- Lista de notificaciones -->
+            <div class="notif-list" id="notifList">
+                <!-- Notificaciones inyectadas por Notificaciones.js -->
+            </div>
         </main>
     </div>
+    <script src="Supervisor-Notificaciones.js"></script>
 </body>
 </html>
 

@@ -2369,3 +2369,209 @@ select.cfg-input {
     height: 140px;
   }
 }
+
+/* ============================================================
+   NOTIFICACIONES
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO ─────────────────────────────────────────────── */
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+}
+
+.notif-header__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.notif-btn-leer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.notif-btn-leer:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+/* ── LISTA DE NOTIFICACIONES ────────────────────────────────── */
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 28px 28px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* ── TARJETA DE NOTIFICACIÓN ────────────────────────────────── */
+
+.notif-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  transition: background 0.15s, border-left-color 0.15s;
+  cursor: pointer;
+  position: relative;
+}
+
+.notif-card:hover {
+  background: var(--bg-card-alt);
+}
+
+/* Border left por tipo de notificación */
+.notif-card--critico {
+  border-left-color: var(--red);
+}
+
+.notif-card--advertencia {
+  border-left-color: var(--orange);
+}
+
+.notif-card--info {
+  border-left-color: var(--blue);
+}
+
+/* Ícono de notificación */
+.notif-card__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+
+.notif-card__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.notif-card--critico .notif-card__icon {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
+
+.notif-card--advertencia .notif-card__icon {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.notif-card--info .notif-card__icon {
+  background: rgba(96, 165, 250, 0.18);
+  color: var(--blue);
+}
+
+/* Contenido de la notificación */
+.notif-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-card__title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+
+.notif-card__desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.notif-card__time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notif-card__time svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Indicador de no leído (punto verde a la derecha) */
+.notif-card__unread {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--teal-400);
+  border-radius: 50%;
+  margin-top: 4px;
+}
+
+.notif-card.notif-card--leido .notif-card__unread {
+  display: none;
+}
+
+/* ── SCROLLBAR PERSONALIZADO ────────────────────────────────── */
+
+.notif-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notif-list::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+.notif-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.notif-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .notif-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px;
+  }
+
+  .notif-btn-leer {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .notif-list {
+    padding: 0 16px 20px;
+  }
+
+  .notif-card {
+    padding: 14px;
+  }
+}
