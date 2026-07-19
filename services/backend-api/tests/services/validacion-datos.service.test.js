@@ -80,9 +80,8 @@ describe('Servicio de Validación de Datos (unitario)', () => {
     // idTrabajador resuelto desde la asignación vigente, no confiado del gateway
     expect(medicion.idTrabajador).toBe(42);
     expect(medicion.idDispositivo).toBe(7);
-    // fechaHora oficial la asigna el backend (RF-03); la captura se conserva aparte
-    expect(medicion.fechaHora).toBeInstanceOf(Date);
-    expect(medicion.fechaHoraCaptura).toEqual(new Date('2026-07-18T12:00:00.000Z'));
+    // fecha_hora = timestamp declarado por el paquete (única marca de tiempo del DER)
+    expect(medicion.fechaHora).toEqual(new Date('2026-07-18T12:00:00.000Z'));
     expect(medicion.frecuenciaCardiaca).toBe(88);
 
     expect(logAuditoriaRepository.registrar).not.toHaveBeenCalled();

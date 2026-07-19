@@ -85,8 +85,7 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
     expect(res.status).toBe(401);
   });
 
-  it('paquete válido: 201, persiste con timestamp de recepción del backend y trabajador resuelto', async () => {
-    const antes = new Date();
+  it('paquete válido: 201, persiste con el timestamp del paquete y trabajador resuelto', async () => {
     const res = await postMedicion(paqueteValido());
     expect(res.status).toBe(201);
 
@@ -94,10 +93,8 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
     expect(medicion.id_trabajador).toBe(trabajador.id);
     expect(medicion.id_dispositivo).toBe(dispositivo.id);
     expect(medicion.frecuencia_cardiaca).toBe(88);
-    // fecha_hora oficial: asignada por el backend al recibir (RF-03)
-    expect(new Date(medicion.fecha_hora).getTime()).toBeGreaterThanOrEqual(antes.getTime() - 1000);
-    // la marca de captura del dispositivo se conserva como dato adicional
-    expect(new Date(medicion.fecha_hora_captura).toISOString()).toBe('2026-07-18T12:00:00.000Z');
+    // fecha_hora = timestamp declarado por el paquete (única marca de tiempo del DER)
+    expect(new Date(medicion.fecha_hora).toISOString()).toBe('2026-07-18T12:00:00.000Z');
 
     expect(await contarFilas('medicion')).toBe(1);
     expect(await contarDescartesAuditados()).toBe(0);
