@@ -2,9 +2,13 @@ const medicionesService = require('../services/mediciones.service');
 
 const crearMedicion = async (req, res, next) => {
   try {
-    const data = req.body;
-    // data esperada: { deviceId, workerId, heartRate, stressLevel, timestamp }
-    const nuevaMedicion = await medicionesService.registrarMedicion(data);
+    // Paquete del gateway (ver contrato en services/validacion/validacion-datos.service.js):
+    // { idDispositivo, timestamp, frecuenciaCardiaca, nivelActividad,
+    //   nivelInactividad, temperaturaCorporal, spo2 }
+    // idTrabajador y fechaHora oficial los resuelve la validación (RF-03/RF-04).
+    const nuevaMedicion = await medicionesService.registrarMedicion(req.body, {
+      ipOrigen: req.ip,
+    });
     res.status(201).json({ message: 'Medición registrada exitosamente', data: nuevaMedicion });
   } catch (error) {
     next(error);
