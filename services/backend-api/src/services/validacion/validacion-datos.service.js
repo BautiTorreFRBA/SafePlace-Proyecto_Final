@@ -29,10 +29,12 @@ const { ErrorValidacion, MOTIVOS } = require('./errores');
  *   }
  *
  * Salida (paquete válido): la medición normalizada lista para el Servicio de
- * Almacenamiento, con fechaHora = timestamp de RECEPCIÓN asignado por el
- * backend (RF-03; el timestamp del dispositivo se conserva como
- * fechaHoraCaptura, dato adicional) e idTrabajador resuelto desde la
- * asignación vigente del dispositivo (no se confía en el emisor).
+ * Almacenamiento, con fechaHora = timestamp declarado por el paquete (decisión
+ * de equipo del 18/07/2026: medicion se mantiene tal cual el DER, con
+ * fecha_hora como única marca de tiempo; desviación documentada respecto de
+ * RF-03, que preveía una marca asignada por el backend) e idTrabajador
+ * resuelto desde la asignación vigente del dispositivo (no se confía en el
+ * emisor).
  *
  * Salida (paquete inválido): lanza ErrorValidacion tipado con motivo; el
  * orquestador (mediciones.service) audita el descarte salvo en el bloqueo
@@ -106,9 +108,9 @@ const validarRangoBiologico = async (paquete) => {
   }
 };
 
-// 4. Duplicados: mismo wearable + misma marca de captura ya persistida
+// 4. Duplicados: mismo wearable + misma marca de tiempo ya persistida
 //    (ver justificación del criterio en la migración
-//    20260719000001_add-medicion-fecha-captura.js). Consulta por índice único.
+//    20260719000001_add-medicion-duplicados-index.js). Consulta por índice único.
 const validarDuplicado = async (paquete) => {
   const duplicado = await medicionRepository.existeDuplicado(
     paquete.idDispositivo,
@@ -166,7 +168,7 @@ const PIPELINE = [
  * Ejecuta el pipeline completo. Devuelve la medición normalizada para el
  * Servicio de Almacenamiento o lanza ErrorValidacion.
  */
-const validarPaquete = async (paquete, { fechaRecepcion = new Date() } = {}) => {
+const validarPaquete = async (paquete) => {
   const contexto = {};
   for (const validar of PIPELINE) {
     await validar(paquete, contexto);
@@ -175,8 +177,7 @@ const validarPaquete = async (paquete, { fechaRecepcion = new Date() } = {}) => 
   return {
     idTrabajador: contexto.idTrabajador,
     idDispositivo: paquete.idDispositivo,
-    fechaHora: fechaRecepcion, // timestamp oficial de recepción (RF-03)
-    fechaHoraCaptura: new Date(paquete.timestamp),
+    fechaHora: new Date(paquete.timestamp), // timestamp declarado por el paquete (ver docstring)
     frecuenciaCardiaca: paquete.frecuenciaCardiaca,
     nivelActividad: paquete.nivelActividad ?? null,
     nivelInactividad: paquete.nivelInactividad ?? null,
@@ -204,7 +205,7 @@ const auditarDescarte = async (paquete, error, { ipOrigen } = {}) => {
       motivo: error.motivo,
       mensaje: error.message,
       idDispositivo: paquete && esNumeroFinito(paquete.idDispositivo) ? paquete.idDispositivo : null,
-      timestampCaptura: paquete && paquete.timestamp ? String(paquete.timestamp) : null,
+      timestampPaquete: paquete && paquete.timestamp ? String(paquete.timestamp) : null,
       hashPaquete: hashPaquete(JSON.stringify(paquete ?? null)),
     };
     await logAuditoriaRepository.registrar({
@@ -230,7 +231,7 @@ const auditarPaqueteCorrupto = async ({ ipOrigen, cuerpoCrudo } = {}) => {
       motivo: MOTIVOS.ESTRUCTURA_INVALIDA,
       mensaje: 'JSON corrupto: el cuerpo del paquete no pudo parsearse.',
       idDispositivo: null,
-      timestampCaptura: null,
+      timestampPaquete: null,
       hashPaquete: hashPaquete(cuerpoCrudo || ''),
     };
     await logAuditoriaRepository.registrar({

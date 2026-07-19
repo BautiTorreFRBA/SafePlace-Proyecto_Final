@@ -1,9 +1,9 @@
 const db = require('../config/database');
 
-// ON CONFLICT DO NOTHING sobre el índice único (id_dispositivo,
-// fecha_hora_captura): si dos paquetes idénticos llegan en paralelo y ambos
-// pasan la validación de duplicados, el segundo INSERT devuelve undefined en
-// lugar de duplicar la fila (H0008: "No se aceptan registros duplicados").
+// ON CONFLICT DO NOTHING sobre el índice único (id_dispositivo, fecha_hora):
+// si dos paquetes idénticos llegan en paralelo y ambos pasan la validación de
+// duplicados, el segundo INSERT devuelve undefined en lugar de duplicar la
+// fila (H0008: "No se aceptan registros duplicados").
 const crear = async (data) => {
   const {
     idTrabajador,
@@ -14,19 +14,16 @@ const crear = async (data) => {
     temperaturaCorporal,
     spo2,
     fechaHora,
-    fechaHoraCaptura,
   } = data;
 
   const query = `
     INSERT INTO medicion (
-      id_trabajador, id_dispositivo, fecha_hora, fecha_hora_captura,
+      id_trabajador, id_dispositivo, fecha_hora,
       frecuencia_cardiaca, nivel_actividad, nivel_inactividad,
       temperatura_corporal, spo2
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    ON CONFLICT (id_dispositivo, fecha_hora_captura)
-      WHERE fecha_hora_captura IS NOT NULL
-      DO NOTHING
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT (id_dispositivo, fecha_hora) DO NOTHING
     RETURNING *;
   `;
 
@@ -34,7 +31,6 @@ const crear = async (data) => {
     idTrabajador,
     idDispositivo,
     fechaHora || new Date(),
-    fechaHoraCaptura || null,
     frecuenciaCardiaca,
     nivelActividad,
     nivelInactividad,
@@ -47,11 +43,11 @@ const crear = async (data) => {
 };
 
 // Chequeo de duplicados de la etapa de validación (RF-04/H0008); resuelto
-// por el índice único parcial, sin escaneo de tabla (RNF-01).
-const existeDuplicado = async (idDispositivo, fechaHoraCaptura) => {
+// por el índice único, sin escaneo de tabla (RNF-01).
+const existeDuplicado = async (idDispositivo, fechaHora) => {
   const res = await db.query(
-    'SELECT 1 FROM medicion WHERE id_dispositivo = $1 AND fecha_hora_captura = $2 LIMIT 1;',
-    [idDispositivo, fechaHoraCaptura],
+    'SELECT 1 FROM medicion WHERE id_dispositivo = $1 AND fecha_hora = $2 LIMIT 1;',
+    [idDispositivo, fechaHora],
   );
   return res.rowCount > 0;
 };
