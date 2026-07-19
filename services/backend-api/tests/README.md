@@ -1,10 +1,6 @@
-# Tests del backend
+# Tests de integración — capa de acceso a datos
 
-Tres grupos:
-
-- `tests/repositories/` — integración de la capa de acceso a datos: corren contra una base PostgreSQL real (no mocks de `pg`), con datos de entrada mockeados (`tests/fixtures/mockEntities.js`).
-- `tests/services/` — unitarios del Servicio de Validación de Datos (RF-04/H0008), con repositorios mockeados; no requieren base de datos, pero la suite completa sí (ver abajo).
-- `tests/integration/` — end-to-end de la ingesta: paquete del gateway simulado vía `POST /api/v1/mediciones` (supertest) contra la base de test, verificando persistencia en `medicion` y auditoría de descartes en `log_auditoria` (CP-VAL-001).
+Suite de tests de integración (Jest) para los repositorios de `src/repositories/`. Corren contra una base PostgreSQL real (no mocks de `pg`), con datos de entrada mockeados (`tests/fixtures/mockEntities.js`) que simulan los payloads que llegarían de la app, para verificar que cada entidad se persiste y se puede recuperar correctamente.
 
 ## Requisitos
 
