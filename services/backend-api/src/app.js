@@ -25,7 +25,15 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+// verify conserva el cuerpo crudo: si el JSON es corrupto, el manejador de
+// errores audita el descarte con el hash del paquete original (RF-04/H0008).
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 // Routes
 const API_PREFIX = '/api/v1';
