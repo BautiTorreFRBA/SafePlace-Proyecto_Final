@@ -1,9 +1,7 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
+const authController = require('../controllers/auth.controller');
 
-// TODO: Link to auth controller
-router.post('/login', (req, res) => {
-  res.status(200).json({ message: 'Login placeholder' });
-});
+router.post('/login', authController.login);
 
 module.exports = router;

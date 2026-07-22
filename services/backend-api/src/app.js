@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const errorMiddleware = require('./middlewares/error.middleware');
 
@@ -13,9 +13,14 @@ const healthRoutes = require('./routes/health.routes');
 const app = express();
 
 // Middlewares
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = [process.env.CORS_ORIGIN || 'http://localhost:3000'];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
