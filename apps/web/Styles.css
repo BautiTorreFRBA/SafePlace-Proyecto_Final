@@ -3148,3 +3148,296 @@ select.cfg-input {
     height: 12px;
   }
 }
+
+/* ============================================================
+   HISTORIAL DE ALERTAS
+   Agregar al final de Styles.css
+   ============================================================ */
+
+/* ── ENCABEZADO ─────────────────────────────────────────────── */
+
+.hist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 0;
+}
+
+.hist-header__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.hist-export {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-export:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+}
+
+/* ── FILTROS ────────────────────────────────────────────────── */
+
+.hist-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 28px;
+}
+
+.hist-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hist-filter-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hist-input,
+.hist-select {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 160px;
+}
+
+.hist-input:focus,
+.hist-select:focus {
+  border-color: var(--teal-500);
+}
+
+.hist-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── GRÁFICAS ───────────────────────────────────────────────── */
+
+.hist-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 28px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card__body {
+  padding: 16px 20px;
+  max-height: 300px;
+}
+
+.card__body canvas {
+  max-width: 100%;
+}
+
+/* ── TABLA DE HISTORIAL ─────────────────────────────────────── */
+
+.hist-table-wrap {
+  padding: 16px 28px 28px;
+  overflow-x: auto;
+}
+
+.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.hist-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.hist-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hist-table tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+
+.hist-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.hist-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.hist-table td {
+  padding: 13px 20px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+/* Badge de severidad */
+.hist-badge-severidad {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hist-badge-severidad::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.hist-badge-critico {
+  background: rgba(248, 113, 113, 0.18);
+  color: var(--red);
+}
+
+.hist-badge-advertencia {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.hist-badge-info {
+  background: rgba(96, 165, 250, 0.18);
+  color: var(--blue);
+}
+
+/* Celda de tipo */
+.hist-td-tipo {
+  color: var(--text-secondary);
+}
+
+/* Celda de empleado */
+.hist-td-empleado {
+  font-weight: 500;
+}
+
+/* Celda de fecha */
+.hist-td-fecha {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Badge de estado */
+.hist-badge-estado {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hist-badge-estado::before {
+  content: '● ';
+  margin-right: 3px;
+}
+
+.hist-badge-activo {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--green);
+}
+
+.hist-badge-enrevision {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.hist-badge-cerrada {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--text-muted);
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .hist-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .hist-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px 0;
+  }
+
+  .hist-export {
+    width: 100%;
+  }
+
+  .btn-export {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .hist-filters {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .hist-input,
+  .hist-select {
+    min-width: 100%;
+  }
+
+  .hist-charts { padding: 0 16px; }
+  .hist-table-wrap { padding: 16px 16px 20px; }
+}
