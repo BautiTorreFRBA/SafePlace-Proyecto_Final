@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:backend\"",
     "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:backend\" \"npm run dev:gateway\"",
+    "predev:backend": "docker compose up -d postgres",
     "dev:backend": "npm run dev --workspace=services/backend-api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:gateway": "npm run dev --workspace=services/gateway-ble",

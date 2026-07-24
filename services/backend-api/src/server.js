@@ -6,13 +6,16 @@ dotenv.config({
 });
 
 const app = require('./app');
-const { connectDB } = require('./database/connection');
+const { getPool } = require('./config/database');
 
 const PORT = process.env.PORT || 8000;
 
 async function startServer() {
   try {
-    await connectDB();
+    const client = await getPool().connect();
+    console.log('[Backend API] Connected to PostgreSQL');
+    client.release();
+
     app.listen(PORT, () => {
       console.log(`[Backend API] Server is running on port ${PORT}`);
     });

@@ -11,11 +11,14 @@ const getPool = () => {
       throw new Error("DATABASE_URL no está definida en las variables de entorno.");
     }
 
+    // Neon (y producción en general) requieren TLS; el Postgres local de
+    // docker-compose no lo expone, así que solo forzamos SSL contra Neon.
+    const requiereSSL = process.env.DATABASE_URL.includes('neon.tech')
+      || process.env.NODE_ENV === 'production';
+
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: true, // Requerido por Neon Serverless para asegurar el cifrado
-      },
+      ssl: requiereSSL ? { rejectUnauthorized: true } : false,
       max: 20, // Máximo de conexiones simultáneas por instancia
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
