@@ -20,11 +20,7 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60_000);
 
-
 /*  CONFIGURACIÓN GLOBAL DE GRAFICOS */
-
-// Colores extraídos de las CSS variables (los replicamos en JS
-// porque Chart.js no lee variables CSS directamente)
 const COLORS = {
   teal:       '#2dd4bf',
   tealFill:   'rgba(45, 212, 191, 0.10)',
@@ -38,13 +34,11 @@ const COLORS = {
   tooltip:    '#413a3a',
 };
 
-// Tipografía base para todos los labels de Chart.js
 Chart.defaults.color = COLORS.tickColor;
 Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
 Chart.defaults.font.size   = 11;
 
 /* GRÁFICA DE BARRAS – Alertas por día (última semana) */
-
 const alertsCtx = document.getElementById('alertsChart').getContext('2d');
 
 new Chart(alertsCtx, {
@@ -134,21 +128,9 @@ new Chart(alertsCtx, {
   },
 });
 
-
-/* ------------------------------------------------------------
-   4. GRÁFICA DE LÍNEA – Frecuencia Cardíaca Promedio (hoy)
-   ------------------------------------------------------------
-   Muestra la evolución del BPM promedio del equipo a lo largo
-   del día (de 00:00 a 20:00, cada 4 horas).
-
-   Incluye una línea de referencia de umbral crítico (130 BPM)
-   implementada como un dataset separado con estilo punteado.
-   ------------------------------------------------------------ */
-
+/* GRÁFICA DE LÍNEA – Frecuencia Cardíaca Promedio (hoy) */
 const heartCtx = document.getElementById('heartChart').getContext('2d');
 
-// Generamos un gradiente de relleno debajo de la curva para dar
-// profundidad visual sin distraer del dato principal
 const gradient = heartCtx.createLinearGradient(0, 0, 0, 200);
 gradient.addColorStop(0,   'rgba(45, 212, 191, 0.20)');
 gradient.addColorStop(1,   'rgba(45, 212, 191, 0.00)');
@@ -157,8 +139,7 @@ new Chart(heartCtx, {
   type: 'line',
 
   data: {
-    // Horas del día en el eje X
-    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],// Horas del día en el eje X
 
     datasets: [
       {

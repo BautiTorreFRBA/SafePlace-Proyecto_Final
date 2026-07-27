@@ -20,11 +20,8 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 60_000);
 
-
 /*  CONFIGURACIÓN GLOBAL DE GRAFICOS */
 
-// Colores extraídos de las CSS variables (los replicamos en JS
-// porque Chart.js no lee variables CSS directamente)
 const COLORS = {
   teal:       '#2dd4bf',
   tealFill:   'rgba(45, 212, 191, 0.10)',
@@ -38,7 +35,6 @@ const COLORS = {
   tooltip:    '#413a3a',
 };
 
-// Tipografía base para todos los labels de Chart.js
 Chart.defaults.color = COLORS.tickColor;
 Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
 Chart.defaults.font.size   = 11;
@@ -51,8 +47,7 @@ new Chart(alertsCtx, {
   type: 'bar',
 
   data: {
-    // Días de la semana abreviados (eje X)
-    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],// Días de la semana abreviados (eje X)
 
     datasets: [
       {

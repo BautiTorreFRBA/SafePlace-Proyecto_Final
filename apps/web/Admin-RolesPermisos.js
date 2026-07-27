@@ -3,7 +3,6 @@
    ============================================================ */
 
 // Estructura de permisos por rol
-// true = activo por defecto, false = desactivado
 const ROLES = {
   administrador: {
     Empleados:          { Ver: true,  Crear: true,  Editar: true,  Desactivar: true },

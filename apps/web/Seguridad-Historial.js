@@ -1,11 +1,4 @@
-/* ============================================================
-   SAFEPLACE – HISTORIALALERTAS.JS
-   Historial de alertas con gráficas y filtros
-   ============================================================ */
-
-/* ────────────────────────────────────────────────────────────
-   BASE DE DATOS DE HISTORIAL DE ALERTAS
-   ──────────────────────────────────────────────────────────── */
+/* BASE DE DATOS DE HISTORIAL DE ALERTAS */
 const historicoAlertas = [
   { severidad: 'critico', tipo: 'Sobresesfuerzo', empleado: 'Laura Rodríguez', fecha: '15/12/2024 14:28', estado: 'activo' },
   { severidad: 'advertencia', tipo: 'Fatiga', empleado: 'Ana Martínez', fecha: '15/12/2024 14:15', estado: 'activo' },
@@ -17,9 +10,7 @@ const historicoAlertas = [
   { severidad: 'critico', tipo: 'Sobresesfuerzo', empleado: 'Laura Rodríguez', fecha: '10/12/2024 09:45', estado: 'cerrada' },
 ];
 
-/* ────────────────────────────────────────────────────────────
-   REFERENCIAS AL DOM
-   ──────────────────────────────────────────────────────────── */
+/* REFERENCIAS AL DOM */
 const tableBody = document.getElementById('histTableBody');
 const histCount = document.getElementById('histCount');
 const filterEmpleado = document.getElementById('filterEmpleado');
@@ -28,16 +19,12 @@ const filterTipo = document.getElementById('filterTipo');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 
-/* ────────────────────────────────────────────────────────────
-   ACTUALIZAR CONTADOR
-   ──────────────────────────────────────────────────────────── */
+/* ACTUALIZAR CONTADOR  */
 function actualizarContador(cantidad) {
   histCount.textContent = `${cantidad} ${cantidad === 1 ? 'registro encontrado' : 'registros encontrados'}`;
 }
 
-/* ────────────────────────────────────────────────────────────
-   RENDERIZAR TABLA CON FILTROS
-   ──────────────────────────────────────────────────────────── */
+/* RENDERIZAR TABLA CON FILTROS */
 function renderTabla() {
   const empleado = filterEmpleado.value.toLowerCase();
   const desde = filterDesde.value;
@@ -76,9 +63,7 @@ function renderTabla() {
   actualizarGraficas(filtrados);
 }
 
-/* ────────────────────────────────────────────────────────────
-   ACTUALIZAR GRÁFICAS
-   ──────────────────────────────────────────────────────────── */
+/* ACTUALIZAR GRÁFICAS */
 function actualizarGraficas(datos) {
   /* Gráfica 1: Distribución por Tipo */
   const tiposCount = {};
@@ -165,15 +150,11 @@ function actualizarGraficas(datos) {
   });
 }
 
-/* ────────────────────────────────────────────────────────────
-   EVENTOS DE FILTROS
-   ──────────────────────────────────────────────────────────── */
+/* EVENTOS DE FILTROS*/
 filterEmpleado.addEventListener('input', renderTabla);
 filterTipo.addEventListener('change', renderTabla);
 
-/* ────────────────────────────────────────────────────────────
-   EVENTOS DE EXPORTACIÓN
-   ──────────────────────────────────────────────────────────── */
+/* EVENTOS DE EXPORTACIÓN */
 btnPDF.addEventListener('click', () => {
   alert('Exportar a PDF - Función simulada');
 });
@@ -182,7 +163,5 @@ btnExcel.addEventListener('click', () => {
   alert('Exportar a Excel - Función simulada');
 });
 
-/* ────────────────────────────────────────────────────────────
-   INIT
-   ──────────────────────────────────────────────────────────── */
+/* INIT */
 renderTabla();

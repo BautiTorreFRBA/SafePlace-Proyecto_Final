@@ -1,7 +1,4 @@
-/* ────────────────────────────────────────────────────────────
-   BASE DE DATOS DE NOTIFICACIONES
-   ──────────────────────────────────────────────────────────── */ 
-   // 'critico' | 'advertencia' | 'info'
+/* BASE DE DATOS DE NOTIFICACIONES */ 
 const notificaciones = [
   {
     id: 1,

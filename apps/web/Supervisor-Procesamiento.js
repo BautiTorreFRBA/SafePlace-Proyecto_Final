@@ -1,11 +1,4 @@
-/* ============================================================
-   SAFEPLACE – PROCESAMIENTO.JS
-   Historial de procesamiento de datos, validaciones y rechazos
-   ============================================================ */
-
-/* ────────────────────────────────────────────────────────────
-   BASE DE DATOS DE EMPLEADOS
-   ──────────────────────────────────────────────────────────── */
+/* BASE DE DATOS DE EMPLEADOS */
 const empleados = [
   { id: 'JP', nombre: 'Juan Pérez',       depto: 'Producción',    rol: 'Trabajador' },
   { id: 'AM', nombre: 'Ana Martínez',     depto: 'Logística',     rol: 'Trabajador' },
@@ -16,10 +9,7 @@ const empleados = [
   { id: 'VD', nombre: 'Valentina Díaz',   depto: 'Mantenimiento', rol: 'Trabajador' },
 ];
 
-/* ────────────────────────────────────────────────────────────
-   REGISTRO DE PROCESAMIENTO
-   Historial de mediciones procesadas con validación
-   ──────────────────────────────────────────────────────────── */
+/* REGISTRO DE PROCESAMIENTO -- Historial de mediciones procesadas con validación */
 const registros = [
   { hora: '14:32:30', origen: 'BLE-SP-001', tipo: 'Frec. Cardíaca', valor: '78', estado: 'validado', detalle: 'Dentro de parámetros normales' },
   { hora: '14:32:28', origen: 'BLE-SP-003', tipo: 'Frec. Cardíaca', valor: '72', estado: 'validado', detalle: 'Dentro de parámetros normales' },
@@ -33,9 +23,7 @@ const registros = [
   { hora: '14:31:58', origen: 'BLE-SP-003', tipo: 'Actividad', valor: 'low', estado: 'validado', detalle: 'Actividad registrada correctamente' },
 ];
 
-/* ────────────────────────────────────────────────────────────
-   REFERENCIAS AL DOM
-   ──────────────────────────────────────────────────────────── */
+/* REFERENCIAS AL DOM */
 const tableBody     = document.getElementById('procTableBody');
 const kpiTotal      = document.getElementById('kpiTotal');
 const kpiValidados  = document.getElementById('kpiValidados');
@@ -43,9 +31,7 @@ const kpiRechazados = document.getElementById('kpiRechazados');
 const kpiTasa       = document.getElementById('kpiTasa');
 const chartPercent  = document.getElementById('chartPercent');
 
-/* ────────────────────────────────────────────────────────────
-   CALCULAR KPIs
-   ──────────────────────────────────────────────────────────── */
+/* CALCULAR KPIs */
 function actualizarKPIs() {
   const total = registros.length;
   const validados = registros.filter(r => r.estado === 'validado').length;
@@ -62,9 +48,7 @@ function actualizarKPIs() {
   chartPercent.textContent = `${porcentajeSinRechazos}%`;
 }
 
-/* ────────────────────────────────────────────────────────────
-   RENDERIZAR TABLA
-   ──────────────────────────────────────────────────────────── */
+/* RENDERIZAR TABLA */
 function renderTabla() {
   tableBody.innerHTML = registros.map(r => {
     const estadoClass = `proc-badge-${r.estado}`;
@@ -82,9 +66,7 @@ function renderTabla() {
   }).join('');
 }
 
-/* ────────────────────────────────────────────────────────────
-   GRÁFICO DONUT CON CHART.JS
-   ──────────────────────────────────────────────────────────── */
+/* GRÁFICO DONUT CON CHART.JS */
 function renderChart() {
   const validados = registros.filter(r => r.estado === 'validado').length;
   const rechazados = registros.filter(r => r.estado === 'rechazado').length;
@@ -125,9 +107,7 @@ function renderChart() {
   });
 }
 
-/* ────────────────────────────────────────────────────────────
-   INIT
-   ──────────────────────────────────────────────────────────── */
+/* INIT */
 actualizarKPIs();
 renderTabla();
 renderChart();

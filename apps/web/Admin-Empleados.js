@@ -99,14 +99,7 @@ function rowHTML(emp) {
   `;
 }
  
- 
-/* ------------------------------------------------------------
-   4. DELEGACIÓN DE EVENTOS EN LA TABLA
-   ------------------------------------------------------------
-   En lugar de poner un listener en cada botón (que se recrean
-   cada vez que se hace render), escuchamos un solo evento en
-   el tbody y detectamos qué botón fue clickeado por su clase.
-   ------------------------------------------------------------ */
+/* DELEGACIÓN DE EVENTOS EN LA TABLA */
 tableBody.addEventListener('click', (e) => {
  
   // Clic en botón "Editar"
@@ -125,7 +118,6 @@ tableBody.addEventListener('click', (e) => {
   }
 });
  
- 
 /* DESACTIVAR EMPLEADO */
 function desactivarEmpleado(id) {
   // Encontramos el empleado y cambiamos su estado
@@ -140,7 +132,6 @@ function desactivarEmpleado(id) {
   // En producción aquí iría:
   // await fetch(`/api/empleados/${id}/desactivar`, { method: 'PATCH' });
 }
- 
  
 /* MODAL: ABRIR / CERRAR */
  
@@ -177,7 +168,6 @@ function closeModal() {
   editingId = null;
 }
  
- 
 /* GUARDAR DESDE EL MODAL */
 function guardarEmpleado() {
   const nombre = mNombre.value.trim();
@@ -195,9 +185,8 @@ function guardarEmpleado() {
  
   // Quitamos el borde de error si todo está bien
   [mNombre, mDept, mRol].forEach(c => c.style.borderColor = '');
- 
+  // ── MODO EDITAR 
   if (editingId) {
-    // ── MODO EDITAR ──────────────────────────────────────────
     const emp = empleados.find(e => e.id === editingId);
     if (emp) {
       emp.nombre    = nombre;
@@ -207,8 +196,7 @@ function guardarEmpleado() {
     }
     // En producción: await fetch(`/api/empleados/${editingId}`, { method: 'PUT', body: ... })
  
-  } else {
-    // ── MODO CREAR ───────────────────────────────────────────
+  } else {// ── MODO CREAR
     // Generamos un ID incremental tomando el último número de la lista
     const lastNum = empleados.reduce((max, e) => {
       const num = parseInt(e.id.replace('EMP-', ''));
@@ -232,7 +220,6 @@ function guardarEmpleado() {
   closeModal();
   renderTable();
 }
- 
  
 /* EVENTOS DE BÚSQUEDA, FILTRO Y MODAL */
  
