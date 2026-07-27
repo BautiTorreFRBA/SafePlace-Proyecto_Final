@@ -3272,10 +3272,12 @@ select.cfg-input {
 
 .card__body {
   padding: 16px 20px;
-  max-height: 300px;
+  height: 300px;
 }
 
 .card__body canvas {
+  width: 100% !important;
+  height: 100% !important;
   max-width: 100%;
 }
 
