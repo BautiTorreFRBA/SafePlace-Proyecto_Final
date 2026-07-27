@@ -8,6 +8,7 @@ const medicionesRoutes = require('./routes/mediciones.routes');
 const alertsRoutes = require('./routes/alerts.routes');
 const workersRoutes = require('./routes/workers.routes');
 const devicesRoutes = require('./routes/devices.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 const healthRoutes = require('./routes/health.routes');
 
 const app = express();
@@ -48,6 +49,7 @@ app.use(`${API_PREFIX}/mediciones`, medicionesRoutes);
 app.use(`${API_PREFIX}/alerts`, alertsRoutes);
 app.use(`${API_PREFIX}/workers`, workersRoutes);
 app.use(`${API_PREFIX}/devices`, devicesRoutes);
+app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 app.use('/health', healthRoutes);
 
 // Error Handling Middleware
