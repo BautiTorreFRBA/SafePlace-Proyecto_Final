@@ -12,67 +12,103 @@ const chartSeveridadCanvas = document.getElementById('chartSeveridad');
 let historicoAlertas = [];
 let chartTipo = null;
 let chartSeveridad = null;
+let debounceTimer = null;
+
+function getAuthHeaders() {
+  const token = sessionStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function normalizarTexto(texto = '') {
-  return texto
-    .toString()
+  return String(texto)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
 }
 
-function mapearSeveridad(tipoAlerta = '') {
-  const tipo = normalizarTexto(tipoAlerta);
-  if (tipo.includes('crit')) return 'critico';
-  if (tipo.includes('info')) return 'info';
-  return 'advertencia';
+function capitalizar(texto = '') {
+  const limpio = String(texto).trim();
+  if (!limpio) {
+    return '';
+  }
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1).toLowerCase();
 }
 
-function mapearTipo(tipoAlerta = '') {
-  const tipo = tipoAlerta.toString().trim();
-  return tipo || 'Alerta';
+function formatearSeveridad(prioridad = '') {
+  const normalizada = normalizarTexto(prioridad);
+
+  if (!normalizada) {
+    return { clase: 'info', texto: 'Sin dato' };
+  }
+
+  if (['critico', 'critica', 'alta', 'high', '1'].includes(normalizada)) {
+    return { clase: 'critico', texto: capitalizar(prioridad) || 'Critico' };
+  }
+
+  if (['advertencia', 'warning', 'media', 'medio', 'medium', '2'].includes(normalizada)) {
+    return { clase: 'advertencia', texto: capitalizar(prioridad) || 'Advertencia' };
+  }
+
+  if (['info', 'informativa', 'informacion', 'baja', 'low', '3'].includes(normalizada)) {
+    return { clase: 'info', texto: capitalizar(prioridad) || 'Info' };
+  }
+
+  return {
+    clase: 'info',
+    texto: capitalizar(prioridad) || String(prioridad),
+  };
 }
 
-function mapearEstado(estado = '') {
+function formatearEstado(estado = '') {
   const normalizado = normalizarTexto(estado);
-  if (normalizado.includes('activo')) return 'activo';
-  if (normalizado.includes('revision')) return 'enrevision';
-  if (normalizado.includes('cerr')) return 'cerrada';
-  return 'activo';
+
+  if (normalizado.includes('cerr')) {
+    return { clase: 'cerrada', texto: capitalizar(estado) || 'Cerrada' };
+  }
+
+  if (normalizado.includes('rev')) {
+    return { clase: 'enrevision', texto: capitalizar(estado) || 'En revision' };
+  }
+
+  if (normalizado.includes('act')) {
+    return { clase: 'activo', texto: capitalizar(estado) || 'Activo' };
+  }
+
+  return {
+    clase: 'activo',
+    texto: capitalizar(estado) || 'Activo',
+  };
 }
 
-function obtenerFiltrados() {
-  const empleado = normalizarTexto(filterEmpleado.value);
-  const tipo = filterTipo.value;
+function formatearFecha(fechaHora = '') {
+  const fecha = new Date(fechaHora);
+  if (Number.isNaN(fecha.getTime())) {
+    return '--';
+  }
 
-  return historicoAlertas.filter((a) => {
-    const coincideEmpleado = !empleado || normalizarTexto(a.empleado).includes(empleado);
-    const coincideTipo = !tipo || a.tipo === tipo;
-    return coincideEmpleado && coincideTipo;
-  });
+  return fecha.toLocaleString('es-AR');
+}
+
+function obtenerFiltros() {
+  return {
+    desde: filterDesde.value || '',
+    tipo: filterTipo.value.trim(),
+    empleado: filterEmpleado.value.trim(),
+  };
 }
 
 function actualizarContador(cantidad) {
   histCount.textContent = `${cantidad} ${cantidad === 1 ? 'registro encontrado' : 'registros encontrados'}`;
-}
-
-function renderTabla() {
-  const filtrados = obtenerFiltrados();
-  actualizarContador(filtrados.length);
-
-  tableBody.innerHTML = filtrados
-    .map(
-      (a) => `
-        <tr>
-          <td><span class="hist-badge-severidad hist-badge-${a.severidad}">${a.severidad}</span></td>
-          <td class="hist-td-tipo">${a.tipo}</td>
-          <td class="hist-td-empleado">${a.empleado}</td>
-          <td class="hist-td-fecha">${a.fecha}</td>
-          <td><span class="hist-badge-estado hist-badge-${a.estado}">${a.estado}</span></td>
-        </tr>`
-    )
-    .join('');
 }
 
 function destruirGraficas() {
@@ -80,28 +116,72 @@ function destruirGraficas() {
     chartTipo.destroy();
     chartTipo = null;
   }
+
   if (chartSeveridad) {
     chartSeveridad.destroy();
     chartSeveridad = null;
   }
 }
 
+function renderEstadoInicial(mensaje) {
+  historicoAlertas = [];
+  actualizarContador(0);
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="5" style="padding: 18px 20px; color: #9ca3af;">
+        ${escapeHtml(mensaje)}
+      </td>
+    </tr>
+  `;
+  destruirGraficas();
+}
+
+function renderTabla() {
+  actualizarContador(historicoAlertas.length);
+
+  if (historicoAlertas.length === 0) {
+    renderEstadoInicial('No se encontraron alertas para los filtros seleccionados.');
+    return;
+  }
+
+  tableBody.innerHTML = historicoAlertas
+    .map((a) => `
+      <tr>
+        <td>
+          <span class="hist-badge-severidad hist-badge-${a.severidad.clase}">
+            ${escapeHtml(a.severidad.texto)}
+          </span>
+        </td>
+        <td class="hist-td-tipo">${escapeHtml(a.tipo)}</td>
+        <td class="hist-td-empleado">${escapeHtml(a.empleado)}</td>
+        <td class="hist-td-fecha">${escapeHtml(a.fecha)}</td>
+        <td>
+          <span class="hist-badge-estado hist-badge-${a.estado.clase}">
+            ${escapeHtml(a.estado.texto)}
+          </span>
+        </td>
+      </tr>`)
+    .join('');
+}
+
 function renderGraficas() {
-  const filtrados = obtenerFiltrados();
-  const conteoPorTipo = { Fatiga: 0, Sobreesfuerzo: 0, Inactividad: 0 };
-  const conteoPorSeveridad = { CrÃ­tico: 0, Advertencia: 0, Info: 0 };
+  const conteoPorTipo = {};
+  const conteoPorSeveridad = {
+    Critico: 0,
+    Advertencia: 0,
+    Info: 0,
+  };
 
-  filtrados.forEach((a) => {
-    const tipo = a.tipo;
-    if (Object.prototype.hasOwnProperty.call(conteoPorTipo, tipo)) {
-      conteoPorTipo[tipo] += 1;
+  historicoAlertas.forEach((a) => {
+    conteoPorTipo[a.tipo] = (conteoPorTipo[a.tipo] || 0) + 1;
+
+    if (a.severidad.clase === 'critico') {
+      conteoPorSeveridad.Critico += 1;
+    } else if (a.severidad.clase === 'advertencia') {
+      conteoPorSeveridad.Advertencia += 1;
     } else {
-      conteoPorTipo[tipo] = (conteoPorTipo[tipo] || 0) + 1;
+      conteoPorSeveridad.Info += 1;
     }
-
-    if (a.severidad === 'critico') conteoPorSeveridad['CrÃ­tico'] += 1;
-    else if (a.severidad === 'advertencia') conteoPorSeveridad['Advertencia'] += 1;
-    else conteoPorSeveridad['Info'] += 1;
   });
 
   destruirGraficas();
@@ -112,7 +192,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorTipo),
       datasets: [{
         data: Object.values(conteoPorTipo),
-        backgroundColor: ['#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'],
+        backgroundColor: ['#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#14b8a6'],
         borderColor: '#111827',
         borderWidth: 2,
       }],
@@ -135,7 +215,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorSeveridad),
       datasets: [{
         data: Object.values(conteoPorSeveridad),
-        backgroundColor: ['#2dd4bf', '#22c55e', '#60a5fa'],
+        backgroundColor: ['#ef4444', '#f59e0b', '#60a5fa'],
         borderRadius: 10,
       }],
     },
@@ -153,13 +233,12 @@ function renderGraficas() {
 
 function exportarPDF() {
   if (!window.jspdf?.jsPDF) {
-    alert('No se pudo cargar la librerÃ­a PDF.');
+    alert('No se pudo cargar la libreria PDF.');
     return;
   }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('landscape');
-  const filas = obtenerFiltrados();
 
   doc.setFontSize(16);
   doc.text('Historial de Alertas', 14, 15);
@@ -169,7 +248,7 @@ function exportarPDF() {
   doc.autoTable({
     startY: 28,
     head: [['Severidad', 'Tipo', 'Empleado', 'Fecha', 'Estado']],
-    body: filas.map((a) => [a.severidad, a.tipo, a.empleado, a.fecha, a.estado]),
+    body: historicoAlertas.map((a) => [a.severidad.texto, a.tipo, a.empleado, a.fecha, a.estado.texto]),
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [17, 24, 39] },
     alternateRowStyles: { fillColor: [241, 245, 249] },
@@ -180,16 +259,16 @@ function exportarPDF() {
 
 function exportarExcel() {
   if (!window.XLSX) {
-    alert('No se pudo cargar la librerÃ­a Excel.');
+    alert('No se pudo cargar la libreria Excel.');
     return;
   }
 
-  const filas = obtenerFiltrados().map((a) => ({
-    Severidad: a.severidad,
+  const filas = historicoAlertas.map((a) => ({
+    Severidad: a.severidad.texto,
     Tipo: a.tipo,
     Empleado: a.empleado,
     Fecha: a.fecha,
-    Estado: a.estado,
+    Estado: a.estado.texto,
   }));
 
   const hoja = window.XLSX.utils.json_to_sheet(filas);
@@ -199,35 +278,86 @@ function exportarExcel() {
 }
 
 async function cargarHistorial() {
-  const params = new URLSearchParams();
-  if (filterDesde.value) {
-    params.set('desde', `${filterDesde.value}T00:00:00.000Z`);
+  const { desde, tipo, empleado } = obtenerFiltros();
+
+  if (!desde) {
+    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    return;
   }
 
-  const res = await fetch(`${API_BASE_URL}/dashboard/alerts?${params.toString()}`);
+  const params = new URLSearchParams();
+  params.set('desde', desde);
+  if (tipo) params.set('tipo', tipo);
+  if (empleado) params.set('empleado', empleado);
+
+  const url = `${API_BASE_URL}/alertas/historico?${params.toString()}`;
+
+  const res = await fetch(url, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('No autorizado. Volve a iniciar sesión para ver el historial.');
+    }
+
+    if (res.status === 403) {
+      throw new Error('Tu usuario no tiene permiso para ver el historial de alertas.');
+    }
+
+    throw new Error(`No se pudo cargar el historial (${res.status})`);
+  }
+
   const json = await res.json();
-  historicoAlertas = (json.data || []).map((a) => ({
-    severidad: mapearSeveridad(a.tipo_alerta || ''),
-    tipo: mapearTipo(a.tipo_alerta || ''),
-    empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
-    fecha: new Date(a.fecha_hora).toLocaleString('es-AR'),
-    estado: mapearEstado(a.estado || ''),
-  }));
+  historicoAlertas = (json.data || []).map((a) => {
+    const severidad = formatearSeveridad(a.prioridad ?? a.prioridad_alerta ?? '');
+    const estado = formatearEstado(a.estado || '');
+    const nombreEmpleado = `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim();
+
+    return {
+      severidad,
+      tipo: a.tipo_alerta || 'Alerta',
+      empleado: nombreEmpleado || '--',
+      fecha: formatearFecha(a.fecha_hora),
+      estado,
+    };
+  });
 
   renderTabla();
   renderGraficas();
 }
 
-filterEmpleado.addEventListener('input', () => {
-  renderTabla();
-  renderGraficas();
+function programarRecarga() {
+  if (!filterDesde.value) {
+    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    return;
+  }
+
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    cargarHistorial().catch((error) => {
+      console.error(error);
+      histCount.textContent = error.message;
+    });
+  }, 250);
+}
+
+filterEmpleado.addEventListener('input', programarRecarga);
+filterTipo.addEventListener('change', programarRecarga);
+filterDesde.addEventListener('change', () => {
+  if (!filterDesde.value) {
+    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    return;
+  }
+
+  cargarHistorial().catch((error) => {
+    console.error(error);
+    histCount.textContent = error.message;
+  });
 });
-filterTipo.addEventListener('change', () => {
-  renderTabla();
-  renderGraficas();
-});
-filterDesde.addEventListener('change', () => cargarHistorial().catch(console.error));
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
-cargarHistorial().catch(console.error);
+renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');

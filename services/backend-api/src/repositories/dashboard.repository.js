@@ -117,6 +117,7 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
     SELECT
       a.id,
       a.id_tipo_alerta,
+      ta.prioridad,
       ta.nombre AS tipo_alerta,
       a.id_medicion,
       a.fecha_hora,
@@ -142,3 +143,4 @@ module.exports = {
   listarDispositivos,
   listarAlertas,
 };
+
