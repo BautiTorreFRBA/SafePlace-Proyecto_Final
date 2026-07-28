@@ -9,8 +9,6 @@ const getEmpleados = async (req, res, next) => {
   }
 };
 
-<<<<<<< HEAD
-=======
 const getUsuarios = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarUsuarios();
@@ -20,7 +18,6 @@ const getUsuarios = async (req, res, next) => {
   }
 };
 
->>>>>>> BorrarDatosSimulados
 const getMediciones = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarMediciones(req.query);
@@ -50,10 +47,7 @@ const getAlertas = async (req, res, next) => {
 
 module.exports = {
   getEmpleados,
-<<<<<<< HEAD
-=======
   getUsuarios,
->>>>>>> BorrarDatosSimulados
   getMediciones,
   getDispositivos,
   getAlertas,

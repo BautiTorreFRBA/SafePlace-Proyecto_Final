@@ -19,8 +19,6 @@ const listarEmpleados = async () => {
   return res.rows;
 };
 
-<<<<<<< HEAD
-=======
 const listarUsuarios = async () => {
   const query = `
     SELECT
@@ -53,7 +51,6 @@ const listarUsuarios = async () => {
   return res.rows;
 };
 
->>>>>>> BorrarDatosSimulados
 const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
   const query = `
     SELECT
@@ -140,10 +137,7 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
 
 module.exports = {
   listarEmpleados,
-<<<<<<< HEAD
-=======
   listarUsuarios,
->>>>>>> BorrarDatosSimulados
   listarMediciones,
   listarDispositivos,
   listarAlertas,
