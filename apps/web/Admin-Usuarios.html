@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafePlace – Usuarios</title><link rel="stylesheet" href="Styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+
+<body> 
+  <div class="app">
+  <!-- BARRA LATERAL --> 
+    <aside class="sidebar">
+      <!-- Titulo y Logo -->
+      <div class="sidebar__brand">
+        <div class="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div><div class="sidebar__name">SafePlace</div><div class="sidebar__sub">BIOMETRIC MONITOR</div></div>
+      </div>
+
+      <!-- Navegación -->
+      <nav class="sidebar__nav">
+        <a class="nav-item" href="Admin-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
+        <a class="nav-item" href="Admin-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Empleados</a>
+        <a class="nav-item" href="Admin-RolesPermisos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Roles y Permisos</a>
+        <a class="nav-item" href="Admin-Configuración.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Configuración</a>
+        <a class="nav-item nav-item--active" href="Admin-Usuarios.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Crear Usuarios</a>
+      </nav>
+
+      <!-- Usuario logueado + cerrar sesión -->
+      <div class="sidebar__footer">
+        <div class="sidebar__user">
+          <div class="avatar avatar--sm"> <!--PONER EL avatar--> </div>
+            <div>
+              <div class="sidebar__user-name"> <!--PONER EL NOMBRE DEL QUE ENTRO--> </div>   
+              <div class="sidebar__user-role"> <!--PONER EL ROL DEL QUE ENTRO--> </div>     
+            </div>
+        </div>
+        <a class="sidebar__logout" href='InicioSesion.html'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Cerrar sesión </a>
+      </div>
+
+    </aside>
+
+    <!-- BARRA SUPERIOR --> 
+    <main class="main">
+        <header class="topbar">
+            <div class="topbar__title"> Gestion de Usuarios</div>
+            <div class="topbar__right">
+            <div class="status-dot"> <span class="dot dot--green"></span> En línea </div>
+            <div class="avatar"> <!--PONER EL avatar--> </div>
+            </div>
+        </header>
+
+    <!-- Encabezado -->
+    <div class="usr-header">
+      <div>
+        <h2 class="welcome__title">Gestión de Usuarios</h2>
+        <p class="usr-header__count" id="usrCount">3 usuarios del sistema</p>
+      </div>
+      <button class="btn-nuevo" id="btnNuevoUsuario"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/> </svg> Nuevo Usuario </button>
+    </div>
+   
+    <!-- PANTALLA Usuario -->
+   
+    <!-- Buscador -->
+    <div class="usr-search"><input type="text" class="usr-search__input" id="usrSearch" placeholder="Buscar por nombre o email..."/></div>
+
+    <!-- Tabla de usuarios -->
+    <div class="usr-table-wrap">
+      <table class="usr-table">
+        <thead>
+          <tr>
+            <th>NOMBRE</th>
+            <th>EMAIL</th>
+            <th>ID EMPRESA</th>
+            <th>ROL</th>
+            <th>ESTADO</th>
+            <th>ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody id="usrTableBody">
+          <!-- Filas inyectadas por Usuarios.js -->
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── MODAL NUEVO USUARIO ────────────────────────────── -->
+<div class="usr-modal-overlay" id="usrModalOverlay">
+  <div class="usr-modal">
+    <div class="usr-modal__header">
+      <h3 class="usr-modal__title">Nuevo Usuario</h3>
+      <button class="usr-modal__close" id="usrModalClose">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="usr-modal__body">
+      
+        <div class="usr-form-row">
+        <div class="usr-form-group">
+          <label class="usr-form-label">NOMBRE</label>
+          <input type="text" class="usr-form-input" id="usrNombre" placeholder=""/>
+        </div>
+        
+        <div class="usr-form-group">
+          <label class="usr-form-label">APELLIDO</label>
+          <input type="text" class="usr-form-input" id="usrApellido" placeholder=""/>
+        </div>
+      </div>
+
+      <div class="usr-form-group">
+        <label class="usr-form-label">EMAIL</label>
+        <input type="email" class="usr-form-input" id="usrEmail" placeholder="usuario@safeplace.com"/>
+      </div>
+
+      <div class="usr-form-group">
+        <label class="usr-form-label">CONTRASEÑA</label>
+        <input type="password" class="usr-form-input" id="usrPassword" placeholder=""/>
+      </div>
+
+      <div class="usr-form-group">
+        <label class="usr-form-label">ID EMPRESA</label>
+        <select class="usr-form-select" id="usrEmpresa">
+          <option value="">Selecciona una empresa...</option>
+          <!-- Opciones inyectadas por Usuarios.js -->
+        </select>
+      </div>
+
+      <div class="usr-form-group">
+        <label class="usr-form-label">ROL</label>
+        <select class="usr-form-select" id="usrRol">
+          <option value="Administrador">Administrador</option>
+          <option value="Supervisor Operativo">Supervisor Operativo</option>
+          <option value="Resp. Seguridad e Higiene">Resp. Seguridad e Higiene</option>
+        </select>
+      </div>
+
+      <div class="usr-form-group usr-form-group--toggle">
+        <label class="usr-form-label">ACTIVO</label>
+        <div class="toggle">
+          <input type="checkbox" class="toggle__input" id="usrActivo" checked />
+          <span class="toggle__track"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="usr-modal__footer">
+      <button class="usr-btn usr-btn--secondary" id="usrModalCancel">Cancelar</button>
+      <button class="usr-btn usr-btn--primary" id="usrModalCreate">Crear Usuario</button>
+    </div>
+  </div>
+</div>
+
+<script src="session-ui.js"></script>
+<script src="Admin-Usuarios.js"></script>
+</body>
+</html>

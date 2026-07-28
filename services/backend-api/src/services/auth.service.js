@@ -93,6 +93,35 @@ const login = async ({ email, password }) => {
   };
 };
 
+const crearUsuario = async (payload) => {
+  const { nombre, apellido, email, password, id_empresa, rol, activo } = payload || {};
+
+  if (!nombre || !apellido || !email || !password || !id_empresa || !rol) {
+    throw createHttpError(400, 'Faltan campos obligatorios.', 'VALIDACION_DATOS');
+  }
+
+  const usuarioExistente = await usuarioRepository.buscarPorEmailParaLogin(email);
+  if (usuarioExistente) {
+    throw createHttpError(409, 'Ya existe un usuario con ese email.', 'USUARIO_DUPLICADO');
+  }
+
+  const usuario = await usuarioRepository.crearUsuario({
+    nombre,
+    apellido,
+    email,
+    password,
+    id_empresa,
+    rol,
+    activo: activo !== false,
+  });
+
+  return {
+    message: 'Usuario creado correctamente.',
+    user: usuario,
+  };
+};
+
 module.exports = {
   login,
+  crearUsuario,
 };

@@ -19,6 +19,41 @@ const listarEmpleados = async () => {
   return res.rows;
 };
 
+<<<<<<< HEAD
+=======
+const listarUsuarios = async () => {
+  const query = `
+    SELECT
+      u.id,
+      u.nombre,
+      u.apellido,
+      u.email,
+      u.id_empresa,
+      e.nombre AS empresa_nombre,
+      u.activo,
+      COALESCE(
+        jsonb_agg(to_jsonb(r) ORDER BY ur.id_rol) FILTER (WHERE r.id IS NOT NULL),
+        '[]'::jsonb
+      ) AS roles
+    FROM usuario u
+    LEFT JOIN empresa e ON e.id = u.id_empresa
+    LEFT JOIN usuario_rol ur ON ur.id_usuario = u.id
+    LEFT JOIN rol r ON r.id = ur.id_rol
+    GROUP BY
+      u.id,
+      u.nombre,
+      u.apellido,
+      u.email,
+      u.id_empresa,
+      e.nombre,
+      u.activo
+    ORDER BY u.apellido, u.nombre, u.id;
+  `;
+  const res = await db.query(query);
+  return res.rows;
+};
+
+>>>>>>> BorrarDatosSimulados
 const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
   const query = `
     SELECT
@@ -105,6 +140,10 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
 
 module.exports = {
   listarEmpleados,
+<<<<<<< HEAD
+=======
+  listarUsuarios,
+>>>>>>> BorrarDatosSimulados
   listarMediciones,
   listarDispositivos,
   listarAlertas,

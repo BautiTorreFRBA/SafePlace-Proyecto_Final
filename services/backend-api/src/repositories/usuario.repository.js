@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const bcrypt = require('bcrypt');
 
 const buscarPorEmailParaLogin = async (email) => {
   const query = `
@@ -33,6 +34,59 @@ const buscarPorEmailParaLogin = async (email) => {
   return result.rows[0] || null;
 };
 
+const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol, activo = true }) => {
+  const client = await db.getPool().connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const usuarioInsert = await client.query(
+      `
+        INSERT INTO usuario (nombre, apellido, email, password_hash, id_empresa, activo)
+        VALUES ($1, $2, lower($3), $4, $5, $6)
+        RETURNING id, nombre, apellido, email, id_empresa, activo;
+      `,
+      [nombre, apellido, email, passwordHash, id_empresa, activo],
+    );
+
+    const usuario = usuarioInsert.rows[0];
+
+    const rolResult = await client.query(
+      `
+        SELECT id, nombre, rol, codigo, slug, name, tipo
+        FROM rol
+        WHERE lower(nombre) = lower($1)
+           OR lower(rol) = lower($1)
+           OR lower(codigo) = lower($1)
+           OR lower(slug) = lower($1)
+           OR lower(name) = lower($1)
+           OR lower(tipo) = lower($1)
+        LIMIT 1;
+      `,
+      [rol],
+    );
+
+    if (rolResult.rows[0]) {
+      await client.query(
+        'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
+        [usuario.id, rolResult.rows[0].id],
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return usuario;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   buscarPorEmailParaLogin,
+  crearUsuario,
 };
