@@ -70,7 +70,7 @@ const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
     }
 
     if (error.code === '23503') {
-      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es válida.');
+      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es vï¿½lida.');
       fk.status = 409;
       fk.motivo = 'FK_INVALIDA';
       throw fk;
@@ -112,9 +112,95 @@ const listarUsuarios = async () => {
   return res.rows;
 };
 
+const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
+  const query = `
+    SELECT
+      m.id,
+      m.id_trabajador,
+      o.nombre AS operario_nombre,
+      o.apellido AS operario_apellido,
+      m.id_dispositivo,
+      m.fecha_hora,
+      m.frecuencia_cardiaca,
+      m.actividad,
+      m.temperatura_corporal,
+      m.spo2,
+      m.estado
+    FROM medicion m
+    LEFT JOIN operario o ON o.id = m.id_trabajador
+    WHERE ($1::timestamptz IS NULL OR m.fecha_hora >= $1)
+      AND ($2::timestamptz IS NULL OR m.fecha_hora <= $2)
+    ORDER BY m.fecha_hora DESC
+    LIMIT $3 OFFSET $4;
+  `;
+  const res = await db.query(query, [desde, hasta, limit, offset]);
+  return res.rows;
+};
+
+const listarDispositivos = async () => {
+  const query = `
+    SELECT
+      d.id,
+      d.marca,
+      d.modelo,
+      d.estado,
+      o.id AS operario_id,
+      o.nombre AS operario_nombre,
+      o.apellido AS operario_apellido,
+      ad.fecha_desde,
+      ad.fecha_hasta,
+      hed.estado AS ultimo_estado,
+      hed.fecha_hora AS ultima_sinc
+    FROM dispositivo d
+    LEFT JOIN LATERAL (
+      SELECT *
+      FROM asignacion_dispositivo ad
+      WHERE ad.id_dispositivo = d.id
+      ORDER BY ad.fecha_desde DESC, ad.id DESC
+      LIMIT 1
+    ) ad ON true
+    LEFT JOIN operario o ON o.id = ad.id_trabajador
+    LEFT JOIN LATERAL (
+      SELECT *
+      FROM historial_estado_dispositivo hed
+      WHERE hed.id_dispositivo = d.id
+      ORDER BY hed.fecha_hora DESC, hed.id DESC
+      LIMIT 1
+    ) hed ON true
+    ORDER BY d.id;
+  `;
+  const res = await db.query(query);
+  return res.rows;
+};
+
+const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
+  const query = `
+    SELECT
+      a.id,
+      a.id_tipo_alerta,
+      ta.prioridad,
+      ta.nombre AS tipo_alerta,
+      a.id_medicion,
+      a.fecha_hora,
+      a.estado,
+      o.nombre AS operario_nombre,
+      o.apellido AS operario_apellido
+    FROM alerta a
+    LEFT JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
+    LEFT JOIN medicion m ON m.id = a.id_medicion
+    LEFT JOIN operario o ON o.id = m.id_trabajador
+    WHERE ($1::timestamptz IS NULL OR a.fecha_hora >= $1)
+      AND ($2::timestamptz IS NULL OR a.fecha_hora <= $2)
+    ORDER BY a.fecha_hora DESC, a.id DESC;
+  `;
+  const res = await db.query(query, [desde, hasta]);
+  return res.rows;
+};
+
 module.exports = {
   listarEmpresas,
   listarEmpleados,
   crearEmpleado,
   listarUsuarios,
 };
+
