@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const medicionRepository = require('./medicion.repository');
 
 const listarEmpresas = async () => {
   const res = await db.query(`
@@ -70,7 +71,11 @@ const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
     }
 
     if (error.code === '23503') {
+<<<<<<< HEAD
       const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es v�lida.');
+=======
+      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es valida.');
+>>>>>>> 7a7467d (Corregí el undefined que rompía Route.get())
       fk.status = 409;
       fk.motivo = 'FK_INVALIDA';
       throw fk;
@@ -112,6 +117,7 @@ const listarUsuarios = async () => {
   return res.rows;
 };
 
+<<<<<<< HEAD
 const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
   const query = `
     SELECT
@@ -195,6 +201,18 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
   `;
   const res = await db.query(query, [desde, hasta]);
   return res.rows;
+=======
+const listarMediciones = async (filtros = {}) => {
+  return medicionRepository.listar(filtros);
+};
+
+const listarDispositivos = async () => {
+  return [];
+};
+
+const listarAlertas = async () => {
+  return [];
+>>>>>>> 7a7467d (Corregí el undefined que rompía Route.get())
 };
 
 module.exports = {
@@ -202,5 +220,8 @@ module.exports = {
   listarEmpleados,
   crearEmpleado,
   listarUsuarios,
+  listarMediciones,
+  listarDispositivos,
+  listarAlertas,
 };
 
