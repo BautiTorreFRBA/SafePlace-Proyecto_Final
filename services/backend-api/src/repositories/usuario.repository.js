@@ -56,28 +56,13 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
 
     const rolResult = await client.query(
       `
-        SELECT id, nombre, rol, codigo, slug, name, tipo
+        SELECT id, nombre
         FROM rol
         WHERE lower(nombre) = lower($1)
-           OR lower(rol) = lower($1)
-           OR lower(codigo) = lower($1)
-           OR lower(slug) = lower($1)
-           OR lower(name) = lower($1)
-           OR lower(tipo) = lower($1)
            OR lower(nombre) LIKE $2
-           OR lower(rol) LIKE $2
-           OR lower(codigo) LIKE $2
-           OR lower(slug) LIKE $2
-           OR lower(name) LIKE $2
-           OR lower(tipo) LIKE $2
         ORDER BY CASE
           WHEN lower(nombre) = lower($1) THEN 0
-          WHEN lower(rol) = lower($1) THEN 1
-          WHEN lower(codigo) = lower($1) THEN 2
-          WHEN lower(slug) = lower($1) THEN 3
-          WHEN lower(name) = lower($1) THEN 4
-          WHEN lower(tipo) = lower($1) THEN 5
-          ELSE 6
+          ELSE 1
         END
         LIMIT 1;
       `,
@@ -108,3 +93,4 @@ module.exports = {
   buscarPorEmailParaLogin,
   crearUsuario,
 };
+

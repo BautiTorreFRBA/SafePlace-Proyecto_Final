@@ -47,9 +47,39 @@ const getUsuarios = async (req, res, next) => {
   }
 };
 
+const getMediciones = async (req, res, next) => {
+  try {
+    const rows = await dashboardRepository.listarMediciones(req.query);
+    res.json({ data: rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDispositivos = async (req, res, next) => {
+  try {
+    const rows = await dashboardRepository.listarDispositivos();
+    res.json({ data: rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAlertas = async (req, res, next) => {
+  try {
+    const rows = await dashboardRepository.listarAlertas(req.query);
+    res.json({ data: rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEmpresas,
   getEmpleados,
   crearEmpleado,
   getUsuarios,
+  getMediciones,
+  getDispositivos,
+  getAlertas,
 };
