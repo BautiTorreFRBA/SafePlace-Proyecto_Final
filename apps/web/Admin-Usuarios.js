@@ -1,5 +1,7 @@
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 const USERS_ENDPOINT = `${API_BASE_URL}/dashboard/users`;
+const COMPANIES_ENDPOINT = `${API_BASE_URL}/dashboard/companies`;
+const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;
 
 const tableBody = document.getElementById('usrTableBody');
 const usrCount = document.getElementById('usrCount');
@@ -13,6 +15,7 @@ const selectEmpresa = document.getElementById('usrEmpresa');
 const selectRol = document.getElementById('usrRol');
 
 let usuarios = [];
+let empresas = [];
 
 function getAuthHeaders() {
   const token = sessionStorage.getItem('authToken');
@@ -22,6 +25,14 @@ function getAuthHeaders() {
 function iniciales(nombre = '', apellido = '') {
   const parts = [nombre, apellido].filter(Boolean);
   return parts.map((part) => part.trim()[0]).join('').toUpperCase();
+}
+
+function normalizeRolForApi(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized.includes('supervisor')) return 'supervisor';
+  if (normalized.includes('seguridad')) return 'seguridad';
+  if (normalized.includes('admin')) return 'admin';
+  return normalized;
 }
 
 function getRolLabel(usuario) {
@@ -48,21 +59,30 @@ function getEmpresaLabel(usuario) {
   return String(idEmpresa);
 }
 
-function renderEmpresaOptions() {
-  const empresasUnicas = new Map();
-  usuarios.forEach((usuario) => {
-    const idEmpresa = usuario.id_empresa ?? usuario.idEmpresa;
-    if (!idEmpresa) return;
-    const nombre = usuario.empresa_nombre || usuario.empresaNombre || `Empresa ${idEmpresa}`;
-    if (!empresasUnicas.has(String(idEmpresa))) {
-      empresasUnicas.set(String(idEmpresa), { id: String(idEmpresa), nombre });
-    }
+async function apiGet(endpoint) {
+  const res = await fetch(endpoint, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
   });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error || json.message || `HTTP ${res.status}`);
+  }
+  return json;
+}
 
+async function cargarEmpresas() {
+  const json = await apiGet(COMPANIES_ENDPOINT);
+  empresas = Array.isArray(json.data) ? json.data : [];
+}
+
+function renderEmpresaOptions() {
   selectEmpresa.innerHTML = '<option value="">Selecciona una empresa...</option>';
-  Array.from(empresasUnicas.values()).forEach((empresa) => {
+  empresas.forEach((empresa) => {
     const option = document.createElement('option');
-    option.value = empresa.id;
+    option.value = String(empresa.id);
     option.textContent = empresa.nombre;
     selectEmpresa.appendChild(option);
   });
@@ -72,24 +92,15 @@ async function cargarUsuarios() {
   usrCount.textContent = 'Cargando usuarios...';
 
   try {
-    const res = await fetch(USERS_ENDPOINT, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const json = await res.json();
+    await cargarEmpresas();
+    const json = await apiGet(USERS_ENDPOINT);
     usuarios = Array.isArray(json.data) ? json.data : [];
     renderEmpresaOptions();
     renderTabla();
   } catch (error) {
     console.error('No se pudieron cargar los usuarios', error);
     usuarios = [];
+    empresas = [];
     renderEmpresaOptions();
     renderTabla('No se pudieron cargar los usuarios');
   }
@@ -165,7 +176,7 @@ function limpiarFormulario() {
   document.getElementById('usrEmail').value = '';
   document.getElementById('usrPassword').value = '';
   selectEmpresa.value = '';
-  selectRol.value = 'Supervisor Operativo';
+  selectRol.value = 'supervisor';
   document.getElementById('usrActivo').checked = true;
 }
 
@@ -175,7 +186,7 @@ async function crearUsuario() {
   const email = document.getElementById('usrEmail').value.trim();
   const password = document.getElementById('usrPassword').value;
   const id_empresa = selectEmpresa.value;
-  const rol = selectRol.value;
+  const rol = normalizeRolForApi(selectRol.value);
   const activo = document.getElementById('usrActivo').checked;
 
   if (!nombre || !apellido || !email || !password || !id_empresa || !rol) {
@@ -184,7 +195,7 @@ async function crearUsuario() {
   }
 
   try {
-    const res = await fetch(USERS_ENDPOINT, {
+    const res = await fetch(CREATE_USER_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -195,22 +206,23 @@ async function crearUsuario() {
         apellido,
         email,
         password,
-        id_empresa,
+        id_empresa: Number(id_empresa),
         rol,
         activo,
       }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || `HTTP ${res.status}`);
+      throw new Error(data.error || data.message || `HTTP ${res.status}`);
     }
 
     await cargarUsuarios();
     cerrarModal();
   } catch (error) {
     console.error('No se pudo crear el usuario', error);
-    alert('No se pudo crear el usuario');
+    alert(error.message || 'No se pudo crear el usuario');
   }
 }
 
@@ -222,7 +234,7 @@ function editarUsuario(id) {
   document.getElementById('usrApellido').value = usuario.apellido || usuario.usuario_apellido || '';
   document.getElementById('usrEmail').value = usuario.email || '';
   selectEmpresa.value = String(usuario.id_empresa ?? usuario.idEmpresa ?? '');
-  selectRol.value = getRolLabel(usuario);
+  selectRol.value = normalizeRolForApi(getRolLabel(usuario));
   document.getElementById('usrActivo').checked = usuario.activo !== false;
   abrirModal();
 }

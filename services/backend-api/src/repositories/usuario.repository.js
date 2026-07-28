@@ -52,6 +52,7 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
     );
 
     const usuario = usuarioInsert.rows[0];
+    const rolNormalizado = String(rol || '').trim().toLowerCase();
 
     const rolResult = await client.query(
       `
@@ -63,17 +64,34 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
            OR lower(slug) = lower($1)
            OR lower(name) = lower($1)
            OR lower(tipo) = lower($1)
+           OR lower(nombre) LIKE $2
+           OR lower(rol) LIKE $2
+           OR lower(codigo) LIKE $2
+           OR lower(slug) LIKE $2
+           OR lower(name) LIKE $2
+           OR lower(tipo) LIKE $2
+        ORDER BY CASE
+          WHEN lower(nombre) = lower($1) THEN 0
+          WHEN lower(rol) = lower($1) THEN 1
+          WHEN lower(codigo) = lower($1) THEN 2
+          WHEN lower(slug) = lower($1) THEN 3
+          WHEN lower(name) = lower($1) THEN 4
+          WHEN lower(tipo) = lower($1) THEN 5
+          ELSE 6
+        END
         LIMIT 1;
       `,
-      [rol],
+      [rolNormalizado, `%${rolNormalizado}%`],
     );
 
-    if (rolResult.rows[0]) {
-      await client.query(
-        'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
-        [usuario.id, rolResult.rows[0].id],
-      );
+    if (!rolResult.rows[0]) {
+      throw new Error(`No se encontró un rol válido para '${rol}'.`);
     }
+
+    await client.query(
+      'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
+      [usuario.id, rolResult.rows[0].id],
+    );
 
     await client.query('COMMIT');
 
