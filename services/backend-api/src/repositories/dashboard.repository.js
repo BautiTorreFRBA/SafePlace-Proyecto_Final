@@ -30,29 +30,37 @@ const listarEmpleados = async () => {
   return res.rows;
 };
 
-const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
+const generarLegajoEmpleado = async (client) => {
+  const query = `
+    SELECT COALESCE(MAX(
+      NULLIF(regexp_replace(legajo, '\\D', '', 'g'), '')::int
+    ), 0) + 1 AS siguiente
+    FROM operario
+    WHERE legajo ~ '\\d';
+  `;
+
+  const res = await client.query(query);
+  const siguiente = Number(res.rows[0]?.siguiente || 1);
+  return `EMP-${String(siguiente).padStart(3, '0')}`;
+};
+
+const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
-  const legajoLimpio = String(legajo || '').trim();
   const areaLimpia = String(area || '').trim();
 
-  if (!nombreLimpio || !apellidoLimpio || !legajoLimpio || !areaLimpia || !idEmpresa) {
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para crear el empleado.');
   }
 
-  const existente = await db.query(
-    'SELECT 1 FROM operario WHERE lower(legajo) = lower($1) LIMIT 1;',
-    [legajoLimpio],
-  );
-
-  if (existente.rowCount > 0) {
-    const error = new Error('Ya existe un empleado con ese legajo.');
-    error.status = 409;
-    error.motivo = 'EMPLEADO_DUPLICADO';
-    throw error;
-  }
-
   try {
+    const client = await db.getPool().connect();
+    let legajoLimpio;
+    try {
+      legajoLimpio = await generarLegajoEmpleado(client);
+    } finally {
+      client.release();
+    }
     const query = `
       INSERT INTO operario (id_empresa, legajo, nombre, apellido, area)
       VALUES ($1, $2, $3, $4, $5)
@@ -80,41 +88,27 @@ const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
   }
 };
 
-const actualizarEmpleado = async (id, { nombre, apellido, legajo, area, idEmpresa }) => {
+const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
-  const legajoLimpio = String(legajo || '').trim();
   const areaLimpia = String(area || '').trim();
 
-  if (!nombreLimpio || !apellidoLimpio || !legajoLimpio || !areaLimpia || !idEmpresa) {
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para actualizar el empleado.');
-  }
-
-  const existente = await db.query(
-    'SELECT 1 FROM operario WHERE lower(legajo) = lower($1) AND id <> $2 LIMIT 1;',
-    [legajoLimpio, id],
-  );
-
-  if (existente.rowCount > 0) {
-    const error = new Error('Ya existe un empleado con ese legajo.');
-    error.status = 409;
-    error.motivo = 'EMPLEADO_DUPLICADO';
-    throw error;
   }
 
   try {
     const query = `
       UPDATE operario
       SET id_empresa = $2,
-          legajo = $3,
-          nombre = $4,
-          apellido = $5,
-          area = $6
+          nombre = $3,
+          apellido = $4,
+          area = $5
       WHERE id = $1
       RETURNING id, id_empresa, legajo, nombre, apellido, area;
     `;
 
-    const res = await db.query(query, [id, idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia]);
+    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia]);
     return res.rows[0] || null;
   } catch (error) {
     if (error.code === '23505') {

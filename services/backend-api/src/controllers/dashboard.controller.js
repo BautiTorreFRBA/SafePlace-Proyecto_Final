@@ -25,7 +25,6 @@ const crearEmpleado = async (req, res, next) => {
     const empleado = await dashboardRepository.crearEmpleado({
       nombre: req.body.nombre,
       apellido: req.body.apellido,
-      legajo: req.body.legajo,
       area: req.body.area,
       idEmpresa,
     });
@@ -45,7 +44,6 @@ const actualizarEmpleado = async (req, res, next) => {
     const empleado = await dashboardRepository.actualizarEmpleado(req.params.id, {
       nombre: req.body.nombre,
       apellido: req.body.apellido,
-      legajo: req.body.legajo,
       area: req.body.area,
       idEmpresa,
     });

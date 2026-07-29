@@ -14,7 +14,6 @@ const modalSave = document.getElementById('modalSave');
 const btnNuevo = document.getElementById('btnNuevo');
 const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
-const mLegajo = document.getElementById('mLegajo');
 const mDept = document.getElementById('mDept');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 
@@ -37,6 +36,25 @@ const iniciales = (nombre = '') => nombre
   .slice(0, 2)
   .join('')
   .toUpperCase();
+
+function normalizarTexto(valor = '') {
+  return String(valor)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function setSelectByText(select, texto) {
+  const objetivo = normalizarTexto(texto);
+  if (!objetivo) {
+    select.value = '';
+    return;
+  }
+
+  const option = Array.from(select.options).find((opt) => normalizarTexto(opt.textContent) === objetivo);
+  select.value = option ? option.value : '';
+}
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -67,7 +85,7 @@ function normalizarEmpleado(emp) {
   const nombreCompleto = `${emp.nombre || ''} ${emp.apellido || ''}`.trim();
   return {
     id: emp.id,
-    legajo: emp.legajo || `ID-${String(emp.id).padStart(3, '0')}`,
+    legajo: emp.legajo || `EMP-${String(emp.id).padStart(3, '0')}`,
     nombre: emp.nombre || '',
     apellido: emp.apellido || '',
     nombreCompleto: nombreCompleto || 'Sin nombre',
@@ -130,13 +148,11 @@ function openModal(modo, id = null) {
     modalTitle.textContent = 'Editar Empleado';
     mNombre.value = emp.nombre || '';
     mApellido.value = emp.apellido || '';
-    mLegajo.value = emp.legajo || '';
-    mDept.value = emp.depto || '';
+    setSelectByText(mDept, emp.depto || emp.area || '');
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
     mApellido.value = '';
-    mLegajo.value = '';
     mDept.value = '';
   }
   modalOverlay.classList.add('modal-overlay--visible');
@@ -151,25 +167,23 @@ function closeModal() {
 function limpiarCampos() {
   mNombre.value = '';
   mApellido.value = '';
-  mLegajo.value = '';
   mDept.value = '';
 }
 
 async function guardarEmpleado() {
   const nombre = mNombre.value.trim();
   const apellido = mApellido.value.trim();
-  const legajo = mLegajo.value.trim();
   const area = mDept.value.trim();
 
-  if (!nombre || !apellido || !legajo || !area) {
-    alert('Complet� nombre, apellido, legajo y departamento.');
+  if (!nombre || !apellido || !area) {
+    alert('Completá nombre, apellido y departamento.');
     return;
   }
 
   try {
     await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
-      body: JSON.stringify({ nombre, apellido, legajo, area }),
+      body: JSON.stringify({ nombre, apellido, area }),
     });
     closeModal();
     limpiarCampos();
@@ -193,7 +207,7 @@ modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 modalSave.addEventListener('click', guardarEmpleado);
-[mNombre, mApellido, mLegajo, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
+[mNombre, mApellido, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
   }
