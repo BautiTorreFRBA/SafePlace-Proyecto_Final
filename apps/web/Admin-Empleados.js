@@ -1,7 +1,11 @@
+<<<<<<< Updated upstream
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || (window.location.port === '5173'
   ? 'http://localhost:8000/api/v1'
   : '/api/v1');
 
+=======
+const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
+>>>>>>> Stashed changes
 const tableBody = document.getElementById('empTableBody');
 const empCount = document.getElementById('empCount');
 const searchInput = document.getElementById('searchInput');
@@ -29,6 +33,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+<<<<<<< Updated upstream
 const iniciales = (nombre = '') => nombre
   .split(' ')
   .filter(Boolean)
@@ -72,6 +77,18 @@ function normalizarEmpleado(emp) {
     nombreCompleto: nombreCompleto || 'Sin nombre',
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
+=======
+async function cargarEmpleados() {
+  const res = await fetch(`${API_BASE_URL}/dashboard/employees`, {
+    headers: { ...getAuthHeaders() },
+  });
+  const json = await res.json();
+  empleados = (json.data || []).map((emp) => ({
+    id: `EMP-${String(emp.id).padStart(3, '0')}`,
+    nombre: `${emp.nombre} ${emp.apellido}`.trim(),
+    iniciales: iniciales(`${emp.nombre} ${emp.apellido}`),
+    depto: emp.depto || 'Sin asignar',
+>>>>>>> Stashed changes
     rol: emp.rol || 'Operario',
     estado: emp.activo ? 'activo' : 'inactivo',
     alta: emp.alta ? new Date(emp.alta).toLocaleDateString('es-AR') : '--',
@@ -147,6 +164,7 @@ function closeModal() {
   editingId = null;
 }
 
+<<<<<<< Updated upstream
 function limpiarCampos() {
   mNombre.value = '';
   mApellido.value = '';
@@ -176,12 +194,62 @@ async function guardarEmpleado() {
   } catch (error) {
     alert(error.message);
   }
+=======
+function guardarEmpleado() {
+  const payload = {
+    nombre: mNombre.value.trim(),
+    depto: mDept.value.trim(),
+    rol: mRol.value.trim(),
+  };
+
+  const method = editingId ? 'PATCH' : 'POST';
+  const endpoint = editingId
+    ? `${API_BASE_URL}/dashboard/employees/${editingId.replace('EMP-', '')}`
+    : `${API_BASE_URL}/dashboard/employees`;
+
+  fetch(endpoint, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return cargarEmpleados();
+    })
+    .then(() => closeModal())
+    .catch((err) => {
+      console.error(err);
+      alert('No se pudo guardar el empleado');
+    });
+>>>>>>> Stashed changes
 }
 
 tableBody.addEventListener('click', (e) => {
   const editBtn = e.target.closest('.emp-actions__edit');
+<<<<<<< Updated upstream
   if (editBtn) {
     return openModal('editar', editBtn.dataset.id);
+=======
+  if (editBtn) return openModal('editar', editBtn.dataset.id);
+  const deactivateBtn = e.target.closest('.emp-actions__deactivate');
+  if (deactivateBtn) {
+    const id = deactivateBtn.dataset.id.replace('EMP-', '');
+    fetch(`${API_BASE_URL}/dashboard/employees/${id}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return cargarEmpleados();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('No se pudo desactivar el empleado');
+      });
+>>>>>>> Stashed changes
   }
 });
 

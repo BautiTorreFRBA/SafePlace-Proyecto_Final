@@ -89,8 +89,110 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
   }
 };
 
+const actualizarUsuario = async (id, { nombre, apellido, email, id_empresa, rol, activo, password }) => {
+  const client = await db.getPool().connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const campos = [];
+    const valores = [];
+    let idx = 1;
+
+    if (nombre !== undefined) {
+      campos.push(`nombre = $${idx++}`);
+      valores.push(nombre);
+    }
+    if (apellido !== undefined) {
+      campos.push(`apellido = $${idx++}`);
+      valores.push(apellido);
+    }
+    if (email !== undefined) {
+      campos.push(`email = lower($${idx++})`);
+      valores.push(email);
+    }
+    if (id_empresa !== undefined) {
+      campos.push(`id_empresa = $${idx++}`);
+      valores.push(id_empresa);
+    }
+    if (activo !== undefined) {
+      campos.push(`activo = $${idx++}`);
+      valores.push(activo);
+    }
+    if (password) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      campos.push(`password_hash = $${idx++}`);
+      valores.push(passwordHash);
+    }
+
+    if (campos.length > 0) {
+      valores.push(id);
+      await client.query(`UPDATE usuario SET ${campos.join(', ')} WHERE id = $${idx};`, valores);
+    }
+
+    if (rol !== undefined) {
+      const rolResult = await client.query(
+        `
+          SELECT id
+          FROM rol
+          WHERE lower(nombre) = lower($1)
+             OR lower(rol) = lower($1)
+             OR lower(codigo) = lower($1)
+             OR lower(slug) = lower($1)
+             OR lower(name) = lower($1)
+             OR lower(tipo) = lower($1)
+          LIMIT 1;
+        `,
+        [rol],
+      );
+
+      if (rolResult.rows[0]) {
+        await client.query('DELETE FROM usuario_rol WHERE id_usuario = $1;', [id]);
+        await client.query(
+          'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
+          [id, rolResult.rows[0].id],
+        );
+      }
+    }
+
+    const result = await client.query(
+      `
+        SELECT
+          u.id,
+          u.nombre,
+          u.apellido,
+          u.email,
+          u.id_empresa,
+          e.nombre AS empresa_nombre,
+          u.activo,
+          COALESCE(
+            jsonb_agg(to_jsonb(r) ORDER BY ur.id_rol) FILTER (WHERE r.id IS NOT NULL),
+            '[]'::jsonb
+          ) AS roles
+        FROM usuario u
+        LEFT JOIN empresa e ON e.id = u.id_empresa
+        LEFT JOIN usuario_rol ur ON ur.id_usuario = u.id
+        LEFT JOIN rol r ON r.id = ur.id_rol
+        WHERE u.id = $1
+        GROUP BY u.id, e.nombre
+        LIMIT 1;
+      `,
+      [id],
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0] || null;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   buscarPorEmailParaLogin,
   crearUsuario,
+  actualizarUsuario,
 };
 

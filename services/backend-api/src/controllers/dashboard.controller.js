@@ -1,4 +1,6 @@
 const dashboardRepository = require('../repositories/dashboard.repository');
+const usuarioRepository = require('../repositories/usuario.repository');
+const empleadoRepository = require('../repositories/empleado.repository');
 
 const getEmpresas = async (req, res, next) => {
   try {
@@ -74,6 +76,55 @@ const getAlertas = async (req, res, next) => {
   }
 };
 
+const actualizarUsuario = async (req, res, next) => {
+  try {
+    const usuario = await usuarioRepository.actualizarUsuario(req.params.id, req.body);
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    res.json({ message: 'Usuario actualizado correctamente.', data: usuario });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const desactivarUsuario = async (req, res, next) => {
+  try {
+    const usuario = await usuarioRepository.actualizarUsuario(req.params.id, { activo: false });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    res.json({ message: 'Usuario desactivado correctamente.', data: usuario });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const actualizarEmpleado = async (req, res, next) => {
+  try {
+    const empleado = await empleadoRepository.actualizar(req.params.id, req.body);
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    res.json({ message: 'Empleado actualizado correctamente.', data: empleado });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const desactivarEmpleado = async (req, res, next) => {
+  try {
+    const empleado = await empleadoRepository.obtenerPorId(req.params.id);
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    await empleadoRepository.desactivar(req.params.id);
+    res.json({ message: 'Empleado desactivado correctamente.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEmpresas,
   getEmpleados,
@@ -82,4 +133,8 @@ module.exports = {
   getMediciones,
   getDispositivos,
   getAlertas,
+  actualizarUsuario,
+  desactivarUsuario,
+  actualizarEmpleado,
+  desactivarEmpleado,
 };
