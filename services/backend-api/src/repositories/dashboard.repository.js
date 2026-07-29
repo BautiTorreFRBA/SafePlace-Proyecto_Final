@@ -80,6 +80,61 @@ const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
   }
 };
 
+const actualizarEmpleado = async (id, { nombre, apellido, legajo, area, idEmpresa }) => {
+  const nombreLimpio = String(nombre || '').trim();
+  const apellidoLimpio = String(apellido || '').trim();
+  const legajoLimpio = String(legajo || '').trim();
+  const areaLimpia = String(area || '').trim();
+
+  if (!nombreLimpio || !apellidoLimpio || !legajoLimpio || !areaLimpia || !idEmpresa) {
+    throw new Error('Faltan campos obligatorios para actualizar el empleado.');
+  }
+
+  const existente = await db.query(
+    'SELECT 1 FROM operario WHERE lower(legajo) = lower($1) AND id <> $2 LIMIT 1;',
+    [legajoLimpio, id],
+  );
+
+  if (existente.rowCount > 0) {
+    const error = new Error('Ya existe un empleado con ese legajo.');
+    error.status = 409;
+    error.motivo = 'EMPLEADO_DUPLICADO';
+    throw error;
+  }
+
+  try {
+    const query = `
+      UPDATE operario
+      SET id_empresa = $2,
+          legajo = $3,
+          nombre = $4,
+          apellido = $5,
+          area = $6
+      WHERE id = $1
+      RETURNING id, id_empresa, legajo, nombre, apellido, area;
+    `;
+
+    const res = await db.query(query, [id, idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia]);
+    return res.rows[0] || null;
+  } catch (error) {
+    if (error.code === '23505') {
+      const dup = new Error('Ya existe un empleado con ese legajo.');
+      dup.status = 409;
+      dup.motivo = 'EMPLEADO_DUPLICADO';
+      throw dup;
+    }
+
+    if (error.code === '23503') {
+      const fk = new Error('No se pudo actualizar el empleado porque la empresa no existe o no es valida.');
+      fk.status = 409;
+      fk.motivo = 'FK_INVALIDA';
+      throw fk;
+    }
+
+    throw error;
+  }
+};
+
 const listarUsuarios = async () => {
   const query = `
     SELECT
@@ -201,6 +256,6 @@ module.exports = {
   listarEmpresas,
   listarEmpleados,
   crearEmpleado,
+  actualizarEmpleado,
   listarUsuarios,
 };
-

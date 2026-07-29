@@ -16,6 +16,7 @@ const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
 const mLegajo = document.getElementById('mLegajo');
 const mDept = document.getElementById('mDept');
+const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 
 let empleados = [];
 let editingId = null;
@@ -56,7 +57,7 @@ async function apiFetch(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operaciï¿½n.');
   }
 
   return payload;
@@ -79,7 +80,7 @@ function normalizarEmpleado(emp) {
 }
 
 async function cargarEmpleados() {
-  const json = await apiFetch('/dashboard/employees');
+  const json = await apiFetch(EMPLOYEES_ENDPOINT);
   empleados = (json.data || []).map(normalizarEmpleado);
   renderTable();
 }
@@ -127,10 +128,10 @@ function openModal(modo, id = null) {
     const emp = empleados.find((e) => String(e.id) === String(id));
     if (!emp) return;
     modalTitle.textContent = 'Editar Empleado';
-    mNombre.value = emp.nombre;
-    mApellido.value = emp.apellido;
-    mLegajo.value = emp.legajo;
-    mDept.value = emp.depto;
+    mNombre.value = emp.nombre || '';
+    mApellido.value = emp.apellido || '';
+    mLegajo.value = emp.legajo || '';
+    mDept.value = emp.depto || '';
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
@@ -161,13 +162,13 @@ async function guardarEmpleado() {
   const area = mDept.value.trim();
 
   if (!nombre || !apellido || !legajo || !area) {
-    alert('Completá nombre, apellido, legajo y departamento.');
+    alert('Completï¿½ nombre, apellido, legajo y departamento.');
     return;
   }
 
   try {
-    await apiFetch('/dashboard/employees', {
-      method: 'POST',
+    await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
+      method: editingId ? 'PATCH' : 'POST',
       body: JSON.stringify({ nombre, apellido, legajo, area }),
     });
     closeModal();

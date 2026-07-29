@@ -39,6 +39,30 @@ const crearEmpleado = async (req, res, next) => {
   }
 };
 
+const actualizarEmpleado = async (req, res, next) => {
+  try {
+    const idEmpresa = req.user?.idEmpresa;
+    const empleado = await dashboardRepository.actualizarEmpleado(req.params.id, {
+      nombre: req.body.nombre,
+      apellido: req.body.apellido,
+      legajo: req.body.legajo,
+      area: req.body.area,
+      idEmpresa,
+    });
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+
+    res.json({
+      message: 'Empleado actualizado correctamente.',
+      data: empleado,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getUsuarios = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarUsuarios();
@@ -95,6 +119,7 @@ module.exports = {
   getEmpresas,
   getEmpleados,
   crearEmpleado,
+  actualizarEmpleado,
   getUsuarios,
   actualizarUsuario,
   getMediciones,
