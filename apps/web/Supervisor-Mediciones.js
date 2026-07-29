@@ -8,84 +8,264 @@ const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 
 let mediciones = [];
+let debounceTimer = null;
+let chartFc = null;
+let chartVolumen = null;
 
-async function cargarEmpleados() {
-  const res = await fetch(`${API_BASE_URL}/dashboard/employees`);
-  const json = await res.json();
-  filterEmpleado.innerHTML = '<option value="">Todos</option>' + (json.data || [])
-    .map((emp) => `<option value="${emp.nombre} ${emp.apellido}">${emp.nombre} ${emp.apellido}</option>`).join('');
+function getAuthHeaders() {
+  const token = sessionStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function cargarMediciones() {
-  const params = new URLSearchParams();
-  if (filterDesde.value) params.set('desde', `${filterDesde.value}T00:00:00.000Z`);
-  if (filterHasta.value) params.set('hasta', `${filterHasta.value}T23:59:59.999Z`);
-  params.set('limit', '200');
-  const res = await fetch(`${API_BASE_URL}/dashboard/measurements?${params.toString()}`);
-  const json = await res.json();
-  mediciones = (json.data || []).map((m) => ({
-    empleado: `${m.operario_nombre || ''} ${m.operario_apellido || ''}`.trim() || `ID ${m.id_trabajador}`,
-    fecha: new Date(m.fecha_hora).toISOString().slice(0, 10),
-    hora: new Date(m.fecha_hora).toISOString().slice(11, 16),
-    bpm: m.frecuencia_cardiaca,
-    actividad: m.actividad || '--',
-    temp: m.temperatura_corporal ?? '--',
-    spo2: m.spo2 ?? '--',
-    valido: m.estado ? 'Sí' : 'No',
-  }));
-  renderTabla();
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizarTexto(texto = '') {
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function formatearFechaHora(fechaHora = '') {
+  const fecha = new Date(fechaHora);
+  if (Number.isNaN(fecha.getTime())) {
+    return { fecha: '--', hora: '--' };
+  }
+
+  return {
+    fecha: fecha.toLocaleDateString('es-AR'),
+    hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+  };
+}
+
+function formatearEstado(estado) {
+  if (typeof estado === 'boolean') {
+    return estado ? 'Si' : 'No';
+  }
+
+  const normalizado = normalizarTexto(estado);
+  if (['1', 'true', 'si', 's', 'valido', 'validado'].includes(normalizado)) {
+    return 'Si';
+  }
+
+  return 'No';
+}
+
+function obtenerFiltros() {
+  return {
+    desde: filterDesde.value || '',
+    hasta: filterHasta.value || '',
+    empleado: filterEmpleado.value || '',
+  };
+}
+
+function actualizarContador(total) {
+  medCount.textContent = `${total} ${total === 1 ? 'registro encontrado' : 'registros encontrados'}`;
+}
+
+function renderEstadoInicial(mensaje) {
+  mediciones = [];
+  actualizarContador(0);
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">
+        ${escapeHtml(mensaje)}
+      </td>
+    </tr>
+  `;
 }
 
 function renderTabla() {
-  const empleado = filterEmpleado.value;
-  const desde = filterDesde.value;
-  const hasta = filterHasta.value;
-  const filtrados = mediciones.filter((m) => {
-    const matchEmpleado = !empleado || m.empleado === empleado;
-    const matchFecha = (!desde || m.fecha >= desde) && (!hasta || m.fecha <= hasta);
-    return matchEmpleado && matchFecha;
-  });
-  medCount.textContent = `${filtrados.length}/${mediciones.length} registros`;
-  tableBody.innerHTML = filtrados.length === 0
-    ? '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No hay mediciones que coincidan con los filtros</td></tr>'
-    : filtrados.map((m) => `<tr>
-        <td>${m.empleado}</td>
-        <td style="color:var(--text-muted); font-size:0.82rem">${m.fecha} ${m.hora}</td>
-        <td><span class="med-fc-value">${m.bpm}</span></td>
-        <td style="color:var(--text-secondary)">${m.actividad}</td>
-        <td style="color:var(--text-secondary)">${m.temp}</td>
-        <td style="color:var(--text-secondary)">${m.spo2}</td>
-        <td><span class="${m.valido === 'Sí' ? 'med-valid-si' : 'med-valid-no'}">${m.valido}</span></td>
-      </tr>`).join('');
+  actualizarContador(mediciones.length);
+
+  if (mediciones.length === 0) {
+    renderEstadoInicial('No hay mediciones que coincidan con los filtros');
+    return;
+  }
+
+  tableBody.innerHTML = mediciones.map((m) => `
+    <tr>
+      <td>${escapeHtml(m.empleado)}</td>
+      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(m.fecha)} ${escapeHtml(m.hora)}</td>
+      <td><span class="med-fc-value">${escapeHtml(m.bpm)}</span></td>
+      <td style="color:var(--text-secondary)">${escapeHtml(m.actividad)}</td>
+      <td style="color:var(--text-secondary)">${escapeHtml(m.temp)}</td>
+      <td style="color:var(--text-secondary)">${escapeHtml(m.spo2)}</td>
+      <td><span class="${m.valido === 'Si' ? 'med-valid-si' : 'med-valid-no'}">${m.valido}</span></td>
+    </tr>
+  `).join('');
+}
+
+function destruirGraficas() {
+  if (chartFc && typeof chartFc.destroy === 'function') {
+    chartFc.destroy();
+  }
+  chartFc = null;
+
+  if (chartVolumen && typeof chartVolumen.destroy === 'function') {
+    chartVolumen.destroy();
+  }
+  chartVolumen = null;
 }
 
 function actualizarGraficas(datos) {
+  destruirGraficas();
+
   const ctxFc = document.getElementById('chartFrecuencia').getContext('2d');
-  if (window.chartFc) window.chartFc.destroy();
-  window.chartFc = new Chart(ctxFc, {
+  chartFc = new Chart(ctxFc, {
     type: 'line',
-    data: { labels: datos.map((_, i) => `${i + 1}`), datasets: [{ label: 'BPM', data: datos.map((d) => d.bpm), borderColor: '#2dd4bf', backgroundColor: 'rgba(45, 212, 191, 0.1)', tension: 0.4, fill: true, pointRadius: 2, pointBackgroundColor: '#2dd4bf' }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    data: {
+      labels: datos.map((_, i) => `${i + 1}`),
+      datasets: [{
+        label: 'BPM',
+        data: datos.map((d) => d.bpm),
+        borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.1)',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 2,
+        pointBackgroundColor: '#2dd4bf',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+    },
   });
+
   const ctxVolumen = document.getElementById('chartVolumen').getContext('2d');
-  if (window.chartVolumen) window.chartVolumen.destroy();
-  window.chartVolumen = new Chart(ctxVolumen, {
+  chartVolumen = new Chart(ctxVolumen, {
     type: 'line',
-    data: { labels: datos.map((_, i) => `${i + 1}`), datasets: [{ label: 'Lecturas', data: datos.map(() => 6), borderColor: '#2dd4bf', backgroundColor: 'rgba(45, 212, 191, 0.2)', fill: true, pointRadius: 0, tension: 0.1, borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    data: {
+      labels: datos.map((_, i) => `${i + 1}`),
+      datasets: [{
+        label: 'Lecturas',
+        data: datos.map(() => 6),
+        borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.2)',
+        fill: true,
+        pointRadius: 0,
+        tension: 0.1,
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+    },
   });
 }
 
-btnPDF.addEventListener('click', () => alert('Exportar a PDF - Función simulada.'));
-btnExcel.addEventListener('click', () => alert('Exportar a Excel - Función simulada.'));
-filterEmpleado.addEventListener('change', renderTabla);
-filterDesde.addEventListener('change', cargarMediciones);
-filterHasta.addEventListener('change', cargarMediciones);
+function renderEmpleadoOptions(datos) {
+  const actual = filterEmpleado.value;
+  const nombres = Array.from(new Set(datos.map((item) => item.empleado).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
-async function init() {
-  await cargarEmpleados();
-  await cargarMediciones();
+  filterEmpleado.innerHTML = '<option value="">Todos</option>' + nombres
+    .map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`)
+    .join('');
+
+  if (actual && nombres.includes(actual)) {
+    filterEmpleado.value = actual;
+  }
+}
+
+function obtenerMensajeSinFechas() {
+  return 'Selecciona las fechas Desde y Hasta para consultar el historial de mediciones.';
+}
+
+async function cargarMediciones() {
+  const { desde, hasta, empleado } = obtenerFiltros();
+
+  if (!desde || !hasta) {
+    renderEstadoInicial(obtenerMensajeSinFechas());
+    destruirGraficas();
+    return;
+  }
+
+  const params = new URLSearchParams();
+  params.set('desde', desde);
+  params.set('hasta', hasta);
+  params.set('limit', '200');
+  if (empleado) params.set('empleado', empleado);
+
+  const res = await fetch(`${API_BASE_URL}/mediciones?${params.toString()}`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('No autorizado. Volve a iniciar sesion para ver las mediciones.');
+    }
+
+    if (res.status === 403) {
+      throw new Error('Tu usuario no tiene permiso para ver el historial de mediciones.');
+    }
+
+    throw new Error(`No se pudo cargar el historial (${res.status})`);
+  }
+
+  const json = await res.json();
+  const rows = Array.isArray(json.data) ? json.data : [];
+
+  mediciones = rows.map((m) => {
+    const fechaHora = formatearFechaHora(m.fecha_hora);
+    return {
+      empleado: `${m.operario_nombre || ''} ${m.operario_apellido || ''}`.trim() || `ID ${m.id_trabajador}`,
+      fecha: fechaHora.fecha,
+      hora: fechaHora.hora,
+      bpm: m.frecuencia_cardiaca ?? '--',
+      actividad: m.actividad || '--',
+      temp: m.temperatura_corporal ?? '--',
+      spo2: m.spo2 ?? '--',
+      valido: formatearEstado(m.estado),
+    };
+  });
+
+  renderEmpleadoOptions(mediciones);
+  renderTabla();
   actualizarGraficas(mediciones);
 }
 
-init().catch(console.error);
+function programarRecarga() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    cargarMediciones().catch((error) => {
+      console.error(error);
+      medCount.textContent = error.message;
+    });
+  }, 250);
+}
+
+function exportarSimulado(tipo) {
+  alert(`Exportar a ${tipo} - Funcion simulada.`);
+}
+
+btnPDF.addEventListener('click', () => exportarSimulado('PDF'));
+btnExcel.addEventListener('click', () => exportarSimulado('Excel'));
+filterEmpleado.addEventListener('change', () => {
+  if (!filterDesde.value || !filterHasta.value) {
+    renderEstadoInicial(obtenerMensajeSinFechas());
+    return;
+  }
+  cargarMediciones().catch((error) => {
+    console.error(error);
+    medCount.textContent = error.message;
+  });
+});
+filterDesde.addEventListener('change', programarRecarga);
+filterHasta.addEventListener('change', programarRecarga);
+
+renderEstadoInicial(obtenerMensajeSinFechas());
+
