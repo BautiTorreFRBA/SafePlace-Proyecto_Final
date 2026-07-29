@@ -7,6 +7,7 @@ router.get('/companies', auth, authorize(['admin']), dashboardController.getEmpr
 router.get('/employees', auth, authorize(['admin']), dashboardController.getEmpleados);
 router.post('/employees', auth, authorize(['admin']), dashboardController.crearEmpleado);
 router.patch('/employees/:id', auth, authorize(['admin']), dashboardController.actualizarEmpleado);
+router.patch('/employees/:id/deactivate', auth, authorize(['admin']), dashboardController.desactivarEmpleado);
 router.get('/users', auth, authorize(['admin']), dashboardController.getUsuarios);
 router.patch('/users/:id', auth, authorize(['admin']), dashboardController.actualizarUsuario);
 router.get('/measurements', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getMediciones);

@@ -16,6 +16,7 @@ const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
 const mDept = document.getElementById('mDept');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
+const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
 const sortButtons = Array.from(document.querySelectorAll('.emp-sort'));
 
 let empleados = [];
@@ -129,6 +130,8 @@ async function apiFetch(path, options = {}) {
 
 function normalizarEmpleado(emp) {
   const nombreCompleto = `${emp.nombre || ''} ${emp.apellido || ''}`.trim();
+  const estadoBruto = emp.estado;
+  const estaActivo = estadoBruto === true || estadoBruto === 'true';
   return {
     id: emp.id,
     legajo: emp.legajo || `EMP-${String(emp.id).padStart(3, '0')}`,
@@ -138,7 +141,7 @@ function normalizarEmpleado(emp) {
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
     rol: emp.rol || 'Operario',
-    estado: emp.activo ? 'activo' : 'inactivo',
+    estado: estaActivo ? 'activo' : 'inactivo',
     alta: emp.alta ? new Date(emp.alta).toLocaleDateString('es-AR') : '--',
   };
 }
@@ -176,8 +179,8 @@ function renderTable() {
 function rowHTML(emp) {
   const esActivo = emp.estado === 'activo';
   const estadoBadge = esActivo
-    ? '<span class="badge badge--normal">? Activo</span>'
-    : '<span class="badge badge--neutral">? Inactivo</span>';
+    ? '<span class="badge badge--normal">Activo</span>'
+    : '<span class="badge badge--neutral">Inactivo</span>';
 
   return `<tr>
       <td class="emp-id">${escapeHtml(emp.legajo)}</td>
@@ -185,8 +188,8 @@ function rowHTML(emp) {
       <td style="color:var(--text-secondary)">${escapeHtml(emp.depto)}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
       <td>${estadoBadge}</td>
-      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(emp.alta)}</td>
-      <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${emp.id}">Editar</button></div></td>
+      <td style="color:var(--text-primary); font-size:0.82rem">${escapeHtml(emp.alta)}</td>
+      <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${emp.id}">Editar</button><button class="emp-actions__deactivate" data-id="${emp.id}" ${esActivo ? '' : 'disabled'}>Desactivar</button></div></td>
     </tr>`;
 }
 
@@ -243,10 +246,32 @@ async function guardarEmpleado() {
   }
 }
 
+async function desactivarEmpleado(id) {
+  const emp = empleados.find((e) => String(e.id) === String(id));
+  if (!emp) return;
+
+  const ok = window.confirm(`Desactivar al empleado ${emp.nombreCompleto}?`);
+  if (!ok) return;
+
+  try {
+    await apiFetch(EMPLOYEE_DEACTIVATE_ENDPOINT(id), {
+      method: 'PATCH',
+    });
+    await cargarEmpleados();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 tableBody.addEventListener('click', (e) => {
   const editBtn = e.target.closest('.emp-actions__edit');
   if (editBtn) {
     return openModal('editar', editBtn.dataset.id);
+  }
+
+  const deactivateBtn = e.target.closest('.emp-actions__deactivate');
+  if (deactivateBtn) {
+    return desactivarEmpleado(deactivateBtn.dataset.id);
   }
 });
 

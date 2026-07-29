@@ -2824,11 +2824,6 @@ select.cfg-input {
   color: var(--green);
 }
 
-.badge--normal::before {
-  content: '● ';
-  margin-right: 3px;
-}
-
 .badge--warning {
   background: rgba(251, 146, 60, 0.18);
   color: var(--orange);
@@ -3641,6 +3636,27 @@ select.cfg-input {
 
 .usr-btn-editar:hover {
   color: var(--teal-400);
+}
+
+.usr-btn-desactivar {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font);
+  padding: 4px 8px;
+  transition: color 0.15s;
+}
+
+.usr-btn-desactivar:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.usr-btn-desactivar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ── MODAL ──────────────────────────────────────────────────── */

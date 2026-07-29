@@ -61,6 +61,23 @@ const actualizarEmpleado = async (req, res, next) => {
   }
 };
 
+const desactivarEmpleado = async (req, res, next) => {
+  try {
+    const empleado = await dashboardRepository.desactivarEmpleado(req.params.id);
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+
+    res.json({
+      message: 'Empleado desactivado correctamente.',
+      data: empleado,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getUsuarios = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarUsuarios();
@@ -118,6 +135,7 @@ module.exports = {
   getEmpleados,
   crearEmpleado,
   actualizarEmpleado,
+  desactivarEmpleado,
   getUsuarios,
   actualizarUsuario,
   getMediciones,

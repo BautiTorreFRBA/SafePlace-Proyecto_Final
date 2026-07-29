@@ -19,11 +19,9 @@ const listarEmpleados = async () => {
       o.apellido,
       o.area AS depto,
       'Operario' AS rol,
-      COALESCE(rc.estado, false) AS activo,
-      MIN(rc.fecha_hora) AS alta
+      o.estado AS estado,
+      o.alta AS alta
     FROM operario o
-    LEFT JOIN registro_consentimiento rc ON rc.id_operario = o.id
-    GROUP BY o.id, o.id_empresa, o.legajo, o.nombre, o.apellido, o.area, rc.estado
     ORDER BY o.apellido, o.nombre, o.id;
   `;
   const res = await db.query(query);
@@ -62,8 +60,8 @@ const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
       client.release();
     }
     const query = `
-      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, alta)
+      VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING id, id_empresa, legajo, nombre, apellido, area;
     `;
 
@@ -127,6 +125,18 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => 
 
     throw error;
   }
+};
+
+const desactivarEmpleado = async (id) => {
+  const query = `
+    UPDATE operario
+    SET estado = FALSE
+    WHERE id = $1
+    RETURNING id, id_empresa, legajo, nombre, apellido, area, estado, alta;
+  `;
+
+  const res = await db.query(query, [id]);
+  return res.rows[0] || null;
 };
 
 const listarUsuarios = async () => {
@@ -251,5 +261,6 @@ module.exports = {
   listarEmpleados,
   crearEmpleado,
   actualizarEmpleado,
+  desactivarEmpleado,
   listarUsuarios,
 };

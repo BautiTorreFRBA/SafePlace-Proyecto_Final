@@ -281,7 +281,7 @@ async function cargarHistorial() {
   const { desde, tipo, empleado } = obtenerFiltros();
 
   if (!desde) {
-    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
     return;
   }
 
@@ -300,7 +300,7 @@ async function cargarHistorial() {
 
   if (!res.ok) {
     if (res.status === 401) {
-      throw new Error('No autorizado. Volve a iniciar sesión para ver el historial.');
+      throw new Error('No autorizado. Volve a iniciar sesiÃ³n para ver el historial.');
     }
 
     if (res.status === 403) {
@@ -331,7 +331,7 @@ async function cargarHistorial() {
 
 function programarRecarga() {
   if (!filterDesde.value) {
-    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
     return;
   }
 
@@ -348,7 +348,7 @@ filterEmpleado.addEventListener('input', programarRecarga);
 filterTipo.addEventListener('change', programarRecarga);
 filterDesde.addEventListener('change', () => {
   if (!filterDesde.value) {
-    renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
     return;
   }
 
@@ -360,4 +360,4 @@ filterDesde.addEventListener('change', () => {
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
-renderEstadoInicial('Seleccioná una fecha en el filtro Desde para consultar el historial.');
+renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
