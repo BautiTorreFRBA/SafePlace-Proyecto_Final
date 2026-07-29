@@ -52,28 +52,31 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
     );
 
     const usuario = usuarioInsert.rows[0];
+    const rolNormalizado = String(rol || '').trim().toLowerCase();
 
     const rolResult = await client.query(
       `
-        SELECT id, nombre, rol, codigo, slug, name, tipo
+        SELECT id, nombre
         FROM rol
         WHERE lower(nombre) = lower($1)
-           OR lower(rol) = lower($1)
-           OR lower(codigo) = lower($1)
-           OR lower(slug) = lower($1)
-           OR lower(name) = lower($1)
-           OR lower(tipo) = lower($1)
+           OR lower(nombre) LIKE $2
+        ORDER BY CASE
+          WHEN lower(nombre) = lower($1) THEN 0
+          ELSE 1
+        END
         LIMIT 1;
       `,
-      [rol],
+      [rolNormalizado, `%${rolNormalizado}%`],
     );
 
-    if (rolResult.rows[0]) {
-      await client.query(
-        'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
-        [usuario.id, rolResult.rows[0].id],
-      );
+    if (!rolResult.rows[0]) {
+      throw new Error(`No se encontró un rol válido para '${rol}'.`);
     }
+
+    await client.query(
+      'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
+      [usuario.id, rolResult.rows[0].id],
+    );
 
     await client.query('COMMIT');
 
@@ -90,3 +93,4 @@ module.exports = {
   buscarPorEmailParaLogin,
   crearUsuario,
 };
+
