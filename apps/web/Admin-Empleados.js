@@ -16,9 +16,14 @@ const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
 const mDept = document.getElementById('mDept');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
+const sortButtons = Array.from(document.querySelectorAll('.emp-sort'));
 
 let empleados = [];
 let editingId = null;
+let sortState = {
+  key: 'nombreCompleto',
+  direction: 'asc',
+};
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -54,6 +59,47 @@ function setSelectByText(select, texto) {
 
   const option = Array.from(select.options).find((opt) => normalizarTexto(opt.textContent) === objetivo);
   select.value = option ? option.value : '';
+}
+
+function getSortValue(emp, key) {
+  switch (key) {
+    case 'legajo':
+      return normalizarTexto(emp.legajo || '');
+    case 'nombreCompleto':
+      return normalizarTexto(emp.nombreCompleto || '');
+    case 'depto':
+      return normalizarTexto(emp.depto || '');
+    case 'rol':
+      return normalizarTexto(emp.rol || '');
+    case 'estado':
+      return emp.estado === 'activo' ? 1 : 0;
+    case 'alta':
+      return emp.alta ? new Date(emp.alta).getTime() : 0;
+    default:
+      return normalizarTexto(String(emp[key] ?? ''));
+  }
+}
+
+function ordenarEmpleados(lista) {
+  const { key, direction } = sortState;
+  const factor = direction === 'asc' ? 1 : -1;
+
+  return [...lista].sort((a, b) => {
+    const va = getSortValue(a, key);
+    const vb = getSortValue(b, key);
+
+    if (va < vb) return -1 * factor;
+    if (va > vb) return 1 * factor;
+    return 0;
+  });
+}
+
+function actualizarIndicadoresOrden() {
+  sortButtons.forEach((btn) => {
+    const activo = btn.dataset.sort === sortState.key;
+    btn.classList.toggle('emp-sort--active', activo);
+    btn.classList.toggle('emp-sort--desc', activo && sortState.direction === 'desc');
+  });
 }
 
 async function apiFetch(path, options = {}) {
@@ -116,11 +162,15 @@ function renderTable() {
     return matchBusqueda && matchEstado;
   });
 
-  empCount.textContent = `${filtrados.length} empleado${filtrados.length !== 1 ? 's' : ''} registrado${filtrados.length !== 1 ? 's' : ''}`;
+  const ordenados = ordenarEmpleados(filtrados);
 
-  tableBody.innerHTML = filtrados.length === 0
+  empCount.textContent = `${ordenados.length} empleado${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
+
+  tableBody.innerHTML = ordenados.length === 0
     ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
-    : filtrados.map((emp) => rowHTML(emp)).join('');
+    : ordenados.map((emp) => rowHTML(emp)).join('');
+
+  actualizarIndicadoresOrden();
 }
 
 function rowHTML(emp) {
@@ -207,6 +257,18 @@ modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 modalSave.addEventListener('click', guardarEmpleado);
+[...sortButtons].forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.sort;
+    if (sortState.key === key) {
+      sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.direction = 'asc';
+    }
+    renderTable();
+  });
+});
 [mNombre, mApellido, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();

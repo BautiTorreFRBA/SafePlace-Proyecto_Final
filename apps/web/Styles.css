@@ -763,6 +763,51 @@ html, body {
   white-space: nowrap;
 }
 
+.emp-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.emp-sort::after {
+  content: '↕';
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.emp-sort:hover {
+  color: var(--teal-400);
+}
+
+.emp-sort:hover::after {
+  color: var(--teal-400);
+  opacity: 1;
+}
+
+.emp-sort--active {
+  color: var(--teal-400);
+}
+
+.emp-sort--active::after {
+  color: var(--teal-400);
+  opacity: 1;
+}
+
+.emp-sort--desc::after {
+  content: '↓';
+}
+
 .emp-table tbody tr {
   border-bottom: 1px solid var(--border-soft);
   transition: background 0.15s;
