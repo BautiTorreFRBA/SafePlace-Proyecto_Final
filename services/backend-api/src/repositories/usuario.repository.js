@@ -70,7 +70,7 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
     );
 
     if (!rolResult.rows[0]) {
-      throw new Error(`No se encontró un rol válido para '${rol}'.`);
+      throw new Error(`No se encontrï¿½ un rol vï¿½lido para '${rol}'.`);
     }
 
     await client.query(
@@ -89,8 +89,104 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
   }
 };
 
+const actualizarUsuario = async (id, { nombre, apellido, email, password, id_empresa, rol, activo }) => {
+  const client = await db.getPool().connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const usuarioActual = await client.query(
+      `
+        SELECT id, nombre, apellido, email, id_empresa, activo
+        FROM usuario
+        WHERE id = $1
+        LIMIT 1;
+      `,
+      [id],
+    );
+
+    if (!usuarioActual.rows[0]) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const base = usuarioActual.rows[0];
+    const nombreFinal = nombre ?? base.nombre;
+    const apellidoFinal = apellido ?? base.apellido;
+    const emailFinal = email ? String(email).trim().toLowerCase() : base.email;
+    const empresaFinal = id_empresa ?? base.id_empresa;
+    const activoFinal = typeof activo === 'boolean' ? activo : base.activo;
+
+    const params = [id, nombreFinal, apellidoFinal, emailFinal, empresaFinal, activoFinal];
+    const query = password
+      ? `
+        UPDATE usuario
+        SET nombre = $2,
+            apellido = $3,
+            email = lower($4),
+            id_empresa = $5,
+            activo = $6,
+            password_hash = $7
+        WHERE id = $1
+        RETURNING id, nombre, apellido, email, id_empresa, activo;
+      `
+      : `
+        UPDATE usuario
+        SET nombre = $2,
+            apellido = $3,
+            email = lower($4),
+            id_empresa = $5,
+            activo = $6
+        WHERE id = $1
+        RETURNING id, nombre, apellido, email, id_empresa, activo;
+      `;
+
+    if (password) {
+      params.push(await bcrypt.hash(password, 10));
+    }
+
+    const usuarioUpdate = await client.query(query, params);
+
+    if (rol) {
+      const rolNormalizado = String(rol).trim().toLowerCase();
+      const rolResult = await client.query(
+        `
+          SELECT id
+          FROM rol
+          WHERE lower(nombre) = lower($1)
+             OR lower(nombre) LIKE $2
+          ORDER BY CASE
+            WHEN lower(nombre) = lower($1) THEN 0
+            ELSE 1
+          END
+          LIMIT 1;
+        `,
+        [rolNormalizado, `%${rolNormalizado}%`],
+      );
+
+      if (!rolResult.rows[0]) {
+        throw new Error(`No se encontro un rol valido para '${rol}'.`);
+      }
+
+      await client.query('DELETE FROM usuario_rol WHERE id_usuario = $1;', [id]);
+      await client.query(
+        'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2);',
+        [id, rolResult.rows[0].id],
+      );
+    }
+
+    await client.query('COMMIT');
+    return usuarioUpdate.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   buscarPorEmailParaLogin,
   crearUsuario,
+  actualizarUsuario,
 };
-

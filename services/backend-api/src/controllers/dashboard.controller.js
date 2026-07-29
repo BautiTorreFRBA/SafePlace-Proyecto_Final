@@ -1,4 +1,5 @@
 const dashboardRepository = require('../repositories/dashboard.repository');
+const usuarioRepository = require('../repositories/usuario.repository');
 
 const getEmpresas = async (req, res, next) => {
   try {
@@ -24,7 +25,6 @@ const crearEmpleado = async (req, res, next) => {
     const empleado = await dashboardRepository.crearEmpleado({
       nombre: req.body.nombre,
       apellido: req.body.apellido,
-      legajo: req.body.legajo,
       area: req.body.area,
       idEmpresa,
     });
@@ -38,10 +38,66 @@ const crearEmpleado = async (req, res, next) => {
   }
 };
 
+const actualizarEmpleado = async (req, res, next) => {
+  try {
+    const idEmpresa = req.user?.idEmpresa;
+    const empleado = await dashboardRepository.actualizarEmpleado(req.params.id, {
+      nombre: req.body.nombre,
+      apellido: req.body.apellido,
+      area: req.body.area,
+      idEmpresa,
+    });
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+
+    res.json({
+      message: 'Empleado actualizado correctamente.',
+      data: empleado,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const desactivarEmpleado = async (req, res, next) => {
+  try {
+    const empleado = await dashboardRepository.desactivarEmpleado(req.params.id);
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+
+    res.json({
+      message: 'Empleado desactivado correctamente.',
+      data: empleado,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getUsuarios = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarUsuarios();
     res.json({ data: rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const actualizarUsuario = async (req, res, next) => {
+  try {
+    const usuario = await usuarioRepository.actualizarUsuario(req.params.id, req.body);
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    res.json({
+      message: 'Usuario actualizado correctamente.',
+      data: usuario,
+    });
   } catch (error) {
     next(error);
   }
@@ -78,7 +134,10 @@ module.exports = {
   getEmpresas,
   getEmpleados,
   crearEmpleado,
+  actualizarEmpleado,
+  desactivarEmpleado,
   getUsuarios,
+  actualizarUsuario,
   getMediciones,
   getDispositivos,
   getAlertas,

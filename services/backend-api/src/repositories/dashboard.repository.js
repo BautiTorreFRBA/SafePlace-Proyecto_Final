@@ -19,43 +19,49 @@ const listarEmpleados = async () => {
       o.apellido,
       o.area AS depto,
       'Operario' AS rol,
-      COALESCE(rc.estado, false) AS activo,
-      MIN(rc.fecha_hora) AS alta
+      o.estado AS estado,
+      o.alta AS alta
     FROM operario o
-    LEFT JOIN registro_consentimiento rc ON rc.id_operario = o.id
-    GROUP BY o.id, o.id_empresa, o.legajo, o.nombre, o.apellido, o.area, rc.estado
     ORDER BY o.apellido, o.nombre, o.id;
   `;
   const res = await db.query(query);
   return res.rows;
 };
 
-const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
+const generarLegajoEmpleado = async (client) => {
+  const query = `
+    SELECT COALESCE(MAX(
+      NULLIF(regexp_replace(legajo, '\\D', '', 'g'), '')::int
+    ), 0) + 1 AS siguiente
+    FROM operario
+    WHERE legajo ~ '\\d';
+  `;
+
+  const res = await client.query(query);
+  const siguiente = Number(res.rows[0]?.siguiente || 1);
+  return `EMP-${String(siguiente).padStart(3, '0')}`;
+};
+
+const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
-  const legajoLimpio = String(legajo || '').trim();
   const areaLimpia = String(area || '').trim();
 
-  if (!nombreLimpio || !apellidoLimpio || !legajoLimpio || !areaLimpia || !idEmpresa) {
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para crear el empleado.');
   }
 
-  const existente = await db.query(
-    'SELECT 1 FROM operario WHERE lower(legajo) = lower($1) LIMIT 1;',
-    [legajoLimpio],
-  );
-
-  if (existente.rowCount > 0) {
-    const error = new Error('Ya existe un empleado con ese legajo.');
-    error.status = 409;
-    error.motivo = 'EMPLEADO_DUPLICADO';
-    throw error;
-  }
-
   try {
+    const client = await db.getPool().connect();
+    let legajoLimpio;
+    try {
+      legajoLimpio = await generarLegajoEmpleado(client);
+    } finally {
+      client.release();
+    }
     const query = `
-      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, alta)
+      VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING id, id_empresa, legajo, nombre, apellido, area;
     `;
 
@@ -78,6 +84,59 @@ const crearEmpleado = async ({ nombre, apellido, legajo, area, idEmpresa }) => {
 
     throw error;
   }
+};
+
+const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => {
+  const nombreLimpio = String(nombre || '').trim();
+  const apellidoLimpio = String(apellido || '').trim();
+  const areaLimpia = String(area || '').trim();
+
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
+    throw new Error('Faltan campos obligatorios para actualizar el empleado.');
+  }
+
+  try {
+    const query = `
+      UPDATE operario
+      SET id_empresa = $2,
+          nombre = $3,
+          apellido = $4,
+          area = $5
+      WHERE id = $1
+      RETURNING id, id_empresa, legajo, nombre, apellido, area;
+    `;
+
+    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia]);
+    return res.rows[0] || null;
+  } catch (error) {
+    if (error.code === '23505') {
+      const dup = new Error('Ya existe un empleado con ese legajo.');
+      dup.status = 409;
+      dup.motivo = 'EMPLEADO_DUPLICADO';
+      throw dup;
+    }
+
+    if (error.code === '23503') {
+      const fk = new Error('No se pudo actualizar el empleado porque la empresa no existe o no es valida.');
+      fk.status = 409;
+      fk.motivo = 'FK_INVALIDA';
+      throw fk;
+    }
+
+    throw error;
+  }
+};
+
+const desactivarEmpleado = async (id) => {
+  const query = `
+    UPDATE operario
+    SET estado = FALSE
+    WHERE id = $1
+    RETURNING id, id_empresa, legajo, nombre, apellido, area, estado, alta;
+  `;
+
+  const res = await db.query(query, [id]);
+  return res.rows[0] || null;
 };
 
 const listarUsuarios = async () => {
@@ -201,6 +260,7 @@ module.exports = {
   listarEmpresas,
   listarEmpleados,
   crearEmpleado,
+  actualizarEmpleado,
+  desactivarEmpleado,
   listarUsuarios,
 };
-

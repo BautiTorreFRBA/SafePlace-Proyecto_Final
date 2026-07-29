@@ -763,6 +763,51 @@ html, body {
   white-space: nowrap;
 }
 
+.emp-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.emp-sort::after {
+  content: '↕';
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.emp-sort:hover {
+  color: var(--teal-400);
+}
+
+.emp-sort:hover::after {
+  color: var(--teal-400);
+  opacity: 1;
+}
+
+.emp-sort--active {
+  color: var(--teal-400);
+}
+
+.emp-sort--active::after {
+  color: var(--teal-400);
+  opacity: 1;
+}
+
+.emp-sort--desc::after {
+  content: '↓';
+}
+
 .emp-table tbody tr {
   border-bottom: 1px solid var(--border-soft);
   transition: background 0.15s;
@@ -2779,11 +2824,6 @@ select.cfg-input {
   color: var(--green);
 }
 
-.badge--normal::before {
-  content: '● ';
-  margin-right: 3px;
-}
-
 .badge--warning {
   background: rgba(251, 146, 60, 0.18);
   color: var(--orange);
@@ -3598,6 +3638,27 @@ select.cfg-input {
   color: var(--teal-400);
 }
 
+.usr-btn-desactivar {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font);
+  padding: 4px 8px;
+  transition: color 0.15s;
+}
+
+.usr-btn-desactivar:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.usr-btn-desactivar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── MODAL ──────────────────────────────────────────────────── */
 
 .usr-modal-overlay {
@@ -3678,13 +3739,6 @@ select.cfg-input {
   margin-bottom: 12px;
 }
 
-.usr-form-group--toggle {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0;
-}
-
 .usr-form-label {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -3714,56 +3768,6 @@ select.cfg-input {
 .usr-form-input::placeholder,
 .usr-form-select::placeholder {
   color: var(--text-muted);
-}
-
-/* ── TOGGLE SWITCH ──────────────────────────────────────────── */
-
-.toggle {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 28px;
-}
-
-.toggle__input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle__track {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-main);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  transition: background 0.3s;
-}
-
-.toggle__track::after {
-  content: '';
-  position: absolute;
-  height: 22px;
-  width: 22px;
-  left: 2px;
-  bottom: 2px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  transition: transform 0.3s;
-}
-
-.toggle__input:checked + .toggle__track {
-  background: var(--teal-400);
-  border-color: var(--teal-500);
-}
-
-.toggle__input:checked + .toggle__track::after {
-  transform: translateX(22px);
-  background: var(--bg-card);
 }
 
 /* ── MODAL FOOTER ───────────────────────────────────────────── */
