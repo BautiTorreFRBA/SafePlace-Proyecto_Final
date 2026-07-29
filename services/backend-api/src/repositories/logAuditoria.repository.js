@@ -1,22 +1,31 @@
 ﻿const db = require('../config/database');
 
-const registrar = async ({ idUsuario, tablaAfectada, operacion, ipOrigen, detalle }) => {
+const registrar = async ({
+  idUsuario,
+  tablaAfectada,
+  idRegistro,
+  operacion,
+  ipOrigen,
+  detalle,
+}) => {
   const query = `
     INSERT INTO log_auditoria (
       id_usuario,
       tabla_afectada,
+      id_registro,
       operacion,
       ip_origen,
       detalle,
       fecha_hora
     )
-    VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()))
+    VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, now()))
     RETURNING *;
   `;
 
   const result = await db.query(query, [
     idUsuario || null,
     tablaAfectada,
+    idRegistro || null,
     operacion,
     ipOrigen || null,
     detalle,
