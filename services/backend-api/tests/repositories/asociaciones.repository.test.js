@@ -102,6 +102,22 @@ describe('repositorios de asociación wearable-trabajador', () => {
     expect(new Date(actualizada.fecha_hasta).toISOString()).toBe(nuevaFechaHasta);
   });
 
+  it('asignacionDispositivoRepository.actualizar sin fechaHasta no borra la fecha_hasta existente', async () => {
+    const trabajador = await crearOperario(empresa.id);
+    const dispositivo = await crearDispositivo();
+    const asignacion = await asignacionRepository.crear({
+      idTrabajador: trabajador.id,
+      idDispositivo: dispositivo.id,
+    });
+
+    const nuevaFechaHasta = '2026-12-31T00:00:00.000Z';
+    await asignacionRepository.actualizar(asignacion.id, { fechaHasta: nuevaFechaHasta });
+    await asignacionRepository.actualizar(asignacion.id, {});
+
+    const actualizada = await asignacionRepository.obtenerPorId(asignacion.id);
+    expect(new Date(actualizada.fecha_hasta).toISOString()).toBe(nuevaFechaHasta);
+  });
+
   it('asignacionDispositivoRepository.finalizar setea fecha_hasta a ahora', async () => {
     const trabajador = await crearOperario(empresa.id);
     const dispositivo = await crearDispositivo();

@@ -64,7 +64,7 @@ const actualizar = async (id, { fechaDesde, fechaHasta }) => {
     UPDATE asignacion_dispositivo
     SET
       fecha_desde = COALESCE($2, fecha_desde),
-      fecha_hasta = $3
+      fecha_hasta = COALESCE($3, fecha_hasta)
     WHERE id = $1
     RETURNING *;
   `;
