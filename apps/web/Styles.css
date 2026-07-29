@@ -3678,13 +3678,6 @@ select.cfg-input {
   margin-bottom: 12px;
 }
 
-.usr-form-group--toggle {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0;
-}
-
 .usr-form-label {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -3714,56 +3707,6 @@ select.cfg-input {
 .usr-form-input::placeholder,
 .usr-form-select::placeholder {
   color: var(--text-muted);
-}
-
-/* ── TOGGLE SWITCH ──────────────────────────────────────────── */
-
-.toggle {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 28px;
-}
-
-.toggle__input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle__track {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-main);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  transition: background 0.3s;
-}
-
-.toggle__track::after {
-  content: '';
-  position: absolute;
-  height: 22px;
-  width: 22px;
-  left: 2px;
-  bottom: 2px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  transition: transform 0.3s;
-}
-
-.toggle__input:checked + .toggle__track {
-  background: var(--teal-400);
-  border-color: var(--teal-500);
-}
-
-.toggle__input:checked + .toggle__track::after {
-  transform: translateX(22px);
-  background: var(--bg-card);
 }
 
 /* ── MODAL FOOTER ───────────────────────────────────────────── */

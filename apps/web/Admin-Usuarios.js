@@ -11,11 +11,16 @@ const modalOverlay = document.getElementById('usrModalOverlay');
 const modalClose = document.getElementById('usrModalClose');
 const modalCancel = document.getElementById('usrModalCancel');
 const modalCreate = document.getElementById('usrModalCreate');
+const modalTitle = document.querySelector('.usr-modal__title');
 const selectEmpresa = document.getElementById('usrEmpresa');
 const selectRol = document.getElementById('usrRol');
+const inputNombre = document.getElementById('usrNombre');
+const inputApellido = document.getElementById('usrApellido');
+const inputEmail = document.getElementById('usrEmail');
 
 let usuarios = [];
 let empresas = [];
+let editandoId = null;
 
 function getAuthHeaders() {
   const token = sessionStorage.getItem('authToken');
@@ -33,6 +38,23 @@ function normalizeRolForApi(value) {
   if (normalized.includes('seguridad')) return 'seguridad';
   if (normalized.includes('admin')) return 'admin';
   return normalized;
+}
+
+function getRolValue(usuario) {
+  const raw = getRolLabel(usuario);
+  const normalized = normalizeRolForApi(raw);
+  if (normalized === 'admin') return 'admin';
+  if (normalized === 'supervisor') return 'supervisor';
+  if (normalized === 'seguridad') return 'seguridad';
+  return '';
+}
+
+function getRolDisplay(usuario) {
+  const value = getRolValue(usuario);
+  if (value === 'admin') return 'Administrador';
+  if (value === 'supervisor') return 'Supervisor Operativo';
+  if (value === 'seguridad') return 'Resp. Seguridad e Higiene';
+  return getRolLabel(usuario);
 }
 
 function getRolLabel(usuario) {
@@ -146,7 +168,7 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
         </td>
         <td class="usr-td-email">${usuario.email || '--'}</td>
         <td class="usr-td-empresa">${getEmpresaLabel(usuario)}</td>
-        <td class="usr-td-rol">${getRolLabel(usuario)}</td>
+        <td class="usr-td-rol">${getRolDisplay(usuario)}</td>
         <td class="usr-td-estado">
           <span class="usr-badge-estado" style="opacity:${activo ? '1' : '0.55'};">
             ${activo ? 'Activo' : 'Inactivo'}
@@ -154,6 +176,9 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
         </td>
         <td class="usr-td-acciones">
           <button class="usr-btn-editar" data-id="${usuario.id}">Editar</button>
+          <button class="usr-btn-desactivar" data-id="${usuario.id}" ${activo ? '' : 'disabled'}>
+            Desactivar
+          </button>
         </td>
       </tr>
     `;
@@ -161,6 +186,9 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
 }
 
 function abrirModal() {
+  editandoId = null;
+  modalTitle.textContent = 'Nuevo Usuario';
+  modalCreate.textContent = 'Crear Usuario';
   modalOverlay.classList.add('usr-modal-overlay--visible');
   limpiarFormulario();
 }
@@ -168,35 +196,33 @@ function abrirModal() {
 function cerrarModal() {
   modalOverlay.classList.remove('usr-modal-overlay--visible');
   limpiarFormulario();
+  editandoId = null;
 }
 
 function limpiarFormulario() {
-  document.getElementById('usrNombre').value = '';
-  document.getElementById('usrApellido').value = '';
-  document.getElementById('usrEmail').value = '';
-  document.getElementById('usrPassword').value = '';
+  inputNombre.value = '';
+  inputApellido.value = '';
+  inputEmail.value = '';
   selectEmpresa.value = '';
   selectRol.value = 'supervisor';
-  document.getElementById('usrActivo').checked = true;
 }
 
-async function crearUsuario() {
-  const nombre = document.getElementById('usrNombre').value.trim();
-  const apellido = document.getElementById('usrApellido').value.trim();
-  const email = document.getElementById('usrEmail').value.trim();
-  const password = document.getElementById('usrPassword').value;
+async function guardarUsuario() {
+  const nombre = inputNombre.value.trim();
+  const apellido = inputApellido.value.trim();
+  const email = inputEmail.value.trim();
   const id_empresa = selectEmpresa.value;
-  const rol = normalizeRolForApi(selectRol.value);
-  const activo = document.getElementById('usrActivo').checked;
+  const rol = selectRol.value;
 
-  if (!nombre || !apellido || !email || !password || !id_empresa || !rol) {
+  if (!nombre || !apellido || !email || !id_empresa || !rol) {
     alert('Por favor completa todos los campos');
     return;
   }
 
   try {
-    const res = await fetch(CREATE_USER_ENDPOINT, {
-      method: 'POST',
+    const endpoint = editandoId ? `${USERS_ENDPOINT}/${editandoId}` : CREATE_USER_ENDPOINT;
+    const res = await fetch(endpoint, {
+      method: editandoId ? 'PATCH' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
@@ -205,10 +231,8 @@ async function crearUsuario() {
         nombre,
         apellido,
         email,
-        password,
         id_empresa: Number(id_empresa),
         rol,
-        activo,
       }),
     });
 
@@ -221,8 +245,8 @@ async function crearUsuario() {
     await cargarUsuarios();
     cerrarModal();
   } catch (error) {
-    console.error('No se pudo crear el usuario', error);
-    alert(error.message || 'No se pudo crear el usuario');
+    console.error('No se pudo guardar el usuario', error);
+    alert(error.message || 'No se pudo guardar el usuario');
   }
 }
 
@@ -230,19 +254,51 @@ function editarUsuario(id) {
   const usuario = usuarios.find((item) => String(item.id) === String(id));
   if (!usuario) return;
 
-  document.getElementById('usrNombre').value = usuario.nombre || usuario.usuario_nombre || '';
-  document.getElementById('usrApellido').value = usuario.apellido || usuario.usuario_apellido || '';
-  document.getElementById('usrEmail').value = usuario.email || '';
+  editandoId = String(usuario.id);
+  modalTitle.textContent = 'Editar Usuario';
+  modalCreate.textContent = 'Guardar Cambios';
+
+  inputNombre.value = usuario.nombre || usuario.usuario_nombre || '';
+  inputApellido.value = usuario.apellido || usuario.usuario_apellido || '';
+  inputEmail.value = usuario.email || '';
   selectEmpresa.value = String(usuario.id_empresa ?? usuario.idEmpresa ?? '');
-  selectRol.value = normalizeRolForApi(getRolLabel(usuario));
-  document.getElementById('usrActivo').checked = usuario.activo !== false;
-  abrirModal();
+  selectRol.value = getRolValue(usuario) || 'supervisor';
+  modalOverlay.classList.add('usr-modal-overlay--visible');
+}
+
+async function desactivarUsuario(id) {
+  const usuario = usuarios.find((item) => String(item.id) === String(id));
+  if (!usuario) return;
+
+  const ok = window.confirm(`Desactivar al usuario ${usuario.nombre || usuario.usuario_nombre || ''} ${usuario.apellido || usuario.usuario_apellido || ''}?`);
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`${USERS_ENDPOINT}/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ activo: false }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    }
+
+    await cargarUsuarios();
+  } catch (error) {
+    console.error('No se pudo desactivar el usuario', error);
+    alert(error.message || 'No se pudo desactivar el usuario');
+  }
 }
 
 btnNuevoUsuario.addEventListener('click', abrirModal);
 modalClose.addEventListener('click', cerrarModal);
 modalCancel.addEventListener('click', cerrarModal);
-modalCreate.addEventListener('click', crearUsuario);
+modalCreate.addEventListener('click', guardarUsuario);
 usrSearch.addEventListener('input', () => renderTabla());
 
 modalOverlay.addEventListener('click', (e) => {
@@ -253,13 +309,20 @@ modalOverlay.addEventListener('click', (e) => {
 
 document.addEventListener('click', (e) => {
   const btnEditar = e.target.closest('.usr-btn-editar');
-  if (!btnEditar) return;
-  editarUsuario(btnEditar.dataset.id);
+  if (btnEditar) {
+    editarUsuario(btnEditar.dataset.id);
+    return;
+  }
+
+  const btnDesactivar = e.target.closest('.usr-btn-desactivar');
+  if (btnDesactivar) {
+    desactivarUsuario(btnDesactivar.dataset.id);
+  }
 });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && modalOverlay.classList.contains('usr-modal-overlay--visible')) {
-    crearUsuario();
+    guardarUsuario();
   }
 });
 

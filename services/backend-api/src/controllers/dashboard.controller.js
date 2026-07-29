@@ -1,4 +1,5 @@
 const dashboardRepository = require('../repositories/dashboard.repository');
+const usuarioRepository = require('../repositories/usuario.repository');
 
 const getEmpresas = async (req, res, next) => {
   try {
@@ -47,6 +48,22 @@ const getUsuarios = async (req, res, next) => {
   }
 };
 
+const actualizarUsuario = async (req, res, next) => {
+  try {
+    const usuario = await usuarioRepository.actualizarUsuario(req.params.id, req.body);
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    res.json({
+      message: 'Usuario actualizado correctamente.',
+      data: usuario,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getMediciones = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarMediciones(req.query);
@@ -79,6 +96,7 @@ module.exports = {
   getEmpleados,
   crearEmpleado,
   getUsuarios,
+  actualizarUsuario,
   getMediciones,
   getDispositivos,
   getAlertas,
