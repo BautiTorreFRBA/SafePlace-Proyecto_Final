@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafePlace - Empleados</title><link rel="stylesheet" href="Styles.css" />
+  <title>SafePlace - Asociar Wearable</title><link rel="stylesheet" href="Styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 
@@ -16,8 +16,8 @@
 
       <nav class="sidebar__nav">
         <a class="nav-item" href="Admin-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
-        <a class="nav-item nav-item--active" href="Admin-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Empleados</a>
-        <a class="nav-item" href="Admin-AsociarWearable.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg> Asociar Wearable</a>
+        <a class="nav-item" href="Admin-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Empleados</a>
+        <a class="nav-item nav-item--active" href="Admin-AsociarWearable.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg> Asociar Wearable</a>
         <a class="nav-item" href="Admin-RolesPermisos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Roles y Permisos</a>
         <a class="nav-item" href="Admin-Configuracion.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Configuración</a>
         <a class="nav-item" href="Admin-Usuarios.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Crear Usuarios</a>
@@ -37,74 +37,63 @@
 
     <main class="main">
       <header class="topbar">
-        <div class="topbar__title">Gestión de Empleados</div>
+        <div class="topbar__title">Asociar Wearable</div>
         <div class="topbar__right">
-          <div class="status-dot"><span class="dot dot--green"></span> En linea</div>
+          <div class="status-dot"><span class="dot dot--green"></span> En línea</div>
           <div class="avatar">AD</div>
         </div>
       </header>
 
       <div class="emp-header">
         <div>
-          <h2 class="emp-header__title">Gestión de Empleados</h2>
-          <p class="emp-header__count" id="empCount">0 empleados registrados</p>
+          <h2 class="emp-header__title">Asociar wearable a trabajador</h2>
+          <p class="emp-header__count" id="asocCount">0 asociaciones creadas en esta sesión</p>
         </div>
-        <button class="btn-nuevo" id="btnNuevo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo Empleado</button>
       </div>
 
       <div class="emp-toolbar">
-        <div class="emp-search">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="emp-search__icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="emp-search__input" id="searchInput" type="text" placeholder="Buscar por nombre, apellido o legajo..." />
+        <div class="modal__field" style="flex:1; min-width:220px;">
+          <label class="modal__label" for="trabajadorSelect">TRABAJADOR</label>
+          <select class="modal__input" id="trabajadorSelect">
+            <option value="">Cargando trabajadores...</option>
+          </select>
         </div>
-        <select class="emp-filter" id="filterStatus">
-          <option value="todos">Todos</option>
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
+        <div class="modal__field" style="flex:1; min-width:220px;">
+          <label class="modal__label" for="wearableSelect">WEARABLE DISPONIBLE</label>
+          <select class="modal__input" id="wearableSelect">
+            <option value="">Cargando wearables...</option>
+          </select>
+        </div>
+        <button class="btn-nuevo" id="btnAsociar" style="align-self:flex-end;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Asociar</button>
       </div>
 
       <div class="emp-table-wrap">
         <table class="emp-table">
           <thead>
             <tr>
-              <th><button class="emp-sort" type="button" data-sort="legajo">LEGAJO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="nombreCompleto">NOMBRE</button></th>
-              <th><button class="emp-sort" type="button" data-sort="depto">DEPARTAMENTO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="rol">ROL</button></th>
-              <th><button class="emp-sort" type="button" data-sort="estado">ESTADO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="alta">ALTA</button></th>
-              <th></th>
+              <th>TRABAJADOR</th>
+              <th>LEGAJO</th>
+              <th>WEARABLE</th>
+              <th>FECHA DESDE</th>
+              <th>FECHA HASTA</th>
+              <th>ESTADO</th>
+              <th>ACCIONES</th>
             </tr>
           </thead>
-          <tbody id="empTableBody"></tbody>
+          <tbody id="asocTableBody"></tbody>
         </table>
       </div>
 
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
           <div class="modal__header">
-            <h3 class="modal__title" id="modalTitle">Nuevo Empleado</h3>
+            <h3 class="modal__title">Modificar fecha de finalización</h3>
             <button class="modal__close" id="modalClose"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
           <div class="modal__body">
             <div class="modal__field">
-              <label class="modal__label">NOMBRE</label>
-              <input class="modal__input" id="mNombre" type="text" placeholder="Ej: Juan" />
-            </div>
-            <div class="modal__field">
-              <label class="modal__label">APELLIDO</label>
-              <input class="modal__input" id="mApellido" type="text" placeholder="Ej: Pórez" />
-            </div>
-            <div class="modal__field">
-              <label class="modal__label">DEPARTAMENTO</label>
-              <select class="modal__input" id="mDept">
-                <option value="">Seleccionar...</option>
-                <option>Producción</option>
-                <option>Logóstica</option>
-                <option>Mantenimiento</option>
-                <option>Almacón</option>
-              </select>
+              <label class="modal__label" for="fechaHastaInput">FECHA HASTA</label>
+              <input class="modal__input" id="fechaHastaInput" type="datetime-local" />
             </div>
           </div>
           <div class="modal__footer">
@@ -117,6 +106,6 @@
   </div>
 
   <script src="session-ui.js"></script>
-  <script src="Admin-Empleados.js"></script>
+  <script src="Admin-AsociarWearable.js"></script>
 </body>
 </html>

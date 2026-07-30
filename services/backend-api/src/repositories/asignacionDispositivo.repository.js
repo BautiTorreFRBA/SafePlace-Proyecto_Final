@@ -48,8 +48,48 @@ const listarPorDispositivo = async (idDispositivo) => {
   return result.rows;
 };
 
+const obtenerPorId = async (id) => {
+  const query = `
+    SELECT *
+    FROM asignacion_dispositivo
+    WHERE id = $1;
+  `;
+
+  const result = await db.query(query, [id]);
+  return result.rows[0] || null;
+};
+
+const actualizar = async (id, { fechaDesde, fechaHasta }) => {
+  const query = `
+    UPDATE asignacion_dispositivo
+    SET
+      fecha_desde = COALESCE($2, fecha_desde),
+      fecha_hasta = COALESCE($3, fecha_hasta)
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+  const result = await db.query(query, [id, fechaDesde || null, fechaHasta || null]);
+  return result.rows[0] || null;
+};
+
+const finalizar = async (id) => {
+  const query = `
+    UPDATE asignacion_dispositivo
+    SET fecha_hasta = now()
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+  const result = await db.query(query, [id]);
+  return result.rows[0] || null;
+};
+
 module.exports = {
   crear,
   obtenerVigentePorDispositivo,
   listarPorDispositivo,
+  obtenerPorId,
+  actualizar,
+  finalizar,
 };
