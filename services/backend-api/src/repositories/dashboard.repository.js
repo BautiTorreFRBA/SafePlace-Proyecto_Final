@@ -60,9 +60,9 @@ const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
       client.release();
     }
     const query = `
-      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, alta)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING id, id_empresa, legajo, nombre, apellido, area;
+      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, alta, estado)
+      VALUES ($1, $2, $3, $4, $5, NOW(), TRUE)
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, estado;
     `;
 
     const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia]);
@@ -127,15 +127,19 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => 
   }
 };
 
-const desactivarEmpleado = async (id) => {
+// H0026: "el sistema registra fecha de desactivación" / "registra quién
+// realizó la baja" — idUsuarioBaja es el usuario autenticado que ejecuta el PATCH.
+const desactivarEmpleado = async (id, idUsuarioBaja) => {
   const query = `
     UPDATE operario
-    SET estado = FALSE
+    SET estado = FALSE,
+        fecha_baja = now(),
+        dado_de_baja_por = $2
     WHERE id = $1
-    RETURNING id, id_empresa, legajo, nombre, apellido, area, estado, alta;
+    RETURNING id, id_empresa, legajo, nombre, apellido, area, estado, alta, fecha_baja, dado_de_baja_por;
   `;
 
-  const res = await db.query(query, [id]);
+  const res = await db.query(query, [id, idUsuarioBaja || null]);
   return res.rows[0] || null;
 };
 

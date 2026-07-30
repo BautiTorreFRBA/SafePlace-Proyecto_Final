@@ -185,8 +185,26 @@ const actualizarUsuario = async (id, { nombre, apellido, email, password, id_emp
   }
 };
 
+// H0003: "el sistema registra fecha de desactivación" / "registra quién
+// realizó la baja" — idUsuarioBaja es el usuario autenticado que ejecuta el PATCH.
+const desactivarUsuario = async (id, idUsuarioBaja) => {
+  const res = await db.query(
+    `
+      UPDATE usuario
+      SET activo = FALSE,
+          fecha_baja = now(),
+          dado_de_baja_por = $2
+      WHERE id = $1
+      RETURNING id, nombre, apellido, email, id_empresa, activo, fecha_baja, dado_de_baja_por;
+    `,
+    [id, idUsuarioBaja || null],
+  );
+  return res.rows[0] || null;
+};
+
 module.exports = {
   buscarPorEmailParaLogin,
   crearUsuario,
   actualizarUsuario,
+  desactivarUsuario,
 };

@@ -63,7 +63,7 @@ const actualizarEmpleado = async (req, res, next) => {
 
 const desactivarEmpleado = async (req, res, next) => {
   try {
-    const empleado = await dashboardRepository.desactivarEmpleado(req.params.id);
+    const empleado = await dashboardRepository.desactivarEmpleado(req.params.id, req.user?.sub);
 
     if (!empleado) {
       return res.status(404).json({ error: 'Empleado no encontrado.' });
@@ -96,6 +96,22 @@ const actualizarUsuario = async (req, res, next) => {
 
     res.json({
       message: 'Usuario actualizado correctamente.',
+      data: usuario,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const desactivarUsuario = async (req, res, next) => {
+  try {
+    const usuario = await usuarioRepository.desactivarUsuario(req.params.id, req.user?.sub);
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    res.json({
+      message: 'Usuario desactivado correctamente.',
       data: usuario,
     });
   } catch (error) {
@@ -138,6 +154,7 @@ module.exports = {
   desactivarEmpleado,
   getUsuarios,
   actualizarUsuario,
+  desactivarUsuario,
   getMediciones,
   getDispositivos,
   getAlertas,

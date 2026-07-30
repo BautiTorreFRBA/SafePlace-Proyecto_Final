@@ -4,6 +4,7 @@ const tipoAlertaRepository = require('../../repositories/tipoAlerta.repository')
 const alertaRepository = require('../../repositories/alerta.repository');
 const notificacionRepository = require('../../repositories/notificacion.repository');
 const logAuditoriaRepository = require('../../repositories/logAuditoria.repository');
+const eventBus = require('../../utils/eventBus');
 
 /**
  * Motor de Reglas (H0010 fatiga, H0011 sobreesfuerzo, H0012 inactividad
@@ -112,6 +113,11 @@ const generarAlerta = async (nombreTipo, medicion) => {
     idMedicion: medicion.id,
   });
   await notificacionRepository.crear({ idAlerta: alerta.id });
+
+  // H0015: aviso al panel operativo vía SSE — el listener sólo dispara un
+  // refetch de /notificaciones, así el bus no duplica la resolución de
+  // identidad (operario/prioridad) que ya hace notificacion.repository.listar.
+  eventBus.emit('notificacion:nueva');
 
   await logAuditoriaRepository
     .registrar({

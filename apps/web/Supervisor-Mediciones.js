@@ -248,12 +248,67 @@ function programarRecarga() {
   }, 250);
 }
 
-function exportarSimulado(tipo) {
-  alert(`Exportar a ${tipo} - Funcion simulada.`);
+function exportarPDF() {
+  if (mediciones.length === 0) {
+    alert('No hay mediciones para exportar.');
+    return;
+  }
+
+  if (!window.jspdf?.jsPDF) {
+    alert('No se pudo cargar la libreria PDF.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('landscape');
+
+  doc.setFontSize(16);
+  doc.text('Historial de Mediciones', 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 14, 22);
+
+  doc.autoTable({
+    startY: 28,
+    head: [['Empleado', 'Fecha', 'Hora', 'BPM', 'Actividad', 'Temp.', 'SpO2', 'Válido']],
+    body: mediciones.map((m) => [m.empleado, m.fecha, m.hora, m.bpm, m.actividad, m.temp, m.spo2, m.valido]),
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [17, 24, 39] },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
+  });
+
+  doc.save('historial-mediciones.pdf');
 }
 
-btnPDF.addEventListener('click', () => exportarSimulado('PDF'));
-btnExcel.addEventListener('click', () => exportarSimulado('Excel'));
+function exportarExcel() {
+  if (mediciones.length === 0) {
+    alert('No hay mediciones para exportar.');
+    return;
+  }
+
+  if (!window.XLSX) {
+    alert('No se pudo cargar la libreria Excel.');
+    return;
+  }
+
+  const filas = mediciones.map((m) => ({
+    Empleado: m.empleado,
+    Fecha: m.fecha,
+    Hora: m.hora,
+    BPM: m.bpm,
+    Actividad: m.actividad,
+    Temperatura: m.temp,
+    SpO2: m.spo2,
+    Válido: m.valido,
+  }));
+
+  const hoja = window.XLSX.utils.json_to_sheet(filas);
+  const libro = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(libro, hoja, 'Mediciones');
+  window.XLSX.writeFile(libro, 'historial-mediciones.xlsx');
+}
+
+btnPDF.addEventListener('click', exportarPDF);
+btnExcel.addEventListener('click', exportarExcel);
 filterEmpleado.addEventListener('change', () => {
   if (!filterDesde.value || !filterHasta.value) {
     renderEstadoInicial(obtenerMensajeSinFechas());

@@ -284,13 +284,12 @@ async function desactivarUsuario(id) {
   if (!ok) return;
 
   try {
-    const res = await fetch(`${USERS_ENDPOINT}/${id}`, {
+    const res = await fetch(`${USERS_ENDPOINT}/${id}/deactivate`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders(),
       },
-      body: JSON.stringify({ activo: false }),
     });
 
     const data = await res.json().catch(() => ({}));

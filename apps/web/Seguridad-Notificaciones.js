@@ -1,9 +1,10 @@
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
 // H0015: "las notificaciones aparecen en el panel operativo... en tiempo
-// cercano al real" — no hay WebSockets/SSE en el proyecto, así que se
-// resuelve con polling simple.
-const POLL_INTERVAL_MS = 20000;
+// cercano al real" — se resuelve con SSE (conectarStreamNotificaciones).
+// Este poll es sólo una red de seguridad por si el stream se corta en
+// silencio (proxy de Render, sleep del free tier).
+const FALLBACK_POLL_INTERVAL_MS = 60000;
 
 const notifList = document.getElementById('notifList');
 const notifCount = document.getElementById('notifCount');
@@ -101,5 +102,54 @@ btnLeerTodas?.addEventListener('click', async () => {
 
 btnActualizar?.addEventListener('click', () => cargarNotificaciones().catch((error) => alert(error.message)));
 
+// SSE manual con fetch (no EventSource nativo): así se puede mandar el
+// header Authorization, que EventSource no soporta.
+let streamAbortController = null;
+
+function conectarStreamNotificaciones() {
+  streamAbortController?.abort();
+  streamAbortController = new AbortController();
+
+  const token = sessionStorage.getItem('authToken');
+  if (!token) return;
+
+  fetch(`${API_BASE_URL}/notificaciones/stream`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: streamAbortController.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok || !response.body) {
+        throw new Error(`No se pudo abrir el stream de notificaciones (${response.status})`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const eventos = buffer.split('\n\n');
+        buffer = eventos.pop();
+
+        for (const bloque of eventos) {
+          if (bloque.includes('event: notificacion')) {
+            cargarNotificaciones().catch((error) => console.error(error));
+          }
+        }
+      }
+
+      throw new Error('Stream de notificaciones cerrado por el servidor.');
+    })
+    .catch((error) => {
+      if (error.name === 'AbortError') return;
+      console.error('[notificaciones] Stream SSE interrumpido, reintentando en 3s:', error.message);
+      setTimeout(conectarStreamNotificaciones, 3000);
+    });
+}
+
 cargarNotificaciones().catch((error) => console.error(error));
-setInterval(() => cargarNotificaciones().catch((error) => console.error(error)), POLL_INTERVAL_MS);
+conectarStreamNotificaciones();
+setInterval(() => cargarNotificaciones().catch((error) => console.error(error)), FALLBACK_POLL_INTERVAL_MS);
