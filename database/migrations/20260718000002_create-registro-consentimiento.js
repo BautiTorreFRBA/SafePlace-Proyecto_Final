@@ -21,10 +21,10 @@ exports.shorthands = undefined;
 exports.up = (pgm) => {
   pgm.createTable('registro_consentimiento', {
     id: { type: 'serial', primaryKey: true },
-    id_trabajador: {
+    id_operario: {
       type: 'integer',
       notNull: true,
-      references: 'trabajador',
+      references: 'operario',
       onDelete: 'RESTRICT',
     },
     estado: { type: 'boolean', notNull: true },
@@ -34,7 +34,7 @@ exports.up = (pgm) => {
 
   // La consulta del flag vigente es "último registro del trabajador":
   // índice compuesto para resolverla sin escaneo (RNF-09 / RNF-01).
-  pgm.createIndex('registro_consentimiento', ['id_trabajador', 'fecha_hora']);
+  pgm.createIndex('registro_consentimiento', ['id_operario', 'fecha_hora']);
 };
 
 exports.down = (pgm) => {
