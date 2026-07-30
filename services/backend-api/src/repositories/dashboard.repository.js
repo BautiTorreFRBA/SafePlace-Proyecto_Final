@@ -268,4 +268,7 @@ module.exports = {
   actualizarEmpleado,
   desactivarEmpleado,
   listarUsuarios,
+  listarMediciones,
+  listarDispositivos,
+  listarAlertas,
 };

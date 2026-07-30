@@ -1,36 +1,58 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || (window.location.port === '5173'
+  ? 'http://localhost:8000/api/v1'
+  : '/api/v1');
+
+// H0015: "las notificaciones aparecen en el panel operativo... en tiempo
+// cercano al real" — no hay WebSockets/SSE en el proyecto, así que se
+// resuelve con polling simple.
+const POLL_INTERVAL_MS = 20000;
+
 const notifList = document.getElementById('notifList');
 const notifCount = document.getElementById('notifCount');
 const btnLeerTodas = document.getElementById('btnLeerTodas');
 const btnActualizar = document.getElementById('btnActualizar');
 let notificaciones = [];
 
-function normalizarTexto(texto = '') {
-  return texto
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
+async function apiFetch(path, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'InicioSesion.html';
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+  }
+
+  return payload;
 }
 
-function mapearTipo(tipoAlerta = '') {
-  const tipo = normalizarTexto(tipoAlerta);
-  if (tipo.includes('crit')) return 'critico';
-  if (tipo.includes('info')) return 'info';
-  return 'advertencia';
+function mapearTipo(prioridad = '') {
+  return prioridad.toLowerCase().includes('crít') || prioridad.toLowerCase().includes('crit')
+    ? 'critico'
+    : 'advertencia';
 }
 
 async function cargarNotificaciones() {
-  const res = await fetch(`${API_BASE_URL}/dashboard/alerts`);
-  const json = await res.json();
-  notificaciones = (json.data || []).map((a) => ({
-    id: a.id,
-    tipo: mapearTipo(a.tipo_alerta || ''),
-    titulo: a.tipo_alerta || 'Alerta',
-    descripcion: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || 'Sin operario asignado',
-    hora: new Date(a.fecha_hora).toLocaleString('es-AR'),
-    leido: false,
+  const payload = await apiFetch('/notificaciones');
+  notificaciones = (payload.data || []).map((n) => ({
+    id: n.id,
+    tipo: mapearTipo(n.prioridad || ''),
+    titulo: n.tipo_alerta || 'Alerta',
+    descripcion: `${n.operario_nombre || ''} ${n.operario_apellido || ''}`.trim() || 'Sin operario asignado',
+    hora: new Date(n.fecha_hora).toLocaleString('es-AR'),
+    leido: Boolean(n.leida),
   }));
   actualizarContador();
   renderNotificaciones();
@@ -53,21 +75,33 @@ function renderNotificaciones() {
     : '<div class="notif-card"><div class="notif-card__content"><div class="notif-card__title">Sin notificaciones</div><div class="notif-card__desc">No hay alertas para mostrar en este momento.</div></div></div>';
 }
 
-window.marcarComoLeido = (id) => {
+window.marcarComoLeido = async (id) => {
   const notif = notificaciones.find((n) => n.id === id);
-  if (notif) {
+  if (!notif || notif.leido) return;
+
+  try {
+    await apiFetch(`/notificaciones/${id}/leida`, { method: 'PATCH' });
     notif.leido = true;
     actualizarContador();
     renderNotificaciones();
+  } catch (error) {
+    alert(error.message);
   }
 };
 
-btnLeerTodas?.addEventListener('click', () => {
-  notificaciones.forEach((n) => { n.leido = true; });
-  actualizarContador();
-  renderNotificaciones();
+btnLeerTodas?.addEventListener('click', async () => {
+  const pendientes = notificaciones.filter((n) => !n.leido);
+  try {
+    await Promise.all(pendientes.map((n) => apiFetch(`/notificaciones/${n.id}/leida`, { method: 'PATCH' })));
+    pendientes.forEach((n) => { n.leido = true; });
+    actualizarContador();
+    renderNotificaciones();
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
-btnActualizar?.addEventListener('click', () => cargarNotificaciones().catch(console.error));
+btnActualizar?.addEventListener('click', () => cargarNotificaciones().catch((error) => alert(error.message)));
 
-cargarNotificaciones().catch(console.error);
+cargarNotificaciones().catch((error) => console.error(error));
+setInterval(() => cargarNotificaciones().catch((error) => console.error(error)), POLL_INTERVAL_MS);

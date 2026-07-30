@@ -82,10 +82,33 @@ const listar = async ({ limit = 100, offset = 0 } = {}) => {
   return res.rows;
 };
 
+// Motor de Reglas (H0010/H0012): mediciones del mismo seudónimo en los
+// últimos `minutos`, de más antigua a más nueva — la ventana que evalúan
+// las reglas de condición sostenida (fatiga, inactividad prolongada).
+//
+// El límite real es `minutos + 1`, no `minutos`: la regla necesita
+// comprobar que la medición más antigua de la ventana tiene *al menos*
+// `minutos` de antigüedad (para saber que la condición se sostuvo todo ese
+// tiempo). Si el corte SQL fuera exactamente `minutos`, ninguna fila
+// devuelta podría tener esa antigüedad completa — el propio filtro la habría
+// excluido. El minuto extra de margen es lo que le da al motor de reglas una
+// fila real contra la cual verificarlo.
+const listarVentanaReciente = async (idSeudonimo, minutos) => {
+  const query = `
+    SELECT * FROM medicion
+    WHERE id_seudonimo = $1
+      AND fecha_hora >= now() - (($2 + 1) || ' minutes')::interval
+    ORDER BY fecha_hora ASC;
+  `;
+  const res = await db.query(query, [idSeudonimo, minutos]);
+  return res.rows;
+};
+
 module.exports = {
   crear,
   existeDuplicado,
   obtenerPorId,
   listarPorSeudonimo,
   listar,
+  listarVentanaReciente,
 };
