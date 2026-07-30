@@ -8,7 +8,7 @@ const db = require('../../src/config/database');
 const historialEstadoDispositivoRepository = require('../../src/repositories/historialEstadoDispositivo.repository');
 
 const truncarTablas = () => db.query(
-  'TRUNCATE TABLE historial_estado_dispositivo, medicion, asignacion_dispositivo, dispositivo, operario, empresa RESTART IDENTITY CASCADE;',
+  'TRUNCATE TABLE historial_estado_dispositivo, medicion, operario_seudonimo, asignacion_dispositivo, dispositivo, operario, empresa RESTART IDENTITY CASCADE;',
 );
 
 const crearEmpresa = async () => {
@@ -40,11 +40,22 @@ const asignar = (idOperario, idDispositivo, fechaDesde) => db.query(
   [idOperario, idDispositivo, fechaDesde],
 );
 
-const crearMedicion = (idOperario, idDispositivo, fechaHora) => db.query(
-  `INSERT INTO medicion (id_trabajador, id_dispositivo, fecha_hora, frecuencia_cardiaca)
-   VALUES ($1, $2, $3, 80);`,
-  [idOperario, idDispositivo, fechaHora],
-);
+// H0020: medicion ya no referencia al operario directamente, sino a su
+// seudónimo (creado acá mismo, como hace el flujo real de ingesta).
+const crearMedicion = async (idOperario, idDispositivo, fechaHora) => {
+  const seudonimo = await db.query(
+    `INSERT INTO operario_seudonimo (id_operario, identificador_seudonimo)
+     VALUES ($1, $2)
+     ON CONFLICT (id_operario) DO UPDATE SET id_operario = EXCLUDED.id_operario
+     RETURNING *;`,
+    [idOperario, `seudonimo-test-${idOperario}`],
+  );
+  return db.query(
+    `INSERT INTO medicion (id_seudonimo, id_dispositivo, fecha_hora, frecuencia_cardiaca)
+     VALUES ($1, $2, $3, 80);`,
+    [seudonimo.rows[0].id, idDispositivo, fechaHora],
+  );
+};
 
 describe('historialEstadoDispositivoRepository', () => {
   let operario;

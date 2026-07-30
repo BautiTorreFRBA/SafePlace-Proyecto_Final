@@ -15,11 +15,13 @@
  */
 
 jest.mock('../../src/repositories/medicion.repository');
+jest.mock('../../src/repositories/operarioSeudonimo.repository');
 jest.mock('../../src/repositories/asignacionDispositivo.repository');
 jest.mock('../../src/repositories/registroConsentimiento.repository');
 jest.mock('../../src/repositories/logAuditoria.repository');
 
 const medicionRepository = require('../../src/repositories/medicion.repository');
+const operarioSeudonimoRepository = require('../../src/repositories/operarioSeudonimo.repository');
 const asignacionDispositivoRepository = require('../../src/repositories/asignacionDispositivo.repository');
 const registroConsentimientoRepository = require('../../src/repositories/registroConsentimiento.repository');
 const logAuditoriaRepository = require('../../src/repositories/logAuditoria.repository');
@@ -65,11 +67,18 @@ describe('Servicio de Validación de Datos (unitario)', () => {
       estado: true,
       version_politica: 'v1.0',
     });
+    // H0020: el seudónimo del operario 42 ya existe (creado la primera vez
+    // que se procesó una medición suya) y se reutiliza en cada llamada.
+    operarioSeudonimoRepository.obtenerOCrearPorOperario.mockResolvedValue({
+      id: 555,
+      id_operario: 42,
+      identificador_seudonimo: 'a'.repeat(64),
+    });
     medicionRepository.existeDuplicado.mockResolvedValue(false);
     medicionRepository.crear.mockImplementation(async (data) => ({
       id: 99,
       ...data,
-      id_trabajador: data.idTrabajador,
+      id_seudonimo: data.idSeudonimo,
       id_dispositivo: data.idDispositivo,
     }));
     logAuditoriaRepository.registrar.mockResolvedValue({ id: 1 });
@@ -81,9 +90,14 @@ describe('Servicio de Validación de Datos (unitario)', () => {
     expect(resultado.id).toBe(99);
     expect(medicionRepository.crear).toHaveBeenCalledTimes(1);
 
+    // H0020: el trabajador resuelto (42) se usa para obtener su seudónimo,
+    // pero lo que llega a almacenamiento es el seudónimo — nunca el id del
+    // operario directamente.
+    expect(operarioSeudonimoRepository.obtenerOCrearPorOperario).toHaveBeenCalledWith(42);
+
     const medicion = medicionRepository.crear.mock.calls[0][0];
-    // idTrabajador resuelto desde la asignación vigente, no confiado del gateway
-    expect(medicion.idTrabajador).toBe(42);
+    expect(medicion.idSeudonimo).toBe(555);
+    expect(medicion.idTrabajador).toBeUndefined();
     expect(medicion.idDispositivo).toBe(7);
     // fecha_hora = timestamp declarado por el paquete (única marca de tiempo del DER)
     expect(medicion.fechaHora).toEqual(new Date('2026-07-18T12:00:00.000Z'));

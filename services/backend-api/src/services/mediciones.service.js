@@ -1,4 +1,5 @@
 const medicionRepository = require('../repositories/medicion.repository');
+const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
 const validacionDatosService = require('./validacion/validacion-datos.service');
 const logAuditoriaRepository = require('../repositories/logAuditoria.repository');
 const { ErrorValidacion, MOTIVOS } = require('./validacion/errores');
@@ -16,6 +17,12 @@ const { ErrorValidacion, MOTIVOS } = require('./validacion/errores');
  * H0009 pide además que la propia persistencia exitosa quede auditada, y que
  * un error de almacenamiento (no un descarte de validación) también deje
  * incidente registrado — best-effort, no corta la respuesta al gateway.
+ *
+ * H0020: el almacenamiento nunca asocia el biodato a la identidad civil
+ * directa. Antes de persistir se resuelve (o crea) el identificador
+ * seudonimizado del trabajador (operario_seudonimo — la única tabla que
+ * guarda la correspondencia con operario.id) y la medición se guarda contra
+ * ese seudónimo, no contra el operario.
  */
 const auditarPersistencia = ({ medicion, ipOrigen }) => logAuditoriaRepository
   .registrar({
@@ -24,7 +31,7 @@ const auditarPersistencia = ({ medicion, ipOrigen }) => logAuditoriaRepository
     idRegistro: medicion.id,
     operacion: 'CREATE',
     ipOrigen: ipOrigen || null,
-    detalle: `Medición del trabajador ${medicion.id_trabajador} (wearable ${medicion.id_dispositivo}).`,
+    detalle: `Medición del seudónimo ${medicion.id_seudonimo} (wearable ${medicion.id_dispositivo}).`,
   })
   .catch((err) => {
     console.error('[mediciones.service] No se pudo auditar la persistencia:', err.message);
@@ -45,9 +52,16 @@ const auditarErrorAlmacenamiento = ({ paquete, error, ipOrigen }) => logAuditori
 
 const registrarMedicion = async (paquete, contexto = {}) => {
   try {
-    const medicionValidada = await validacionDatosService.validarPaquete(paquete);
+    const { idTrabajador, ...medicionSinIdentidad } = await validacionDatosService.validarPaquete(paquete);
 
-    const creada = await medicionRepository.crear(medicionValidada);
+    // H0020, criterios 1 y 2: se asocia al seudónimo (creándolo si es la
+    // primera medición de este trabajador), no a operario.id directamente.
+    const seudonimo = await operarioSeudonimoRepository.obtenerOCrearPorOperario(idTrabajador);
+
+    const creada = await medicionRepository.crear({
+      ...medicionSinIdentidad,
+      idSeudonimo: seudonimo.id,
+    });
     if (!creada) {
       // Carrera entre paquetes idénticos: el índice único lo resolvió en el
       // INSERT (ON CONFLICT DO NOTHING). Se trata como duplicado normal.
@@ -79,8 +93,15 @@ const listarMediciones = async (filtros) => {
   return await medicionRepository.listar(filtros);
 };
 
+// H0020, criterio 3: los biodatos siguen siendo recuperables para consulta
+// por usuarios autorizados — el llamador (controller detrás de auth +
+// authorize) pide por idTrabajador y acá se resuelve al seudónimo real. Si
+// el trabajador nunca tuvo una medición, no tiene seudónimo todavía: no hay
+// nada que listar (no se crea uno solo para leer).
 const listarMedicionesDeTrabajador = async (idTrabajador, filtros) => {
-  return await medicionRepository.listarPorTrabajador(idTrabajador, filtros);
+  const seudonimo = await operarioSeudonimoRepository.obtenerPorOperario(idTrabajador);
+  if (!seudonimo) return [];
+  return await medicionRepository.listarPorSeudonimo(seudonimo.id, filtros);
 };
 
 module.exports = {

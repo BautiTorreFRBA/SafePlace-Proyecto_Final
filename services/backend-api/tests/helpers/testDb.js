@@ -22,6 +22,7 @@ const TABLAS = [
   'registro_consentimiento',
   'log_auditoria',
   'medicion',
+  'operario_seudonimo',
   'historial_estado_dispositivo',
   'asignacion_dispositivo',
   'dispositivo',

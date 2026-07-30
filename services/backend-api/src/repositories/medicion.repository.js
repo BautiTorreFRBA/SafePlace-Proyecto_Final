@@ -6,7 +6,7 @@ const db = require('../config/database');
 // fila (H0008: "No se aceptan registros duplicados").
 const crear = async (data) => {
   const {
-    idTrabajador,
+    idSeudonimo,
     idDispositivo,
     frecuenciaCardiaca,
     actividad,
@@ -17,7 +17,7 @@ const crear = async (data) => {
 
   const query = `
     INSERT INTO medicion (
-      id_trabajador, id_dispositivo, fecha_hora,
+      id_seudonimo, id_dispositivo, fecha_hora,
       frecuencia_cardiaca, actividad,
       temperatura_corporal, spo2
     )
@@ -27,7 +27,7 @@ const crear = async (data) => {
   `;
 
   const values = [
-    idTrabajador,
+    idSeudonimo,
     idDispositivo,
     fechaHora || new Date(),
     frecuenciaCardiaca,
@@ -55,16 +55,20 @@ const obtenerPorId = async (id) => {
   return res.rows[0];
 };
 
-const listarPorTrabajador = async (idTrabajador, { desde, hasta, limit = 100, offset = 0 } = {}) => {
+// H0020: la tabla medicion sólo conoce el seudónimo, nunca al operario
+// directamente — resolver "mediciones de tal trabajador" contra su
+// identidad civil es responsabilidad de la capa de servicio (ver
+// mediciones.service.listarMedicionesDeTrabajador).
+const listarPorSeudonimo = async (idSeudonimo, { desde, hasta, limit = 100, offset = 0 } = {}) => {
   const query = `
     SELECT * FROM medicion
-    WHERE id_trabajador = $1
+    WHERE id_seudonimo = $1
       AND ($2::timestamptz IS NULL OR fecha_hora >= $2)
       AND ($3::timestamptz IS NULL OR fecha_hora <= $3)
     ORDER BY fecha_hora DESC
     LIMIT $4 OFFSET $5;
   `;
-  const res = await db.query(query, [idTrabajador, desde || null, hasta || null, limit, offset]);
+  const res = await db.query(query, [idSeudonimo, desde || null, hasta || null, limit, offset]);
   return res.rows;
 };
 
@@ -82,6 +86,6 @@ module.exports = {
   crear,
   existeDuplicado,
   obtenerPorId,
-  listarPorTrabajador,
+  listarPorSeudonimo,
   listar,
 };

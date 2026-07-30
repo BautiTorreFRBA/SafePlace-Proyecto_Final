@@ -172,10 +172,13 @@ const listarUsuarios = async () => {
 };
 
 const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
+  // H0020: medicion sólo guarda id_seudonimo; la identidad se recupera acá
+  // vía operario_seudonimo (tabla protegida) porque esta consulta ya está
+  // detrás de auth + authorize (usuario autorizado, criterio 3/4 de H0020).
   const query = `
     SELECT
       m.id,
-      m.id_trabajador,
+      o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido,
       m.id_dispositivo,
@@ -186,7 +189,8 @@ const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offse
       m.spo2,
       m.estado
     FROM medicion m
-    LEFT JOIN operario o ON o.id = m.id_trabajador
+    LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    LEFT JOIN operario o ON o.id = os.id_operario
     WHERE ($1::timestamptz IS NULL OR m.fecha_hora >= $1)
       AND ($2::timestamptz IS NULL OR m.fecha_hora <= $2)
     ORDER BY m.fecha_hora DESC
@@ -247,7 +251,8 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
     FROM alerta a
     LEFT JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     LEFT JOIN medicion m ON m.id = a.id_medicion
-    LEFT JOIN operario o ON o.id = m.id_trabajador
+    LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    LEFT JOIN operario o ON o.id = os.id_operario
     WHERE ($1::timestamptz IS NULL OR a.fecha_hora >= $1)
       AND ($2::timestamptz IS NULL OR a.fecha_hora <= $2)
     ORDER BY a.fecha_hora DESC, a.id DESC;
