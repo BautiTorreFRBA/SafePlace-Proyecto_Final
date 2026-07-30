@@ -76,7 +76,7 @@ const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
     }
 
     if (error.code === '23503') {
-      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es v�lida.');
+      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es válida.');
       fk.status = 409;
       fk.motivo = 'FK_INVALIDA';
       throw fk;

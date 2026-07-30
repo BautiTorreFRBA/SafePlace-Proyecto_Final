@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const USERS_ENDPOINT = `${API_BASE_URL}/dashboard/users`;
 const COMPANIES_ENDPOINT = `${API_BASE_URL}/dashboard/companies`;
 const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;
@@ -17,6 +17,7 @@ const selectRol = document.getElementById('usrRol');
 const inputNombre = document.getElementById('usrNombre');
 const inputApellido = document.getElementById('usrApellido');
 const inputEmail = document.getElementById('usrEmail');
+const inputPassword = document.getElementById('usrPassword');
 
 let usuarios = [];
 let empresas = [];
@@ -203,6 +204,7 @@ function limpiarFormulario() {
   inputNombre.value = '';
   inputApellido.value = '';
   inputEmail.value = '';
+  inputPassword.value = '';
   selectEmpresa.value = '';
   selectRol.value = 'supervisor';
 }
@@ -211,11 +213,17 @@ async function guardarUsuario() {
   const nombre = inputNombre.value.trim();
   const apellido = inputApellido.value.trim();
   const email = inputEmail.value.trim();
+  const password = inputPassword.value;
   const id_empresa = selectEmpresa.value;
   const rol = selectRol.value;
 
   if (!nombre || !apellido || !email || !id_empresa || !rol) {
     alert('Por favor completa todos los campos');
+    return;
+  }
+
+  if (!editandoId && !password) {
+    alert('La contraseña es obligatoria para crear un usuario.');
     return;
   }
 
@@ -231,6 +239,7 @@ async function guardarUsuario() {
         nombre,
         apellido,
         email,
+        ...(password ? { password } : {}),
         id_empresa: Number(id_empresa),
         rol,
       }),
@@ -261,6 +270,7 @@ function editarUsuario(id) {
   inputNombre.value = usuario.nombre || usuario.usuario_nombre || '';
   inputApellido.value = usuario.apellido || usuario.usuario_apellido || '';
   inputEmail.value = usuario.email || '';
+  inputPassword.value = '';
   selectEmpresa.value = String(usuario.id_empresa ?? usuario.idEmpresa ?? '');
   selectRol.value = getRolValue(usuario) || 'supervisor';
   modalOverlay.classList.add('usr-modal-overlay--visible');
