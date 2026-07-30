@@ -13,6 +13,7 @@ const healthRoutes = require('./routes/health.routes');
 const trabajadoresRoutes = require('./routes/trabajadores.routes');
 const wearablesRoutes = require('./routes/wearables.routes');
 const asociacionesRoutes = require('./routes/asociaciones.routes');
+const consentimientoRoutes = require('./routes/consentimiento.routes');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
 app.use(`${API_PREFIX}/trabajadores`, trabajadoresRoutes);
 app.use(`${API_PREFIX}/wearables`, wearablesRoutes);
 app.use(`${API_PREFIX}/asociaciones`, asociacionesRoutes);
+app.use(`${API_PREFIX}/consentimientos`, consentimientoRoutes);
 app.use('/health', healthRoutes);
 
 // Error Handling Middleware
