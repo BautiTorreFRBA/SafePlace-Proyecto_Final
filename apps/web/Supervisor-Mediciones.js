@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const tableBody = document.getElementById('medTableBody');
 const medCount = document.getElementById('medCount');
 const filterEmpleado = document.getElementById('filterEmpleado');
@@ -81,6 +81,18 @@ function renderEstadoInicial(mensaje) {
       </td>
     </tr>
   `;
+}
+
+function obtenerMedicionesExportables() {
+  return mediciones.map((m) => ({
+    empleado: m.empleado,
+    fechaHora: `${m.fecha} ${m.hora}`.trim(),
+    bpm: m.bpm,
+    actividad: m.actividad,
+    temp: m.temp,
+    spo2: m.spo2,
+    valido: m.valido,
+  }));
 }
 
 function renderTabla() {
@@ -183,6 +195,10 @@ function obtenerMensajeSinFechas() {
   return 'Selecciona las fechas Desde y Hasta para consultar el historial de mediciones.';
 }
 
+function formatearNombreArchivo(fecha = new Date()) {
+  return fecha.toISOString().slice(0, 10);
+}
+
 async function cargarMediciones() {
   const { desde, hasta, empleado } = obtenerFiltros();
 
@@ -248,12 +264,76 @@ function programarRecarga() {
   }, 250);
 }
 
-function exportarSimulado(tipo) {
-  alert(`Exportar a ${tipo} - Funcion simulada.`);
+function exportarPDF() {
+  if (!window.jspdf?.jsPDF) {
+    alert('No se pudo cargar la libreria PDF.');
+    return;
+  }
+
+  const medicionesExport = obtenerMedicionesExportables();
+  if (medicionesExport.length === 0) {
+    alert('No hay mediciones para exportar.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('landscape');
+
+  doc.setFontSize(16);
+  doc.text('Historial de Mediciones', 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 14, 22);
+
+  doc.autoTable({
+    startY: 28,
+    head: [['Empleado', 'Fecha/Hora', 'FC (BPM)', 'Actividad', 'Temp.', 'SPO2', 'Válido']],
+    body: medicionesExport.map((m) => [
+      m.empleado,
+      m.fechaHora,
+      m.bpm,
+      m.actividad,
+      m.temp,
+      m.spo2,
+      m.valido,
+    ]),
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    headStyles: { fillColor: [17, 24, 39] },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
+  });
+
+  doc.save(`historial-mediciones-${formatearNombreArchivo()}.pdf`);
 }
 
-btnPDF.addEventListener('click', () => exportarSimulado('PDF'));
-btnExcel.addEventListener('click', () => exportarSimulado('Excel'));
+function exportarExcel() {
+  if (!window.XLSX) {
+    alert('No se pudo cargar la libreria Excel.');
+    return;
+  }
+
+  const medicionesExport = obtenerMedicionesExportables();
+  if (medicionesExport.length === 0) {
+    alert('No hay mediciones para exportar.');
+    return;
+  }
+
+  const filas = medicionesExport.map((m) => ({
+    Empleado: m.empleado,
+    'Fecha/Hora': m.fechaHora,
+    'FC (BPM)': m.bpm,
+    Actividad: m.actividad,
+    'Temp.': m.temp,
+    'SPO2': m.spo2,
+    'Válido': m.valido,
+  }));
+
+  const hoja = window.XLSX.utils.json_to_sheet(filas);
+  const libro = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(libro, hoja, 'Mediciones');
+  window.XLSX.writeFile(libro, `historial-mediciones-${formatearNombreArchivo()}.xlsx`);
+}
+
+btnPDF.addEventListener('click', exportarPDF);
+btnExcel.addEventListener('click', exportarExcel);
 filterEmpleado.addEventListener('change', () => {
   if (!filterDesde.value || !filterHasta.value) {
     renderEstadoInicial(obtenerMensajeSinFechas());
@@ -268,4 +348,3 @@ filterDesde.addEventListener('change', programarRecarga);
 filterHasta.addEventListener('change', programarRecarga);
 
 renderEstadoInicial(obtenerMensajeSinFechas());
-

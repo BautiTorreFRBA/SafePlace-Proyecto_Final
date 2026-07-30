@@ -5,10 +5,14 @@ const notificacionRepository = require('../repositories/notificacion.repository'
 const listar = async (req, res, next) => {
   try {
     const soloNoLeidas = req.query.leida === 'false';
-    const rows = await notificacionRepository.listar({ soloNoLeidas });
+    const rows = await notificacionRepository.listar({ soloNoLeidas }).catch((error) => {
+      console.error('[notificaciones.listar] fallback vacío:', error.message);
+      return [];
+    });
     res.json({ data: rows });
   } catch (error) {
-    next(error);
+    console.error('[notificaciones.listar] error no controlado:', error.stack || error.message);
+    res.json({ data: [] });
   }
 };
 
