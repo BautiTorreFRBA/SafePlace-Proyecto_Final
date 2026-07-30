@@ -2,6 +2,7 @@ const medicionRepository = require('../repositories/medicion.repository');
 const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
 const validacionDatosService = require('./validacion/validacion-datos.service');
 const logAuditoriaRepository = require('../repositories/logAuditoria.repository');
+const motorReglasService = require('./reglas/motorReglas.service');
 const { ErrorValidacion, MOTIVOS } = require('./validacion/errores');
 
 /**
@@ -23,6 +24,11 @@ const { ErrorValidacion, MOTIVOS } = require('./validacion/errores');
  * seudonimizado del trabajador (operario_seudonimo — la única tabla que
  * guarda la correspondencia con operario.id) y la medición se guarda contra
  * ese seudónimo, no contra el operario.
+ *
+ * H0010/H0011/H0012: una vez persistida, la medición se entrega al Motor de
+ * Reglas (motorReglas.service) para detectar fatiga, sobreesfuerzo e
+ * inactividad prolongada contra los umbrales vigentes (H0023), y centralizar
+ * lo detectado en alertas y notificaciones (H0013/H0015).
  */
 const auditarPersistencia = ({ medicion, ipOrigen }) => logAuditoriaRepository
   .registrar({
@@ -73,6 +79,15 @@ const registrarMedicion = async (paquete, contexto = {}) => {
     }
 
     await auditarPersistencia({ medicion: creada, ipOrigen: contexto.ipOrigen });
+
+    // H0010/H0011/H0012/H0013: el Motor de Reglas evalúa la medición ya
+    // persistida contra los umbrales vigentes (H0023). Best-effort: un fallo
+    // acá nunca debe romper la respuesta 201 al gateway (escenario "Error al
+    // registrar alerta" de H0013).
+    await motorReglasService.evaluar(creada).catch((err) => {
+      console.error('[mediciones.service] El Motor de Reglas falló al evaluar la medición:', err.message);
+    });
+
     return creada;
   } catch (error) {
     if (error instanceof ErrorValidacion) {

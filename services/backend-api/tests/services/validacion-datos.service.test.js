@@ -19,12 +19,14 @@ jest.mock('../../src/repositories/operarioSeudonimo.repository');
 jest.mock('../../src/repositories/asignacionDispositivo.repository');
 jest.mock('../../src/repositories/registroConsentimiento.repository');
 jest.mock('../../src/repositories/logAuditoria.repository');
+jest.mock('../../src/services/reglas/motorReglas.service');
 
 const medicionRepository = require('../../src/repositories/medicion.repository');
 const operarioSeudonimoRepository = require('../../src/repositories/operarioSeudonimo.repository');
 const asignacionDispositivoRepository = require('../../src/repositories/asignacionDispositivo.repository');
 const registroConsentimientoRepository = require('../../src/repositories/registroConsentimiento.repository');
 const logAuditoriaRepository = require('../../src/repositories/logAuditoria.repository');
+const motorReglasService = require('../../src/services/reglas/motorReglas.service');
 const consentimientoCache = require('../../src/services/validacion/consentimiento.cache');
 const medicionesService = require('../../src/services/mediciones.service');
 const { ErrorValidacion, MOTIVOS } = require('../../src/services/validacion/errores');
@@ -82,6 +84,10 @@ describe('Servicio de Validación de Datos (unitario)', () => {
       id_dispositivo: data.idDispositivo,
     }));
     logAuditoriaRepository.registrar.mockResolvedValue({ id: 1 });
+    // H0010/H0011/H0012: el Motor de Reglas corre después de cada
+    // persistencia exitosa; se lo mockea resuelto (no roto) por default acá,
+    // su lógica propia se cubre en tests/services/motorReglas.service.test.js.
+    motorReglasService.evaluar.mockResolvedValue(undefined);
   });
 
   it('1. paquete válido: acepta, normaliza y lo pasa al almacenamiento', async () => {
@@ -244,5 +250,20 @@ describe('Servicio de Validación de Datos (unitario)', () => {
     expect(logAuditoriaRepository.registrar).toHaveBeenCalledWith(
       expect.objectContaining({ operacion: 'ERROR_ALMACENAMIENTO', tablaAfectada: 'medicion' }),
     );
+  });
+
+  it('H0010/H0011/H0012: la medición persistida se entrega al Motor de Reglas', async () => {
+    await medicionesService.registrarMedicion(paqueteValido());
+
+    expect(motorReglasService.evaluar).toHaveBeenCalledTimes(1);
+    expect(motorReglasService.evaluar).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 99, id_seudonimo: 555 }),
+    );
+  });
+
+  it('H0013 "Error al registrar alerta": un fallo del Motor de Reglas no rompe la respuesta al gateway', async () => {
+    motorReglasService.evaluar.mockRejectedValue(new Error('el motor de reglas explotó'));
+
+    await expect(medicionesService.registrarMedicion(paqueteValido())).resolves.toMatchObject({ id: 99 });
   });
 });

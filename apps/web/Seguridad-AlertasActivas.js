@@ -1,20 +1,51 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || (window.location.port === '5173'
+  ? 'http://localhost:8000/api/v1'
+  : '/api/v1');
+
+// H0015: bandeja "en tiempo cercano al real" — polling simple (no hay
+// WebSockets/SSE en el proyecto).
+const POLL_INTERVAL_MS = 20000;
+
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
 const filterTipo = document.getElementById('filterTipo');
 
 let alertas = [];
 
+async function apiFetch(path, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'InicioSesion.html';
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+  }
+
+  return payload;
+}
+
 async function cargarAlertas() {
-  const res = await fetch(`${API_BASE_URL}/dashboard/alerts`);
-  const json = await res.json();
-  alertas = (json.data || []).map((a) => ({
+  const payload = await apiFetch('/alertas/activas');
+  alertas = (payload.data || []).map((a) => ({
     id: a.id,
-    prioridad: (a.tipo_alerta || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
+    prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
     tipo: a.tipo_alerta || 'Alerta',
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
     fecha: new Date(a.fecha_hora).toLocaleString('es-AR'),
-    estado: a.estado || 'activo',
+    estado: a.estado || 'Activa',
   }));
   actualizarContador();
   renderTabla();
@@ -34,12 +65,29 @@ function renderTabla() {
       <td class="alert-td-empleado">${a.empleado}</td>
       <td class="alert-td-fecha">${a.fecha}</td>
       <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estado}">${a.estado}</span></td>
-      <td class="alert-td-acciones"><div class="alert-actions"><button class="alert-btn alert-btn--ver" onclick="verAlerta(${a.id})">Ver</button><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div></td>
+      <td class="alert-td-acciones"><div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div></td>
     </tr>`).join('');
 }
 
-window.verAlerta = (id) => alert(`Alerta ${id}`);
-window.revisarAlerta = (id) => alert(`Revisar alerta ${id}`);
-window.cerrarAlerta = (id) => alert(`Cerrar alerta ${id}`);
+async function cambiarEstado(id, estado) {
+  try {
+    await apiFetch(`/alertas/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estado }),
+    });
+    await cargarAlertas();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+window.revisarAlerta = (id) => cambiarEstado(id, 'Atendida');
+window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
+
 filterTipo.addEventListener('change', renderTabla);
-cargarAlertas().catch(console.error);
+
+cargarAlertas().catch((error) => {
+  console.error(error);
+  tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
+});
+setInterval(() => cargarAlertas().catch((error) => console.error(error)), POLL_INTERVAL_MS);
