@@ -17,7 +17,7 @@ const app = require('../../src/app');
 const { getPool } = require('../../src/config/database');
 const { empresaMock, trabajadorMock, dispositivoMock } = require('../fixtures/mockEntities');
 const empresaRepository = require('../../src/repositories/empresa.repository');
-const trabajadorRepository = require('../../src/repositories/trabajador.repository');
+const operarioRepository = require('../../src/repositories/operario.repository');
 const dispositivoRepository = require('../../src/repositories/dispositivo.repository');
 const asignacionDispositivoRepository = require('../../src/repositories/asignacionDispositivo.repository');
 const registroConsentimientoRepository = require('../../src/repositories/registroConsentimiento.repository');
@@ -54,7 +54,6 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
     timestamp: '2026-07-18T12:00:00.000Z',
     frecuenciaCardiaca: 88,
     nivelActividad: 0.5,
-    nivelInactividad: 0,
     ...overrides,
   });
 
@@ -63,14 +62,14 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
     consentimientoCache.limpiar();
 
     const empresa = await empresaRepository.crear(empresaMock());
-    trabajador = await trabajadorRepository.crear(trabajadorMock(empresa.id));
+    trabajador = await operarioRepository.crear(trabajadorMock(empresa.id));
     dispositivo = await dispositivoRepository.crear(dispositivoMock());
     await asignacionDispositivoRepository.crear({
       idTrabajador: trabajador.id,
       idDispositivo: dispositivo.id,
     });
     await registroConsentimientoRepository.crear({
-      idTrabajador: trabajador.id,
+      idOperario: trabajador.id,
       estado: true,
       versionPolitica: 'v1.0',
     });
@@ -177,7 +176,7 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
 
   it('consentimiento revocado: 403, el biodato no se persiste ni se audita (descarte en memoria)', async () => {
     await registroConsentimientoRepository.crear({
-      idTrabajador: trabajador.id,
+      idOperario: trabajador.id,
       estado: false, // revocación posterior al otorgamiento del beforeEach
       versionPolitica: 'v1.0',
     });
@@ -193,7 +192,7 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
   it('consentimiento inexistente: mismo tratamiento que revocado', async () => {
     // trabajador nuevo sin ningún registro de consentimiento
     const empresa2 = await empresaRepository.crear(empresaMock({ cuit: '30712345699' }));
-    const trabajador2 = await trabajadorRepository.crear(trabajadorMock(empresa2.id));
+    const trabajador2 = await operarioRepository.crear(trabajadorMock(empresa2.id));
     const dispositivo2 = await dispositivoRepository.crear(dispositivoMock());
     await asignacionDispositivoRepository.crear({
       idTrabajador: trabajador2.id,

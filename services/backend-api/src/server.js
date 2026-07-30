@@ -7,8 +7,10 @@ dotenv.config({
 
 const app = require('./app');
 const { getPool } = require('./config/database');
+const estadoDispositivoService = require('./services/estadoDispositivo.service');
 
 const PORT = process.env.PORT || 8000;
+const CHEQUEO_INACTIVIDAD_MS = 60 * 1000;
 
 async function startServer() {
   try {
@@ -19,6 +21,13 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`[Backend API] Server is running on port ${PORT}`);
     });
+
+    // H0006: detección de desconexión por inactividad (ver estadoDispositivo.service).
+    setInterval(() => {
+      estadoDispositivoService.chequearInactividad().catch((error) => {
+        console.error('[Backend API] Error chequeando inactividad de dispositivos:', error.message);
+      });
+    }, CHEQUEO_INACTIVIDAD_MS);
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

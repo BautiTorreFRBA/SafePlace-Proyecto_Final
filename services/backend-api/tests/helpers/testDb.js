@@ -12,23 +12,23 @@ const { getPool } = require('../../src/config/database');
 // Orden: primero las tablas "hoja" (con FKs hacia las demás), para que el
 // CASCADE no dependa de un orden particular; RESTART IDENTITY reinicia los
 // seriales para que los IDs sean predecibles entre corridas de tests.
+//
+// Nota: el DER completo define también notificacion/intervencion/
+// alerta_historial_estado/alerta/regla_alerta/tipo_alerta, pero esas tablas
+// nunca tuvieron migración (fuera del alcance de las historias implementadas
+// hasta ahora) — truncarlas rompería esta suite con "relation does not
+// exist". `trabajador` tampoco existe: la tabla real es `operario`.
 const TABLAS = [
   'registro_consentimiento',
   'log_auditoria',
-  'notificacion',
-  'intervencion',
-  'alerta_historial_estado',
-  'alerta',
-  'regla_alerta',
   'medicion',
   'historial_estado_dispositivo',
   'asignacion_dispositivo',
   'dispositivo',
   'usuario_rol',
   'usuario',
-  'trabajador',
+  'operario',
   'empresa',
-  'tipo_alerta',
   'rol',
 ];
 

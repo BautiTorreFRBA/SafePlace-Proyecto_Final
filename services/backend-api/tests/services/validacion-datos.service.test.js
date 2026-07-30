@@ -66,7 +66,12 @@ describe('Servicio de Validación de Datos (unitario)', () => {
       version_politica: 'v1.0',
     });
     medicionRepository.existeDuplicado.mockResolvedValue(false);
-    medicionRepository.crear.mockImplementation(async (data) => ({ id: 99, ...data }));
+    medicionRepository.crear.mockImplementation(async (data) => ({
+      id: 99,
+      ...data,
+      id_trabajador: data.idTrabajador,
+      id_dispositivo: data.idDispositivo,
+    }));
     logAuditoriaRepository.registrar.mockResolvedValue({ id: 1 });
   });
 
@@ -84,7 +89,12 @@ describe('Servicio de Validación de Datos (unitario)', () => {
     expect(medicion.fechaHora).toEqual(new Date('2026-07-18T12:00:00.000Z'));
     expect(medicion.frecuenciaCardiaca).toBe(88);
 
-    expect(logAuditoriaRepository.registrar).not.toHaveBeenCalled();
+    // H0009: la persistencia exitosa también queda auditada (a diferencia de
+    // los descartes de validación, que usan operacion DESCARTE_VALIDACION).
+    expect(logAuditoriaRepository.registrar).toHaveBeenCalledTimes(1);
+    expect(logAuditoriaRepository.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ operacion: 'CREATE', tablaAfectada: 'medicion', idRegistro: 99 }),
+    );
   });
 
   it('2. campos incompletos (sin idDispositivo): descartado y auditado', async () => {
@@ -207,5 +217,18 @@ describe('Servicio de Validación de Datos (unitario)', () => {
     await medicionesService.registrarMedicion(paqueteValido({ timestamp: '2026-07-18T12:00:01.000Z' }));
 
     expect(registroConsentimientoRepository.obtenerVigente).toHaveBeenCalledTimes(1);
+  });
+
+  it('H0009: un error de almacenamiento (no de validación) se audita como incidente y se relanza', async () => {
+    const errorDeDb = new Error('connection terminated unexpectedly');
+    medicionRepository.crear.mockRejectedValue(errorDeDb);
+
+    await expect(
+      medicionesService.registrarMedicion(paqueteValido(), { ipOrigen: '10.0.0.1' }),
+    ).rejects.toThrow(errorDeDb);
+
+    expect(logAuditoriaRepository.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ operacion: 'ERROR_ALMACENAMIENTO', tablaAfectada: 'medicion' }),
+    );
   });
 });
