@@ -9,8 +9,7 @@ const crear = async (data) => {
     idTrabajador,
     idDispositivo,
     frecuenciaCardiaca,
-    nivelActividad,
-    nivelInactividad,
+    actividad,
     temperaturaCorporal,
     spo2,
     fechaHora,
@@ -19,10 +18,10 @@ const crear = async (data) => {
   const query = `
     INSERT INTO medicion (
       id_trabajador, id_dispositivo, fecha_hora,
-      frecuencia_cardiaca, nivel_actividad, nivel_inactividad,
+      frecuencia_cardiaca, actividad,
       temperatura_corporal, spo2
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (id_dispositivo, fecha_hora) DO NOTHING
     RETURNING *;
   `;
@@ -32,8 +31,7 @@ const crear = async (data) => {
     idDispositivo,
     fechaHora || new Date(),
     frecuenciaCardiaca,
-    nivelActividad,
-    nivelInactividad,
+    actividad,
     temperaturaCorporal,
     spo2,
   ];

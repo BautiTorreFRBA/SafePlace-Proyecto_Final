@@ -1,7 +1,7 @@
 const { truncarTodo, cerrarPool } = require('../helpers/testDb');
 const { empresaMock, trabajadorMock, dispositivoMock, medicionMock } = require('../fixtures/mockEntities');
 const empresaRepository = require('../../src/repositories/empresa.repository');
-const trabajadorRepository = require('../../src/repositories/trabajador.repository');
+const operarioRepository = require('../../src/repositories/operario.repository');
 const dispositivoRepository = require('../../src/repositories/dispositivo.repository');
 const medicionRepository = require('../../src/repositories/medicion.repository');
 const asignacionDispositivoRepository = require('../../src/repositories/asignacionDispositivo.repository');
@@ -16,7 +16,7 @@ describe('medicion.repository', () => {
   beforeEach(async () => {
     await truncarTodo();
     const empresa = await empresaRepository.crear(empresaMock());
-    trabajador = await trabajadorRepository.crear(trabajadorMock(empresa.id));
+    trabajador = await operarioRepository.crear(trabajadorMock(empresa.id));
     dispositivo = await dispositivoRepository.crear(dispositivoMock());
   });
 
@@ -83,7 +83,7 @@ describe('medicion.repository', () => {
       idDispositivo: dispositivo.id,
     });
     await registroConsentimientoRepository.crear({
-      idTrabajador: trabajador.id,
+      idOperario: trabajador.id,
       estado: true,
       versionPolitica: 'v1.0',
     });

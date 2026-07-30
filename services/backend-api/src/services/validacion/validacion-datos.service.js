@@ -58,7 +58,7 @@ const validarEstructura = async (paquete) => {
     throw new ErrorValidacion(MOTIVOS.ESTRUCTURA_INVALIDA, 'El paquete no es un objeto JSON válido.');
   }
 
-  const camposNumericos = ['idDispositivo', 'frecuenciaCardiaca', 'nivelActividad', 'nivelInactividad', 'temperaturaCorporal', 'spo2'];
+  const camposNumericos = ['idDispositivo', 'frecuenciaCardiaca', 'nivelActividad', 'temperaturaCorporal', 'spo2'];
   for (const campo of camposNumericos) {
     const valor = paquete[campo];
     if (valor !== undefined && valor !== null && !esNumeroFinito(valor)) {
@@ -179,8 +179,11 @@ const validarPaquete = async (paquete) => {
     idDispositivo: paquete.idDispositivo,
     fechaHora: new Date(paquete.timestamp), // timestamp declarado por el paquete (ver docstring)
     frecuenciaCardiaca: paquete.frecuenciaCardiaca,
-    nivelActividad: paquete.nivelActividad ?? null,
-    nivelInactividad: paquete.nivelInactividad ?? null,
+    // La columna real (medicion.actividad) es varchar: el nivel numérico que
+    // manda el paquete se guarda como texto. No existe columna para
+    // "nivel de inactividad" en el esquema real (era un campo asumido antes
+    // de esta historia, sin respaldo en el DER real), se descarta.
+    actividad: paquete.nivelActividad != null ? String(paquete.nivelActividad) : null,
     temperaturaCorporal: paquete.temperaturaCorporal ?? null,
     spo2: paquete.spo2 ?? null,
   };
