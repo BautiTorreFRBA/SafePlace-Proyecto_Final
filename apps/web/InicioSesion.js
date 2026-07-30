@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = import.meta.env?.VITE_API_URL || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+﻿const API_BASE_URL = window.__SAFEPLACE_API_URL__ || import.meta.env?.VITE_API_URL || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
 const ROLE_ROUTES = {
   admin: 'Admin-Home.html',

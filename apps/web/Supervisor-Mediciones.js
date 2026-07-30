@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const tableBody = document.getElementById('medTableBody');
 const medCount = document.getElementById('medCount');
 const filterEmpleado = document.getElementById('filterEmpleado');
@@ -183,6 +183,10 @@ function obtenerMensajeSinFechas() {
   return 'Selecciona las fechas Desde y Hasta para consultar el historial de mediciones.';
 }
 
+function formatearNombreArchivo(fecha = new Date()) {
+  return fecha.toISOString().slice(0, 10);
+}
+
 async function cargarMediciones() {
   const { desde, hasta, empleado } = obtenerFiltros();
 
@@ -276,7 +280,7 @@ function exportarPDF() {
     alternateRowStyles: { fillColor: [241, 245, 249] },
   });
 
-  doc.save('historial-mediciones.pdf');
+  doc.save(`historial-mediciones-${formatearNombreArchivo()}.pdf`);
 }
 
 function exportarExcel() {
@@ -304,7 +308,7 @@ function exportarExcel() {
   const hoja = window.XLSX.utils.json_to_sheet(filas);
   const libro = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(libro, hoja, 'Mediciones');
-  window.XLSX.writeFile(libro, 'historial-mediciones.xlsx');
+  window.XLSX.writeFile(libro, `historial-mediciones-${formatearNombreArchivo()}.xlsx`);
 }
 
 btnPDF.addEventListener('click', exportarPDF);
@@ -323,4 +327,3 @@ filterDesde.addEventListener('change', programarRecarga);
 filterHasta.addEventListener('change', programarRecarga);
 
 renderEstadoInicial(obtenerMensajeSinFechas());
-
