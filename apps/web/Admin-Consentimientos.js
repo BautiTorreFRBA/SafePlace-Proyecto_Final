@@ -1,6 +1,4 @@
-const API_BASE_URL = window.__SAFEPLACE_API_URL__ || (window.location.port === '5173'
-  ? 'http://localhost:8000/api/v1'
-  : '/api/v1');
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'http://localhost:8000/api/v1';
 
 const trabajadorSelect = document.getElementById('trabajadorSelect');
 const versionPoliticaInput = document.getElementById('versionPoliticaInput');

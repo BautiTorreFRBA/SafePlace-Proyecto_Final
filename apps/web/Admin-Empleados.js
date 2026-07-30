@@ -1,6 +1,4 @@
-const API_BASE_URL = window.__SAFEPLACE_API_URL__ || (window.location.port === '5173'
-  ? 'http://localhost:8000/api/v1'
-  : '/api/v1');
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'http://localhost:8000/api/v1';
 
 const tableBody = document.getElementById('empTableBody');
 const empCount = document.getElementById('empCount');
@@ -122,7 +120,7 @@ async function apiFetch(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operaci�n.');
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
   }
 
   return payload;

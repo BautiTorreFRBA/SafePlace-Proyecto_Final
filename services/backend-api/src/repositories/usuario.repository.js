@@ -70,7 +70,7 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
     );
 
     if (!rolResult.rows[0]) {
-      throw new Error(`No se encontr� un rol v�lido para '${rol}'.`);
+      throw new Error(`No se encontró un rol válido para '${rol}'.`);
     }
 
     await client.query(
