@@ -11,7 +11,7 @@ router.patch('/employees/:id/deactivate', auth, authorize(['admin']), dashboardC
 router.get('/users', auth, authorize(['admin']), dashboardController.getUsuarios);
 router.patch('/users/:id', auth, authorize(['admin']), dashboardController.actualizarUsuario);
 router.get('/measurements', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getMediciones);
-router.get('/devices', auth, authorize(['admin', 'supervisor']), dashboardController.getDispositivos);
+router.get('/devices', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getDispositivos);
 router.get('/alerts', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getAlertas);
 
 module.exports = router;
