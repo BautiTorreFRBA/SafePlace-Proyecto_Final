@@ -26,8 +26,10 @@ const dispositivoMock = (overrides = {}) => ({
   ...overrides,
 });
 
-const medicionMock = (idTrabajador, idDispositivo, overrides = {}) => ({
-  idTrabajador,
+// H0020: medicion ya no referencia al operario directamente, sino a su
+// seudónimo (operario_seudonimo.id).
+const medicionMock = (idSeudonimo, idDispositivo, overrides = {}) => ({
+  idSeudonimo,
   idDispositivo,
   fechaHora: new Date('2026-07-18T12:00:00.000Z'),
   frecuenciaCardiaca: 88,

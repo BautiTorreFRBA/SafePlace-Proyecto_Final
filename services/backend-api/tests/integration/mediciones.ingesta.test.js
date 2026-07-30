@@ -21,6 +21,7 @@ const operarioRepository = require('../../src/repositories/operario.repository')
 const dispositivoRepository = require('../../src/repositories/dispositivo.repository');
 const asignacionDispositivoRepository = require('../../src/repositories/asignacionDispositivo.repository');
 const registroConsentimientoRepository = require('../../src/repositories/registroConsentimiento.repository');
+const operarioSeudonimoRepository = require('../../src/repositories/operarioSeudonimo.repository');
 const consentimientoCache = require('../../src/services/validacion/consentimiento.cache');
 
 const API_KEY = process.env.GATEWAY_API_KEY;
@@ -89,7 +90,6 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
     expect(res.status).toBe(201);
 
     const medicion = res.body.data;
-    expect(medicion.id_trabajador).toBe(trabajador.id);
     expect(medicion.id_dispositivo).toBe(dispositivo.id);
     expect(medicion.frecuencia_cardiaca).toBe(88);
     // fecha_hora = timestamp declarado por el paquete (única marca de tiempo del DER)
@@ -97,6 +97,34 @@ describe('POST /api/v1/mediciones — ingesta con Servicio de Validación de Dat
 
     expect(await contarFilas('medicion')).toBe(1);
     expect(await contarDescartesAuditados()).toBe(0);
+  });
+
+  // H0020: la ingesta no asocia el biodato a la identidad civil directa —
+  // se persiste contra el seudónimo del trabajador (creado en esta misma
+  // corrida), y la correspondencia queda sólo en operario_seudonimo.
+  it('H0020: la medición se asocia al seudónimo del trabajador, no a su id directo', async () => {
+    const res = await postMedicion(paqueteValido());
+    expect(res.status).toBe(201);
+
+    const medicion = res.body.data;
+    expect(medicion.id_seudonimo).toBeDefined();
+    expect(medicion.id_trabajador).toBeUndefined();
+
+    const seudonimo = await operarioSeudonimoRepository.obtenerPorOperario(trabajador.id);
+    expect(seudonimo).toBeDefined();
+    expect(medicion.id_seudonimo).toBe(seudonimo.id);
+
+    // El identificador seudonimizado es un valor opaco (hex aleatorio), no
+    // una función derivable del id del operario ni de ningún otro dato civil.
+    expect(seudonimo.identificador_seudonimo).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('H0020: mediciones sucesivas del mismo trabajador reutilizan el mismo seudónimo', async () => {
+    await postMedicion(paqueteValido());
+    await postMedicion(paqueteValido({ timestamp: '2026-07-18T12:05:00.000Z' }));
+
+    const filas = await getPool().query('SELECT DISTINCT id_seudonimo FROM medicion;');
+    expect(filas.rows).toHaveLength(1);
   });
 
   it('campos incompletos: 400, no persiste y queda auditado', async () => {
