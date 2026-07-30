@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const simGrid = document.getElementById('simGrid');
 const tableBody = document.getElementById('wearTableBody');
 const kpiConectados = document.getElementById('kpiConectados');

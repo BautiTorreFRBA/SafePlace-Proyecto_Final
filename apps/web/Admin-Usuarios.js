@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const USERS_ENDPOINT = `${API_BASE_URL}/dashboard/users`;
 const COMPANIES_ENDPOINT = `${API_BASE_URL}/dashboard/companies`;
 const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;

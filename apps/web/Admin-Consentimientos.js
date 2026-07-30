@@ -1,4 +1,4 @@
-const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'http://localhost:8000/api/v1';
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
 const trabajadorSelect = document.getElementById('trabajadorSelect');
 const versionPoliticaInput = document.getElementById('versionPoliticaInput');

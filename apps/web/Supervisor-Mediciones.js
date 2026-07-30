@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const tableBody = document.getElementById('medTableBody');
 const medCount = document.getElementById('medCount');
 const filterEmpleado = document.getElementById('filterEmpleado');
