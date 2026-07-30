@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafePlace - Asociar Wearable</title><link rel="stylesheet" href="Styles.css" />
+  <title>SafePlace - Consentimientos Biométricos</title><link rel="stylesheet" href="Styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 
@@ -17,8 +17,8 @@
       <nav class="sidebar__nav">
         <a class="nav-item" href="Admin-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
         <a class="nav-item" href="Admin-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Empleados</a>
-        <a class="nav-item nav-item--active" href="Admin-AsociarWearable.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg> Asociar Wearable</a>
-        <a class="nav-item" href="Admin-Consentimientos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg> Consentimientos</a>
+        <a class="nav-item" href="Admin-AsociarWearable.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg> Asociar Wearable</a>
+        <a class="nav-item nav-item--active" href="Admin-Consentimientos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg> Consentimientos</a>
         <a class="nav-item" href="Admin-RolesPermisos.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Roles y Permisos</a>
         <a class="nav-item" href="Admin-Configuracion.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Configuración</a>
         <a class="nav-item" href="Admin-Usuarios.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Crear Usuarios</a>
@@ -38,7 +38,7 @@
 
     <main class="main">
       <header class="topbar">
-        <div class="topbar__title">Asociar Wearable</div>
+        <div class="topbar__title">Consentimientos Biométricos</div>
         <div class="topbar__right">
           <div class="status-dot"><span class="dot dot--green"></span> En línea</div>
           <div class="avatar">AD</div>
@@ -47,9 +47,10 @@
 
       <div class="emp-header">
         <div>
-          <h2 class="emp-header__title">Asociar wearable a trabajador</h2>
-          <p class="emp-header__count" id="asocCount">0 asociaciones creadas en esta sesión</p>
+          <h2 class="emp-header__title">Registrar consentimiento biométrico</h2>
+          <p class="emp-header__count" id="consentimientoEstado">Estado vigente: Sin registro</p>
         </div>
+        <span class="badge badge--neutral" id="estadoBadge">Sin registro</span>
       </div>
 
       <div class="emp-toolbar">
@@ -59,54 +60,37 @@
             <option value="">Cargando trabajadores...</option>
           </select>
         </div>
-        <div class="modal__field" style="flex:1; min-width:220px;">
-          <label class="modal__label" for="wearableSelect">WEARABLE DISPONIBLE</label>
-          <select class="modal__input" id="wearableSelect">
-            <option value="">Cargando wearables...</option>
-          </select>
+        <div class="modal__field" style="flex:1; min-width:180px;">
+          <label class="modal__label" for="versionPoliticaInput">VERSIÓN DE POLÍTICA</label>
+          <input class="modal__input" id="versionPoliticaInput" type="text" placeholder="v1.0" />
         </div>
-        <button class="btn-nuevo" id="btnAsociar" style="align-self:flex-end;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Asociar</button>
+        <button class="btn-nuevo" id="btnOtorgar" style="align-self:flex-end;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20 6 9 17l-5-5"/></svg> Otorgar consentimiento</button>
+        <button class="modal__btn modal__btn--cancel" id="btnRevocar" style="align-self:flex-end;">Revocar consentimiento</button>
+      </div>
+
+      <div class="emp-header" style="padding-top:0;">
+        <div>
+          <h2 class="emp-header__title">Historial completo</h2>
+          <p class="emp-header__count" id="ultimaOperacion">Seleccioná un trabajador para consultar su historial</p>
+        </div>
       </div>
 
       <div class="emp-table-wrap">
         <table class="emp-table">
           <thead>
             <tr>
-              <th>TRABAJADOR</th>
-              <th>LEGAJO</th>
-              <th>WEARABLE</th>
-              <th>FECHA DESDE</th>
-              <th>FECHA HASTA</th>
+              <th>FECHA/HORA</th>
+              <th>VERSIÓN DE POLÍTICA</th>
               <th>ESTADO</th>
-              <th>ACCIONES</th>
             </tr>
           </thead>
-          <tbody id="asocTableBody"></tbody>
+          <tbody id="historialTableBody"></tbody>
         </table>
-      </div>
-
-      <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-          <div class="modal__header">
-            <h3 class="modal__title">Modificar fecha de finalización</h3>
-            <button class="modal__close" id="modalClose"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-          </div>
-          <div class="modal__body">
-            <div class="modal__field">
-              <label class="modal__label" for="fechaHastaInput">FECHA HASTA</label>
-              <input class="modal__input" id="fechaHastaInput" type="datetime-local" />
-            </div>
-          </div>
-          <div class="modal__footer">
-            <button class="modal__btn modal__btn--cancel" id="modalCancel">Cancelar</button>
-            <button class="modal__btn modal__btn--save" id="modalSave">Guardar</button>
-          </div>
-        </div>
       </div>
     </main>
   </div>
 
   <script src="session-ui.js"></script>
-  <script src="Admin-AsociarWearable.js"></script>
+  <script src="Admin-Consentimientos.js"></script>
 </body>
 </html>
