@@ -1,235 +1,188 @@
-/* FECHA Y HORA EN TIEMPO REAL */
+﻿const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+const POLL_INTERVAL_MS = 15000;
 
-function updateDateTime() {
-  const el = document.getElementById('currentDate');
-  if (!el) return;
+const workerList = document.getElementById('workerList');
+const alertList = document.getElementById('alertList');
+const kpiTrabajadores = document.getElementById('kpiTrabajadores');
+const kpiAlertas = document.getElementById('kpiAlertas');
+const kpiCritico = document.getElementById('kpiCritico');
+const kpiDispositivos = document.getElementById('kpiDispositivos');
+const currentDate = document.getElementById('currentDate');
 
-  const now = new Date();
-
-  // Formateamos la fecha con ceros a la izquierda (ej: 06/12/2026 21:05)
-  const dd   = String(now.getDate()).padStart(2, '0');
-  const mm   = String(now.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
-  const yyyy = now.getFullYear();
-  const hh   = String(now.getHours()).padStart(2, '0');
-  const min  = String(now.getMinutes()).padStart(2, '0');
-
-  el.textContent = `Estado del sistema al ${dd}/${mm}/${yyyy} ${hh}:${min}`;
-}
-
-// Ejecutamos inmediatamente y repetimos cada minuto
-updateDateTime();
-setInterval(updateDateTime, 60_000);
-
-/*  CONFIGURACIÓN GLOBAL DE GRAFICOS */
-
-const COLORS = {
-  teal:       '#2dd4bf',
-  tealFill:   'rgba(45, 212, 191, 0.10)',
-  red:        '#f87171',
-  redLine:    'rgba(248, 113, 113, 0.6)',
-  orange:     '#fb923c',
-  yellow:     '#fbbf24',
-  blue:       '#60a5fa',
-  grid:       'rgba(255,255,255,0.04)',
-  tickColor:  '#6b7280',
-  tooltip:    '#413a3a',
+const ESTADO_CONFIG = {
+  normal: { label: 'Normal', badge: 'badge--normal', dot: 'dot--green' },
+  advertencia: { label: 'Advertencia', badge: 'badge--warning', dot: 'dot--orange' },
+  critico: { label: 'Crítico', badge: 'badge--critical', dot: 'dot--red' },
+  desactualizado: { label: 'Desactualizado', badge: 'badge--warning', dot: 'dot--orange' },
+  sin_datos: { label: 'Sin datos', badge: 'badge--neutral', dot: 'dot--orange' },
 };
 
-Chart.defaults.color = COLORS.tickColor;
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-Chart.defaults.font.size   = 11;
+async function apiFetch(path, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'InicioSesion.html';
+    return null;
+  }
 
-/* GRÁFICA DE BARRAS – Alertas por día (última semana) */
-
-const alertsCtx = document.getElementById('alertsChart').getContext('2d');
-
-new Chart(alertsCtx, {
-  type: 'bar',
-
-  data: {
-    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],// Días de la semana abreviados (eje X)
-
-    datasets: [
-      {
-        label: 'Fatiga',
-        // Cantidad de alertas de fatiga por día
-        data: [0, 1, 0, 1, 1, 0, 1],
-        backgroundColor: COLORS.yellow,
-        borderRadius: 4,
-        borderSkipped: false, // Redondea los 4 vértices
-      },
-      {
-        label: 'Sobreesfuerzo',
-        // Alertas de sobreesfuerzo por día
-        data: [0, 0, 1, 1, 0, 1, 0],
-        backgroundColor: COLORS.red,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      {
-        label: 'Inactividad',
-        // Alertas de inactividad prolongada por día
-        data: [1, 2, 2, 4, 3, 3, 2],
-        backgroundColor: COLORS.blue,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-    ],
-  },
-
-  options: {
-    responsive: true,
-    maintainAspectRatio: false, // Permite que el canvas ocupe el alto del contenedor
-
-    // Agrupación de barras
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          usePointStyle: true, // Usa círculos en lugar de rectángulos en la leyenda
-          pointStyle: 'circle',
-          padding: 16,
-          color: COLORS.tickColor,
-        },
-      },
-      tooltip: {
-        backgroundColor: COLORS.tooltip,
-        borderColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-      },
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
     },
+  });
 
-    scales: {
-      x: {
-        // Modo 'grouped' coloca las barras de cada dataset lado a lado
-        stacked: false,
-        grid: {
-          color: COLORS.grid, // Líneas de cuadrícula muy sutiles
-          drawBorder: false,
-        },
-        border: { display: false },
-        ticks: { color: COLORS.tickColor },
-      },
-      y: {
-        beginAtZero: true,
-        max: 5, // Techo visual del eje Y
-        ticks: {
-          stepSize: 1, // Solo valores enteros (0, 1, 2…)
-          color: COLORS.tickColor,
-        },
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-      },
-    },
-  },
-});
+  const payload = await response.json().catch(() => ({}));
 
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operacion.');
+  }
 
-/* ------------------------------------------------------------
-   4. GRÁFICA DE LÍNEA – Frecuencia Cardíaca Promedio (hoy)
-   ------------------------------------------------------------
-   Muestra la evolución del BPM promedio del equipo a lo largo
-   del día (de 00:00 a 20:00, cada 4 horas).
+  return payload;
+}
 
-   Incluye una línea de referencia de umbral crítico (130 BPM)
-   implementada como un dataset separado con estilo punteado.
-   ------------------------------------------------------------ */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-const heartCtx = document.getElementById('heartChart').getContext('2d');
+function nombreCompleto(item) {
+  return `${item.nombre || item.operario_nombre || ''} ${item.apellido || item.operario_apellido || ''}`.trim() || `Trabajador ${item.id_trabajador ?? ''}`.trim();
+}
 
-// Generamos un gradiente de relleno debajo de la curva para dar
-// profundidad visual sin distraer del dato principal
-const gradient = heartCtx.createLinearGradient(0, 0, 0, 200);
-gradient.addColorStop(0,   'rgba(45, 212, 191, 0.20)');
-gradient.addColorStop(1,   'rgba(45, 212, 191, 0.00)');
+function iniciales(nombre) {
+  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return 'SP';
+  return partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
+}
 
-new Chart(heartCtx, {
-  type: 'line',
+function formatearFechaHora(value) {
+  if (!value) return '--';
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return '--';
+  return fecha.toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
-  data: {
-    // Horas del día en el eje X
-    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+function formatearNumero(value, sufijo = '') {
+  if (value === null || value === undefined || value === '') return '--';
+  return `${value}${sufijo}`;
+}
 
-    datasets: [
-      {
-        label: 'BPM promedio',
-        // Valores de frecuencia cardíaca promedio del equipo por hora
-        data: [78, 80, 95, 105, 98, 90],
-        borderColor:     COLORS.teal,
-        backgroundColor: gradient,  // Área de relleno con degradado
-        borderWidth:     2,
-        pointRadius:     3,
-        pointBackgroundColor: COLORS.teal,
-        tension: 0.4,   // Suavizado de la curva (0 = recto, 1 = muy curvo)
-        fill: true,     // Activa el área de relleno
-      },
-      {
-        // Línea de umbral crítico: si el BPM supera este valor,
-        // se genera una alerta automática en el sistema
-        label: 'Umbral crítico (130 BPM)',
-        data: [130, 130, 130, 130, 130, 130], // Línea horizontal constante
-        borderColor:   COLORS.redLine,
-        borderWidth:   1.5,
-        borderDash:    [6, 4],  // Estilo punteado: 6px línea, 4px espacio
-        pointRadius:   0,       // Sin puntos en esta línea de referencia
-        fill:          false,
-        tension:       0,
-      },
-    ],
-  },
+function actualizarFechaActualizacion() {
+  if (!currentDate) return;
+  const now = new Date();
+  currentDate.textContent = `Estado del sistema al ${now.toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+}
 
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
+function renderKPIs(trabajadores) {
+  const total = trabajadores.length;
+  const alertas = trabajadores.filter((item) => item.estado_actual === 'advertencia' || item.estado_actual === 'critico').length;
+  const criticos = trabajadores.filter((item) => item.estado_actual === 'critico').length;
+  const conDispositivo = trabajadores.filter((item) => item.id_dispositivo !== null && item.id_dispositivo !== undefined).length;
 
-    plugins: {
-      legend: {
-        // Ocultamos la leyenda del umbral para no recargar la UI;
-        // el rojo punteado es suficientemente claro visualmente
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: COLORS.tooltip,
-        borderColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-        // Filtramos el dataset del umbral del tooltip para no confundir
-        filter: (item) => item.datasetIndex === 0,
-        callbacks: {
-          // Agregamos la unidad al valor mostrado en el tooltip
-          label: (ctx) => ` ${ctx.parsed.y} BPM`,
-        },
-      },
-    },
+  kpiTrabajadores.textContent = String(total);
+  kpiAlertas.textContent = String(alertas);
+  kpiCritico.textContent = String(criticos);
+  kpiDispositivos.textContent = `${conDispositivo}/${total || 0}`;
+}
 
-    scales: {
-      x: {
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-        ticks: { color: COLORS.tickColor },
-      },
-      y: {
-        min: 50,  // Mínimo del eje: empieza en 50 BPM para mejor lectura
-        max: 150, // Máximo del eje: deja espacio sobre el umbral de 130
-        ticks: {
-          stepSize: 25,
-          color: COLORS.tickColor,
-        },
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-      },
-    },
-  },
+function renderAlertas(trabajadores) {
+  const alertas = trabajadores.filter((item) => item.estado_actual === 'advertencia' || item.estado_actual === 'critico');
+
+  if (alertas.length === 0) {
+    alertList.innerHTML = '<li class="alert-item"><div class="alert-item__info"><strong>No hay alertas activas</strong><span>Todo el panel se encuentra en estado normal</span></div></li>';
+    return;
+  }
+
+  alertList.innerHTML = alertas.map((item) => {
+    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
+    const descripcion = item.estado_descripcion || config.label;
+    return `
+      <li class="alert-item">
+        <span class="dot ${config.dot}"></span>
+        <div class="alert-item__info">
+          <strong>${escapeHtml(nombreCompleto(item))}</strong>
+          <span>${escapeHtml(descripcion)}</span>
+        </div>
+        <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
+      </li>
+    `;
+  }).join('');
+}
+
+function renderTrabajadores(trabajadores) {
+  if (trabajadores.length === 0) {
+    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><strong>Sin trabajadores monitoreados</strong><span>No hay datos biométricos disponibles</span></div></li>';
+    return;
+  }
+
+  workerList.innerHTML = trabajadores.map((item) => {
+    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
+    const nombre = nombreCompleto(item);
+    const lectura = [
+      `${formatearNumero(item.frecuencia_cardiaca)} BPM`,
+      `${formatearNumero(item.temperatura_corporal, ' C')}`,
+      `${formatearNumero(item.spo2, '%')}`,
+    ].join(' · ');
+    const detalle = [item.area ? `Area ${item.area}` : null, lectura, formatearFechaHora(item.fecha_hora)]
+      .filter(Boolean)
+      .join(' · ');
+
+    return `
+      <li class="worker-item">
+        <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
+        <div class="worker-item__info">
+          <strong>${escapeHtml(nombre)}${item.legajo ? ` - ${escapeHtml(item.legajo)}` : ''}</strong>
+          <span>${escapeHtml(detalle)}</span>
+        </div>
+        <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
+      </li>
+    `;
+  }).join('');
+}
+
+async function cargarEstadoTrabajadores() {
+  const payload = await apiFetch('/estado/trabajadores-activos');
+  const trabajadores = payload.data || [];
+
+  renderKPIs(trabajadores);
+  renderAlertas(trabajadores);
+  renderTrabajadores(trabajadores);
+  actualizarFechaActualizacion();
+}
+
+async function inicializar() {
+  actualizarFechaActualizacion();
+  await cargarEstadoTrabajadores();
+  setInterval(() => {
+    cargarEstadoTrabajadores().catch((error) => {
+      console.error(error);
+      workerList.innerHTML = `<li class="worker-item"><div class="worker-item__info"><strong>Error</strong><span>${escapeHtml(error.message)}</span></div></li>`;
+      alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><strong>No se pudo actualizar el panel</strong><span>${escapeHtml(error.message)}</span></div></li>`;
+    });
+  }, POLL_INTERVAL_MS);
+}
+
+inicializar().catch((error) => {
+  console.error(error);
+  workerList.innerHTML = `<li class="worker-item"><div class="worker-item__info"><strong>Error</strong><span>${escapeHtml(error.message)}</span></div></li>`;
+  alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><strong>No se pudo cargar el panel</strong><span>${escapeHtml(error.message)}</span></div></li>`;
 });

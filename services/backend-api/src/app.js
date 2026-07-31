@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const errorMiddleware = require('./middlewares/error.middleware');
 
@@ -9,6 +9,7 @@ const alertasRoutes = require('./routes/alertas.routes');
 const workersRoutes = require('./routes/workers.routes');
 const devicesRoutes = require('./routes/devices.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const estadoRoutes = require('./routes/estado.routes');
 const healthRoutes = require('./routes/health.routes');
 const trabajadoresRoutes = require('./routes/trabajadores.routes');
 const wearablesRoutes = require('./routes/wearables.routes');
@@ -59,6 +60,7 @@ app.use(`${API_PREFIX}/alerts`, alertasRoutes);
 app.use(`${API_PREFIX}/workers`, workersRoutes);
 app.use(`${API_PREFIX}/devices`, devicesRoutes);
 app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/estado`, estadoRoutes);
 app.use(`${API_PREFIX}/trabajadores`, trabajadoresRoutes);
 app.use(`${API_PREFIX}/wearables`, wearablesRoutes);
 app.use(`${API_PREFIX}/asociaciones`, asociacionesRoutes);
@@ -73,4 +75,3 @@ app.use('/health', healthRoutes);
 app.use(errorMiddleware);
 
 module.exports = app;
-
