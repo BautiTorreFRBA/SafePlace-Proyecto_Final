@@ -128,6 +128,15 @@ const getMediciones = async (req, res, next) => {
   }
 };
 
+
+const getResumenSupervisor = async (req, res, next) => {
+  try {
+    const data = await dashboardRepository.obtenerResumenSupervisor();
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+};
 const getDispositivos = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarDispositivos();
@@ -156,6 +165,7 @@ module.exports = {
   actualizarUsuario,
   desactivarUsuario,
   getMediciones,
+  getResumenSupervisor,
   getDispositivos,
   getAlertas,
 };

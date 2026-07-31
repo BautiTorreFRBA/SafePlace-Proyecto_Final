@@ -1,4 +1,6 @@
 const db = require('../config/database');
+const TIMEZONE = 'America/Argentina/Buenos_Aires';
+const SUMMARY_TIMEZONE = 'UTC';
 
 const listarEmpresas = async () => {
   const res = await db.query(`
@@ -265,6 +267,57 @@ const listarAlertas = async ({ desde = null, hasta = null } = {}) => {
   return res.rows;
 };
 
+const obtenerResumenSupervisor = async () => {
+  const alertasPorDiaQuery = `
+    WITH parametros AS (
+      SELECT
+        (timezone('${SUMMARY_TIMEZONE}', now())::date - 6) AS inicio,
+        timezone('${SUMMARY_TIMEZONE}', now())::date AS fin
+    )
+    SELECT
+      to_char(timezone('${SUMMARY_TIMEZONE}', a.fecha_hora)::date, 'YYYY-MM-DD') AS dia,
+      UPPER(ta.nombre) AS tipo_alerta,
+      COUNT(*)::int AS total
+    FROM alerta a
+    JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
+    CROSS JOIN parametros p
+    WHERE timezone('${SUMMARY_TIMEZONE}', a.fecha_hora)::date BETWEEN p.inicio AND p.fin
+      AND UPPER(ta.nombre) IN ('FATIGA', 'SOBREESFUERZO', 'INACTIVIDAD_PROLONGADA')
+    GROUP BY 1, 2
+    ORDER BY 1, 2;
+  `;
+
+  const frecuenciaHoyQuery = `
+    WITH parametros AS (
+      SELECT
+        date_trunc('day', timezone('UTC', now())) AS inicio_hoy,
+        date_trunc('day', timezone('UTC', now())) + interval '1 day' AS fin_hoy
+    )
+    SELECT
+      gs.hora_inicio,
+      ROUND(AVG(m.frecuencia_cardiaca)::numeric, 2) AS promedio
+    FROM parametros p
+    CROSS JOIN generate_series(0, 20, 4) AS gs(hora_inicio)
+    LEFT JOIN medicion m
+      ON timezone('UTC', m.fecha_hora) >= p.inicio_hoy + make_interval(hours => gs.hora_inicio)
+     AND timezone('UTC', m.fecha_hora) < LEAST(
+       p.inicio_hoy + make_interval(hours => gs.hora_inicio + 4),
+       p.fin_hoy
+     )
+    GROUP BY gs.hora_inicio
+    ORDER BY gs.hora_inicio;
+  `;
+
+  const [alertasPorDiaResult, frecuenciaHoyResult] = await Promise.all([
+    db.query(alertasPorDiaQuery),
+    db.query(frecuenciaHoyQuery),
+  ]);
+
+  return {
+    alertasPorDia: alertasPorDiaResult.rows,
+    frecuenciaPromedioHoy: frecuenciaHoyResult.rows,
+  };
+};
 module.exports = {
   listarEmpresas,
   listarEmpleados,
@@ -275,4 +328,5 @@ module.exports = {
   listarMediciones,
   listarDispositivos,
   listarAlertas,
+  obtenerResumenSupervisor,
 };
