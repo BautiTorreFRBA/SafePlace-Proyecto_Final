@@ -1,4 +1,8 @@
 {
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": null,
+  "outputDirectory": ".",
   "redirects": [
     { "source": "/", "destination": "/InicioSesion.html", "permanent": false }
   ],
