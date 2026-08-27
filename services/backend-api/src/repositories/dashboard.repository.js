@@ -206,6 +206,33 @@ const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offse
   return res.rows;
 };
 
+// Monitoreo (H0013): una fila por operario con su medición más reciente.
+// No sirve recortar una página de listarMediciones: si un operario concentra
+// casi todas las lecturas, tapa al resto. Acá se resuelve en la DB con
+// DISTINCT ON. Mismo criterio de reidentificación que listarMediciones.
+const listarUltimaMedicionPorTrabajador = async () => {
+  const query = `
+    SELECT DISTINCT ON (o.id)
+      m.id,
+      o.id AS id_trabajador,
+      o.nombre AS operario_nombre,
+      o.apellido AS operario_apellido,
+      m.id_dispositivo,
+      m.fecha_hora,
+      m.frecuencia_cardiaca,
+      m.actividad,
+      m.temperatura_corporal,
+      m.spo2,
+      m.estado
+    FROM medicion m
+    JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    JOIN operario o ON o.id = os.id_operario
+    ORDER BY o.id, m.fecha_hora DESC, m.id DESC;
+  `;
+  const res = await db.query(query);
+  return res.rows;
+};
+
 const listarDispositivos = async () => {
   const query = `
     SELECT
@@ -326,6 +353,7 @@ module.exports = {
   desactivarEmpleado,
   listarUsuarios,
   listarMediciones,
+  listarUltimaMedicionPorTrabajador,
   listarDispositivos,
   listarAlertas,
   obtenerResumenSupervisor,

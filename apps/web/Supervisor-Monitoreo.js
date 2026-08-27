@@ -49,18 +49,10 @@ function esCritica(prioridad) {
   return normalizada.includes('crít') || normalizada.includes('crit');
 }
 
-// Una lectura por trabajador (la más reciente): /dashboard/measurements trae
-// el log completo (más reciente primero), acá se reduce a "estado actual".
-function medicionMasRecientePorTrabajador(mediciones) {
-  const porTrabajador = new Map();
-  for (const m of mediciones) {
-    if (m.id_trabajador == null) continue;
-    if (!porTrabajador.has(m.id_trabajador)) {
-      porTrabajador.set(m.id_trabajador, m);
-    }
-  }
-  return [...porTrabajador.values()];
-}
+// /dashboard/measurements/latest ya devuelve una fila por trabajador (su
+// medición más reciente, resuelto en la DB). Antes se pedía el log completo
+// y se recortaba acá, pero si un operario concentra casi todas las lecturas
+// tapaba al resto.
 
 // H0013: el estado real de un trabajador es si tiene una alerta activa y de
 // qué prioridad — no `medicion.estado` (ninguna historia implementada hasta
@@ -79,12 +71,12 @@ function alertaActivaPorTrabajador(alertasActivas) {
 
 async function cargarDatos() {
   const [medicionesPayload, activasPayload, dispositivosPayload] = await Promise.all([
-    apiFetch('/dashboard/measurements?limit=200'),
+    apiFetch('/dashboard/measurements/latest'),
     apiFetch('/alertas/activas'),
     apiFetch('/dashboard/devices'),
   ]);
 
-  const mediciones = medicionMasRecientePorTrabajador(medicionesPayload.data || []);
+  const mediciones = medicionesPayload.data || [];
   const activas = activasPayload.data || [];
   const alertaPorTrabajador = alertaActivaPorTrabajador(activas);
   const dispositivos = dispositivosPayload.data || [];
