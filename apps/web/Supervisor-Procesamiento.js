@@ -8,9 +8,33 @@ const chartPercent = document.getElementById('chartPercent');
 
 let registros = [];
 
+async function apiFetch(path, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'InicioSesion.html';
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+  }
+
+  return payload;
+}
+
 async function cargarRegistros() {
-  const res = await fetch(`${API_BASE_URL}/dashboard/measurements?limit=50`);
-  const json = await res.json();
+  const json = (await apiFetch('/dashboard/measurements?limit=50')) || {};
   registros = (json.data || []).map((m) => ({
     hora: new Date(m.fecha_hora).toLocaleTimeString('es-AR'),
     origen: `BLE-SP-${String(m.id_dispositivo).padStart(3, '0')}`,
