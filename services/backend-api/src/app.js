@@ -25,13 +25,23 @@ const app = express();
 // Middlewares
 const allowedOrigins = [
   process.env.CORS_ORIGIN,
+  'https://safe-place-proyecto-final-web.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
 ].filter(Boolean);
 
+// Cualquier preview/deploy del frontend en Vercel (*.vercel.app del proyecto).
+const allowedOriginPatterns = [
+  /^https:\/\/safe-place-proyecto-final[a-z0-9-]*\.vercel\.app$/,
+];
+
+const isAllowedOrigin = (origin) =>
+  allowedOrigins.indexOf(origin) !== -1 ||
+  allowedOriginPatterns.some((re) => re.test(origin));
+
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
