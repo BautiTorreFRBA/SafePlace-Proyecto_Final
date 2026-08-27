@@ -1,6 +1,6 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "redirects": [
+    { "source": "/", "destination": "/InicioSesion.html", "permanent": false }
   ],
   "headers": [
     {
