@@ -19,7 +19,7 @@ const listarHistorialAlertas = async ({
     FROM alerta a
     LEFT JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     LEFT JOIN medicion m ON m.id = a.id_medicion
-    LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    LEFT JOIN operario_seudonimo os ON os.id = COALESCE(m.id_seudonimo, a.id_seudonimo)
     LEFT JOIN operario o ON o.id = os.id_operario
     WHERE ($1::date IS NULL OR a.fecha_hora::date >= $1::date)
       AND (

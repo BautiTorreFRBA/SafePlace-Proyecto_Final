@@ -10,10 +10,18 @@ const configurar = async (req, res, next) => {
       fcSobreesfuerzo,
       actividadSobreesfuerzo,
       minutosInactividad,
+      minutosDesconexionTolerada,
     } = req.body;
 
     const registro = await umbralRiesgoService.configurar(
-      { fcFatiga, minutosFatiga, fcSobreesfuerzo, actividadSobreesfuerzo, minutosInactividad },
+      {
+        fcFatiga,
+        minutosFatiga,
+        fcSobreesfuerzo,
+        actividadSobreesfuerzo,
+        minutosInactividad,
+        minutosDesconexionTolerada,
+      },
       actorDesdeRequest(req),
     );
 

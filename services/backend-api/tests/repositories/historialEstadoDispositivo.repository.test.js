@@ -42,7 +42,7 @@ const asignar = (idOperario, idDispositivo, fechaDesde) => db.query(
 
 // H0020: medicion ya no referencia al operario directamente, sino a su
 // seudónimo (creado acá mismo, como hace el flujo real de ingesta).
-const crearMedicion = async (idOperario, idDispositivo, fechaHora) => {
+const crearMedicion = async (idOperario, idDispositivo, fechaHora, fc = 80) => {
   const seudonimo = await db.query(
     `INSERT INTO operario_seudonimo (id_operario, identificador_seudonimo)
      VALUES ($1, $2)
@@ -52,8 +52,8 @@ const crearMedicion = async (idOperario, idDispositivo, fechaHora) => {
   );
   return db.query(
     `INSERT INTO medicion (id_seudonimo, id_dispositivo, fecha_hora, frecuencia_cardiaca)
-     VALUES ($1, $2, $3, 80);`,
-    [seudonimo.rows[0].id, idDispositivo, fechaHora],
+     VALUES ($1, $2, $3, $4);`,
+    [seudonimo.rows[0].id, idDispositivo, fechaHora, fc],
   );
 };
 
@@ -116,6 +116,47 @@ describe('historialEstadoDispositivoRepository', () => {
 
     const inactivos = await historialEstadoDispositivoRepository.listarDispositivosInactivos(5);
     expect(inactivos.map((d) => d.id_dispositivo)).not.toContain(dispositivo.id);
+  });
+
+  it('listarDesconectadosParaAlerta trae dispositivos DESCONECTADOS hace más de N minutos, con su operario', async () => {
+    const dispositivo = await crearDispositivo();
+    await asignar(operario.id, dispositivo.id, new Date(Date.now() - 60 * 60 * 1000));
+    await historialEstadoDispositivoRepository.registrarEstado(
+      dispositivo.id, 'DESCONECTADO', new Date(Date.now() - 20 * 60 * 1000),
+    );
+
+    const caidos = await historialEstadoDispositivoRepository.listarDesconectadosParaAlerta(10);
+    const fila = caidos.find((c) => c.id_dispositivo === dispositivo.id);
+    expect(fila).toBeDefined();
+    expect(fila.id_operario).toBe(operario.id);
+
+    // Reconectado -> ya no es candidato.
+    await historialEstadoDispositivoRepository.registrarEstado(dispositivo.id, 'CONECTADO');
+    const luego = await historialEstadoDispositivoRepository.listarDesconectadosParaAlerta(10);
+    expect(luego.map((c) => c.id_dispositivo)).not.toContain(dispositivo.id);
+  });
+
+  it('listarDispositivosTrabados detecta N mediciones seguidas con la misma FC', async () => {
+    const dispositivo = await crearDispositivo();
+    await asignar(operario.id, dispositivo.id, new Date(Date.now() - 60 * 60 * 1000));
+    for (let i = 0; i < 12; i += 1) {
+      // misma FC exacta, timestamps decrecientes
+      await crearMedicion(operario.id, dispositivo.id, new Date(Date.now() - i * 5000), 71);
+    }
+
+    const trabados = await historialEstadoDispositivoRepository.listarDispositivosTrabados(12);
+    expect(trabados.map((d) => d.id_dispositivo)).toContain(dispositivo.id);
+  });
+
+  it('listarDispositivosTrabados NO marca si la FC varía en la ventana', async () => {
+    const dispositivo = await crearDispositivo();
+    await asignar(operario.id, dispositivo.id, new Date(Date.now() - 60 * 60 * 1000));
+    for (let i = 0; i < 12; i += 1) {
+      await crearMedicion(operario.id, dispositivo.id, new Date(Date.now() - i * 5000), 70 + (i % 2));
+    }
+
+    const trabados = await historialEstadoDispositivoRepository.listarDispositivosTrabados(12);
+    expect(trabados.map((d) => d.id_dispositivo)).not.toContain(dispositivo.id);
   });
 
   it('listarEstadoActual devuelve todos los dispositivos con su último estado', async () => {

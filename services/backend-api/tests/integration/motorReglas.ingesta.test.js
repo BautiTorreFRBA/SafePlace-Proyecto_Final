@@ -34,6 +34,7 @@ const UMBRAL = {
   fcSobreesfuerzo: 170,
   actividadSobreesfuerzo: 0.8,
   minutosInactividad: 15,
+  minutosDesconexionTolerada: 10,
 };
 
 const postMedicion = (body) =>
@@ -238,9 +239,12 @@ describe('Motor de Reglas end-to-end', () => {
       const res = await request(app)
         .put('/api/v1/umbrales')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fcFatiga: 145, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20 });
+        .send({
+          fcFatiga: 145, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20, minutosDesconexionTolerada: 12,
+        });
       expect(res.status).toBe(200);
       expect(res.body.data.fc_fatiga).toBe(145);
+      expect(res.body.data.minutos_desconexion_tolerada).toBe(12);
 
       const vigente = await request(app).get('/api/v1/umbrales').set('Authorization', `Bearer ${token}`);
       expect(vigente.body.data.fc_fatiga).toBe(145);
@@ -257,14 +261,18 @@ describe('Motor de Reglas end-to-end', () => {
       const invalido = await request(app)
         .put('/api/v1/umbrales')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fcFatiga: -5, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20 });
+        .send({
+          fcFatiga: -5, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20, minutosDesconexionTolerada: 12,
+        });
       expect(invalido.status).toBe(400);
 
       const tokenSupervisor = tokenPara('supervisor');
       const noAutorizado = await request(app)
         .put('/api/v1/umbrales')
         .set('Authorization', `Bearer ${tokenSupervisor}`)
-        .send({ fcFatiga: 145, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20 });
+        .send({
+          fcFatiga: 145, minutosFatiga: 8, fcSobreesfuerzo: 175, actividadSobreesfuerzo: 0.85, minutosInactividad: 20, minutosDesconexionTolerada: 12,
+        });
       expect(noAutorizado.status).toBe(403);
     });
   });

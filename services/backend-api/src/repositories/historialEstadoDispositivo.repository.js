@@ -1,12 +1,15 @@
 const db = require('../config/database');
 
-const registrarEstado = async (idDispositivo, estado) => {
+// `fechaHora` opcional: en operación normal no se pasa (default now()); los
+// seeds y tests lo usan para simular una desconexión ya sostenida sin
+// esperar en tiempo real (CP-E2E-04).
+const registrarEstado = async (idDispositivo, estado, fechaHora = null) => {
   const query = `
-    INSERT INTO historial_estado_dispositivo (id_dispositivo, estado)
-    VALUES ($1, $2)
+    INSERT INTO historial_estado_dispositivo (id_dispositivo, estado, fecha_hora)
+    VALUES ($1, $2, COALESCE($3, now()))
     RETURNING *;
   `;
-  const res = await db.query(query, [idDispositivo, estado]);
+  const res = await db.query(query, [idDispositivo, estado, fechaHora]);
   return res.rows[0];
 };
 
@@ -50,6 +53,77 @@ const listarDispositivosInactivos = async (minutos) => {
   return res.rows;
 };
 
+// CP-E2E-04 ("wearable congelado"): dispositivos con asignación vigente,
+// último estado != DESCONECTADO, cuyas últimas `minRepeticiones` mediciones
+// tienen TODAS exactamente la misma frecuencia cardíaca (no nula). Un
+// wearable fuera de la muñeca suele repetir la última pulsación; el hub la
+// reenvía cada REPORT_INTERVAL. La variabilidad latido a latido real siempre
+// mueve el entero, así que N idénticas seguidas => se trata como desconexión.
+const listarDispositivosTrabados = async (minRepeticiones) => {
+  const query = `
+    WITH ultimas AS (
+      SELECT
+        m.id_dispositivo,
+        m.frecuencia_cardiaca,
+        row_number() OVER (
+          PARTITION BY m.id_dispositivo
+          ORDER BY m.fecha_hora DESC, m.id DESC
+        ) AS rn
+      FROM medicion m
+    ),
+    trabados AS (
+      SELECT id_dispositivo
+      FROM ultimas
+      WHERE rn <= $1
+      GROUP BY id_dispositivo
+      HAVING COUNT(*) = $1
+        AND COUNT(DISTINCT frecuencia_cardiaca) = 1
+        AND bool_and(frecuencia_cardiaca IS NOT NULL)
+    )
+    SELECT t.id_dispositivo
+    FROM trabados t
+    JOIN asignacion_dispositivo ad
+      ON ad.id_dispositivo = t.id_dispositivo
+      AND (ad.fecha_hasta IS NULL OR ad.fecha_hasta >= now())
+    LEFT JOIN LATERAL (
+      SELECT estado FROM historial_estado_dispositivo h
+      WHERE h.id_dispositivo = t.id_dispositivo
+      ORDER BY fecha_hora DESC, id DESC LIMIT 1
+    ) ult ON true
+    WHERE COALESCE(ult.estado, '') != 'DESCONECTADO';
+  `;
+  const res = await db.query(query, [minRepeticiones]);
+  return res.rows;
+};
+
+// CP-E2E-04: dispositivos con asignación vigente cuyo ÚLTIMO evento de estado
+// es DESCONECTADO desde hace más de `minutos`. Trae el operario asignado y
+// desde cuándo está caído, que es lo que el servicio de inactividad
+// prolongada necesita para decidir si generar la alerta.
+const listarDesconectadosParaAlerta = async (minutos) => {
+  const query = `
+    SELECT
+      d.id AS id_dispositivo,
+      ad.id_trabajador AS id_operario,
+      ult.fecha_hora AS desconectado_desde
+    FROM dispositivo d
+    JOIN asignacion_dispositivo ad
+      ON ad.id_dispositivo = d.id
+      AND (ad.fecha_hasta IS NULL OR ad.fecha_hasta >= now())
+    JOIN LATERAL (
+      SELECT estado, fecha_hora
+      FROM historial_estado_dispositivo h
+      WHERE h.id_dispositivo = d.id
+      ORDER BY fecha_hora DESC, id DESC
+      LIMIT 1
+    ) ult ON true
+    WHERE ult.estado = 'DESCONECTADO'
+      AND ult.fecha_hora < now() - ($1 || ' minutes')::interval;
+  `;
+  const res = await db.query(query, [minutos]);
+  return res.rows;
+};
+
 // H0007: estado de conexión vigente de todos los dispositivos, para la
 // pantalla de administración.
 const listarEstadoActual = async () => {
@@ -73,5 +147,7 @@ module.exports = {
   registrarEstado,
   obtenerUltimoEstado,
   listarDispositivosInactivos,
+  listarDispositivosTrabados,
+  listarDesconectadosParaAlerta,
   listarEstadoActual,
 };
