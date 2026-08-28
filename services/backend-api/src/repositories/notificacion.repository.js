@@ -28,8 +28,8 @@ const listar = async ({ soloNoLeidas = false } = {}) => {
     FROM notificacion n
     JOIN alerta a ON a.id = n.id_alerta
     JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
-    JOIN medicion m ON m.id = a.id_medicion
-    LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    LEFT JOIN medicion m ON m.id = a.id_medicion
+    LEFT JOIN operario_seudonimo os ON os.id = COALESCE(m.id_seudonimo, a.id_seudonimo)
     LEFT JOIN operario o ON o.id = os.id_operario
     WHERE ($1::boolean IS FALSE OR n.leida = FALSE)
     ORDER BY n.fecha_hora DESC, n.id DESC;

@@ -7,6 +7,7 @@ const umbralMock = (overrides = {}) => ({
   fcSobreesfuerzo: 170,
   actividadSobreesfuerzo: 0.8,
   minutosInactividad: 30,
+  minutosDesconexionTolerada: 10,
   idUsuario: null,
   ...overrides,
 });

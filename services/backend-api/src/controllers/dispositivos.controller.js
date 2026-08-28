@@ -1,5 +1,7 @@
 const dispositivoRepository = require('../repositories/dispositivo.repository');
 const historialEstadoDispositivoRepository = require('../repositories/historialEstadoDispositivo.repository');
+const asignacionDispositivoRepository = require('../repositories/asignacionDispositivo.repository');
+const inactividadProlongadaService = require('../services/inactividadProlongada.service');
 
 const ESTADOS_VALIDOS = ['CONECTADO', 'DESCONECTADO', 'ERROR_CONEXION'];
 
@@ -54,6 +56,19 @@ const registrarEstadoConexion = async (req, res, next) => {
       req.params.id,
       estado,
     );
+
+    // CP-E2E-04: al reconectar, la condición de inactividad prolongada dejó
+    // de sostenerse — se cierran sus alertas Activas del operario asignado.
+    if (estado === 'CONECTADO') {
+      const asignacion = await asignacionDispositivoRepository
+        .obtenerVigentePorDispositivo(Number(req.params.id));
+      if (asignacion) {
+        await inactividadProlongadaService
+          .resolverPorReconexion(asignacion.id_trabajador)
+          .catch((err) => console.error('[dispositivos.controller] cierre por reconexión:', err.message));
+      }
+    }
+
     res.status(201).json({ message: 'Estado de conexión registrado.', data: registro });
   } catch (error) {
     next(error);

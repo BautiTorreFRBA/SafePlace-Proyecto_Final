@@ -5,6 +5,7 @@ const minutosFatigaInput = document.getElementById('minutosFatigaInput');
 const fcSobreesfuerzoInput = document.getElementById('fcSobreesfuerzoInput');
 const actividadSobreesfuerzoInput = document.getElementById('actividadSobreesfuerzoInput');
 const minutosInactividadInput = document.getElementById('minutosInactividadInput');
+const minutosDesconexionInput = document.getElementById('minutosDesconexionInput');
 const btnGuardar = document.getElementById('btnGuardar');
 const umbralVigenteInfo = document.getElementById('umbralVigenteInfo');
 const historialTableBody = document.getElementById('historialTableBody');
@@ -53,6 +54,9 @@ function rellenarFormulario(umbral) {
   fcSobreesfuerzoInput.value = umbral.fc_sobreesfuerzo;
   actividadSobreesfuerzoInput.value = umbral.actividad_sobreesfuerzo;
   minutosInactividadInput.value = umbral.minutos_inactividad;
+  if (umbral.minutos_desconexion_tolerada != null) {
+    minutosDesconexionInput.value = umbral.minutos_desconexion_tolerada;
+  }
 }
 
 function rowHTML(item) {
@@ -63,12 +67,13 @@ function rowHTML(item) {
       <td>${item.fc_sobreesfuerzo} bpm</td>
       <td>${item.actividad_sobreesfuerzo}</td>
       <td>${item.minutos_inactividad} min</td>
+      <td>${item.minutos_desconexion_tolerada != null ? `${item.minutos_desconexion_tolerada} min` : '--'}</td>
     </tr>`;
 }
 
 function renderHistorial(historial) {
   historialTableBody.innerHTML = historial.length === 0
-    ? '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">Todavía no se configuraron umbrales de riesgo</td></tr>'
+    ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">Todavía no se configuraron umbrales de riesgo</td></tr>'
     : historial.map((item) => rowHTML(item)).join('');
 }
 
@@ -96,10 +101,15 @@ async function guardarUmbrales() {
     fcSobreesfuerzo: Number(fcSobreesfuerzoInput.value),
     actividadSobreesfuerzo: Number(actividadSobreesfuerzoInput.value),
     minutosInactividad: Number(minutosInactividadInput.value),
+    minutosDesconexionTolerada: Number(minutosDesconexionInput.value),
   };
 
   if (Object.values(datos).some((v) => !Number.isFinite(v) || v <= 0)) {
-    alert('Completá los 5 valores con números positivos.');
+    alert('Completá los 6 valores con números positivos.');
+    return;
+  }
+  if (datos.minutosDesconexionTolerada <= 5) {
+    alert('La desconexión tolerada debe ser mayor a 5 minutos.');
     return;
   }
 
@@ -122,5 +132,5 @@ btnGuardar.addEventListener('click', guardarUmbrales);
 cargarVigenteEHistorial().catch((error) => {
   console.error(error);
   umbralVigenteInfo.textContent = 'No se pudo cargar la configuración de umbrales.';
-  historialTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudo cargar el historial</td></tr>';
+  historialTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudo cargar el historial</td></tr>';
 });

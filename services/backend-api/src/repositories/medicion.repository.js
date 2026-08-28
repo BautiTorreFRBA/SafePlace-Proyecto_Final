@@ -104,6 +104,24 @@ const listarVentanaReciente = async (idSeudonimo, minutos) => {
   return res.rows;
 };
 
+// CP-E2E-04: detección de "wearable congelado". Un wearable fuera de la
+// muñeca suele seguir emitiendo la última pulsación medida; el hub la
+// reenvía cada REPORT_INTERVAL. N lecturas seguidas con EXACTAMENTE la
+// misma FC son biológicamente inverosímiles (la variabilidad latido a
+// latido siempre mueve el entero) — se tratan como desconexión.
+// Devuelve las últimas `limite` FC del dispositivo, de más nueva a más vieja.
+const ultimasFrecuencias = async (idDispositivo, limite) => {
+  const query = `
+    SELECT frecuencia_cardiaca, fecha_hora
+    FROM medicion
+    WHERE id_dispositivo = $1
+    ORDER BY fecha_hora DESC, id DESC
+    LIMIT $2;
+  `;
+  const res = await db.query(query, [idDispositivo, limite]);
+  return res.rows;
+};
+
 module.exports = {
   crear,
   existeDuplicado,
@@ -111,4 +129,5 @@ module.exports = {
   listarPorSeudonimo,
   listar,
   listarVentanaReciente,
+  ultimasFrecuencias,
 };

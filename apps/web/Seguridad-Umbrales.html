@@ -70,6 +70,10 @@
           <label class="modal__label" for="minutosInactividadInput">INACTIVIDAD MÁXIMA (MIN)</label>
           <input class="modal__input" id="minutosInactividadInput" type="number" min="1" step="1" placeholder="30" />
         </div>
+        <div class="modal__field" style="flex:1; min-width:160px;">
+          <label class="modal__label" for="minutosDesconexionInput">DESCONEXIÓN TOLERADA EN HORARIO (MIN)</label>
+          <input class="modal__input" id="minutosDesconexionInput" type="number" min="6" step="1" placeholder="10" />
+        </div>
         <button class="btn-nuevo" id="btnGuardar" style="align-self:flex-end;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20 6 9 17l-5-5"/></svg> Guardar umbrales</button>
       </div>
 
@@ -90,6 +94,7 @@
               <th>FC SOBREESFUERZO</th>
               <th>ACTIVIDAD ALTA</th>
               <th>INACTIVIDAD MÁXIMA</th>
+              <th>DESCONEXIÓN TOLERADA</th>
             </tr>
           </thead>
           <tbody id="historialTableBody"></tbody>

@@ -32,6 +32,7 @@ const TABLAS = [
   'medicion',
   'operario_seudonimo',
   'umbral_riesgo',
+  'horario_operario',
   'historial_estado_dispositivo',
   'asignacion_dispositivo',
   'dispositivo',

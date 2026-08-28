@@ -1,9 +1,8 @@
 /**
- * Tests unitarios del Motor de Reglas (H0010 fatiga, H0011 sobreesfuerzo,
- * H0012 inactividad prolongada, centralización H0013). Repositorios
- * mockeados: acá se verifica la lógica de evaluación y orquestación en
- * aislamiento; el camino end-to-end contra Postgres real se cubre en
- * tests/integration/.
+ * Tests unitarios del Motor de Reglas por medición (H0010 fatiga, H0011
+ * sobreesfuerzo). Repositorios mockeados. H0012 (inactividad prolongada) ya
+ * NO vive acá — se reencuadró como desconexión en horario laboral y se
+ * cubre en inactividadProlongada.service.test.js + tests/integration/.
  */
 
 jest.mock('../../src/repositories/medicion.repository');
@@ -27,12 +26,12 @@ const UMBRAL = {
   fc_sobreesfuerzo: 170,
   actividad_sobreesfuerzo: 0.8,
   minutos_inactividad: 30,
+  minutos_desconexion_tolerada: 10,
 };
 
 const TIPOS_MOCK = {
   FATIGA: { id: 1, nombre: 'FATIGA', prioridad: 'Media' },
   SOBREESFUERZO: { id: 2, nombre: 'SOBREESFUERZO', prioridad: 'Crítica' },
-  INACTIVIDAD_PROLONGADA: { id: 3, nombre: 'INACTIVIDAD_PROLONGADA', prioridad: 'Media' },
 };
 
 const medicionMock = (overrides = {}) => ({
@@ -45,8 +44,6 @@ const medicionMock = (overrides = {}) => ({
   ...overrides,
 });
 
-// Ventana ya cumplida: la más antigua tiene `minutos` de antigüedad
-// (+1 de margen) y todas cumplen la condición pasada.
 const ventanaSostenida = (minutos, valorPorFila, cantidad = 3) => {
   const ahora = Date.now();
   return Array.from({ length: cantidad }, (_, i) => ({
@@ -56,7 +53,7 @@ const ventanaSostenida = (minutos, valorPorFila, cantidad = 3) => {
   }));
 };
 
-describe('motorReglas.service (H0010/H0011/H0012/H0013)', () => {
+describe('motorReglas.service (H0010/H0011)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     umbralRiesgoRepository.obtenerVigente.mockResolvedValue(UMBRAL);
@@ -79,7 +76,9 @@ describe('motorReglas.service (H0010/H0011/H0012/H0013)', () => {
   it('H0011 sobreesfuerzo: FC alta + actividad alta en la misma medición genera alerta', async () => {
     await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 180, actividad: '0.9' }));
 
-    expect(alertaRepository.crear).toHaveBeenCalledWith({ idTipoAlerta: 2, idMedicion: 500 });
+    expect(alertaRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ idTipoAlerta: 2, idMedicion: 500, idSeudonimo: 7 }),
+    );
     expect(notificacionRepository.crear).toHaveBeenCalledWith({ idAlerta: 900 });
   });
 
@@ -100,54 +99,35 @@ describe('motorReglas.service (H0010/H0011/H0012/H0013)', () => {
 
     await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 150, actividad: null }));
 
-    expect(alertaRepository.crear).toHaveBeenCalledWith({ idTipoAlerta: 1, idMedicion: 500 });
+    expect(alertaRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ idTipoAlerta: 1, idMedicion: 500, idSeudonimo: 7 }),
+    );
   });
 
-  it('H0010 fatiga: no se dispara si la medición actual todavía no supera el umbral (corte rápido, sin consultar ventana)', async () => {
-    // actividad '0.5' (no inactivo) para aislar el corte rápido de fatiga:
-    // con actividad null, la propia regla de inactividad sí consultaría la
-    // ventana (actividad desconocida se trata como potencial inactividad).
-    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 100, actividad: '0.5' }));
+  it('H0010 fatiga: corte rápido — no consulta la ventana si la medición actual no supera el umbral', async () => {
+    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 100 }));
 
     expect(medicionRepository.listarVentanaReciente).not.toHaveBeenCalled();
     expect(alertaRepository.crear).not.toHaveBeenCalled();
   });
 
-  it('H0010 fatiga: no se dispara si la ventana todavía no cubre el tiempo mínimo configurado', async () => {
-    // Sólo 2 minutos de antigüedad, no los 10 configurados.
+  it('H0010 fatiga: no se dispara si la ventana todavía no cubre el tiempo mínimo', async () => {
     medicionRepository.listarVentanaReciente.mockResolvedValue([
       { fecha_hora: new Date(Date.now() - 2 * 60 * 1000), frecuencia_cardiaca: 150 },
     ]);
 
-    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 150, actividad: null }));
+    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 150 }));
 
     expect(alertaRepository.crear).not.toHaveBeenCalled();
   });
 
-  it('H0010 fatiga: no se dispara si hubo un pico aislado por debajo del umbral dentro de la ventana', async () => {
+  it('H0010 fatiga: no se dispara si hubo un pico por debajo del umbral dentro de la ventana', async () => {
     const ventana = ventanaSostenida(10, 150);
-    ventana[1].frecuencia_cardiaca = 100; // rompe la condición sostenida
+    ventana[1].frecuencia_cardiaca = 100;
     medicionRepository.listarVentanaReciente.mockResolvedValue(ventana);
 
-    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 150, actividad: null }));
+    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 150 }));
 
-    expect(alertaRepository.crear).not.toHaveBeenCalled();
-  });
-
-  it('H0012 inactividad: sin movimiento sostenido durante el tiempo configurado genera alerta', async () => {
-    medicionRepository.listarVentanaReciente.mockResolvedValue(
-      ventanaSostenida(30, 0).map((m) => ({ ...m, actividad: 0 })),
-    );
-
-    await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 80, actividad: '0' }));
-
-    expect(alertaRepository.crear).toHaveBeenCalledWith({ idTipoAlerta: 3, idMedicion: 500 });
-  });
-
-  it('H0012 inactividad: no se dispara si la medición actual ya tiene actividad', async () => {
-    await motorReglasService.evaluar(medicionMock({ actividad: '0.5' }));
-
-    expect(medicionRepository.listarVentanaReciente).toHaveBeenCalledTimes(0);
     expect(alertaRepository.crear).not.toHaveBeenCalled();
   });
 
@@ -169,13 +149,17 @@ describe('motorReglas.service (H0010/H0011/H0012/H0013)', () => {
     expect(alertaRepository.crear).not.toHaveBeenCalled();
   });
 
-  it('puede detectar más de un tipo de riesgo para la misma medición (p.ej. fatiga + sobreesfuerzo)', async () => {
+  it('puede detectar fatiga + sobreesfuerzo en la misma medición', async () => {
     medicionRepository.listarVentanaReciente.mockResolvedValue(ventanaSostenida(10, 180));
 
     await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 180, actividad: '0.9' }));
 
-    expect(alertaRepository.crear).toHaveBeenCalledWith({ idTipoAlerta: 2, idMedicion: 500 }); // sobreesfuerzo
-    expect(alertaRepository.crear).toHaveBeenCalledWith({ idTipoAlerta: 1, idMedicion: 500 }); // fatiga
+    expect(alertaRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ idTipoAlerta: 2, idMedicion: 500 }),
+    );
+    expect(alertaRepository.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ idTipoAlerta: 1, idMedicion: 500 }),
+    );
     expect(alertaRepository.crear).toHaveBeenCalledTimes(2);
   });
 });

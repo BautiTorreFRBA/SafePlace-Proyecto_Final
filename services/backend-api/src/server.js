@@ -8,6 +8,7 @@ dotenv.config({
 const app = require('./app');
 const { getPool } = require('./config/database');
 const estadoDispositivoService = require('./services/estadoDispositivo.service');
+const inactividadProlongadaService = require('./services/inactividadProlongada.service');
 
 const PORT = process.env.PORT || 8000;
 const CHEQUEO_INACTIVIDAD_MS = 60 * 1000;
@@ -22,11 +23,17 @@ async function startServer() {
       console.log(`[Backend API] Server is running on port ${PORT}`);
     });
 
-    // H0006: detección de desconexión por inactividad (ver estadoDispositivo.service).
-    setInterval(() => {
-      estadoDispositivoService.chequearInactividad().catch((error) => {
-        console.error('[Backend API] Error chequeando inactividad de dispositivos:', error.message);
-      });
+    // H0006 + CP-E2E-04: detección de desconexión (sin datos / pulso
+    // congelado) y, sobre esos eventos, alerta de inactividad prolongada
+    // cuando la caída ocurre en horario laboral.
+    setInterval(async () => {
+      try {
+        await estadoDispositivoService.chequearInactividad();
+        await estadoDispositivoService.chequearLecturasTrabadas();
+        await inactividadProlongadaService.chequear();
+      } catch (error) {
+        console.error('[Backend API] Error en el chequeo periódico de conexión:', error.message);
+      }
     }, CHEQUEO_INACTIVIDAD_MS);
   } catch (error) {
     console.error('Failed to start server:', error);

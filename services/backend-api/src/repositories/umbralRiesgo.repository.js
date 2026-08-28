@@ -10,14 +10,16 @@ const crear = async ({
   fcSobreesfuerzo,
   actividadSobreesfuerzo,
   minutosInactividad,
+  minutosDesconexionTolerada,
   idUsuario,
 }) => {
   const query = `
     INSERT INTO umbral_riesgo (
       fc_fatiga, minutos_fatiga, fc_sobreesfuerzo,
-      actividad_sobreesfuerzo, minutos_inactividad, id_usuario
+      actividad_sobreesfuerzo, minutos_inactividad,
+      minutos_desconexion_tolerada, id_usuario
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *;
   `;
   const res = await db.query(query, [
@@ -26,6 +28,7 @@ const crear = async ({
     fcSobreesfuerzo,
     actividadSobreesfuerzo,
     minutosInactividad,
+    minutosDesconexionTolerada,
     idUsuario || null,
   ]);
   return res.rows[0];
