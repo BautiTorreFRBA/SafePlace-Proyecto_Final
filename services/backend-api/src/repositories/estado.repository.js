@@ -35,8 +35,11 @@ const listarTrabajadoresActivos = async () => {
         ta.prioridad AS prioridad_alerta
       FROM alerta a
       JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
-      JOIN medicion m ON m.id = a.id_medicion
-      JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+      -- Las alertas de desconexion (INACTIVIDAD_PROLONGADA) no tienen medicion:
+      -- se anclan directo por a.id_seudonimo. LEFT JOIN + COALESCE para no
+      -- descartarlas, igual que alerta.repository y dashboard.repository.
+      LEFT JOIN medicion m ON m.id = a.id_medicion
+      JOIN operario_seudonimo os ON os.id = COALESCE(m.id_seudonimo, a.id_seudonimo)
       WHERE a.estado = 'Activa'
       ORDER BY os.id_operario, a.fecha_hora DESC, a.id DESC
     )

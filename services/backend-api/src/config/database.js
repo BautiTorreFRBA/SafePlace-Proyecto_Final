@@ -21,7 +21,9 @@ const getPool = () => {
       ssl: requiereSSL ? { rejectUnauthorized: true } : false,
       max: 20, // Máximo de conexiones simultáneas por instancia
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      // 10 s: si Neon está en cold start (scale-to-zero) el primer connect
+      // puede tardar varios segundos; 2 s daba timeout en el primer request.
+      connectionTimeoutMillis: 10000,
     });
     
     pool.on('error', (err) => {
