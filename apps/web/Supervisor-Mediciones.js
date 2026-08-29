@@ -8,7 +8,7 @@ const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 const medValidacion = document.getElementById('medValidacion');
 
-let mediciones = [];
+let resumen = [];
 let validacionActual = null;
 let debounceTimer = null;
 let chartFc = null;
@@ -25,6 +25,13 @@ const MOTIVOS_VALIDACION = {
   DESCONOCIDO: 'Otro',
 };
 
+// Etiqueta corta por tipo de alerta para la columna "Alertas" del resumen.
+const ALERTA_LABEL = {
+  FATIGA: 'Fatiga',
+  SOBREESFUERZO: 'Sobreesfuerzo',
+  INACTIVIDAD_PROLONGADA: 'Inactividad',
+};
+
 function getAuthHeaders() {
   const token = sessionStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -39,16 +46,30 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
-function formatearFechaHora(fechaHora = '') {
-  const fecha = new Date(fechaHora);
-  if (Number.isNaN(fecha.getTime())) {
-    return { fecha: '--', hora: '--' };
-  }
-
+function formatearMarca(iso) {
+  const fecha = new Date(iso);
+  if (!iso || Number.isNaN(fecha.getTime())) return null;
   return {
-    fecha: fecha.toLocaleDateString('es-AR'),
+    dia: fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }),
     hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
   };
+}
+
+function rangoMarcas(primeraIso, ultimaIso) {
+  const p = formatearMarca(primeraIso);
+  const u = formatearMarca(ultimaIso);
+  if (!p || !u) return '--';
+  if (p.dia === u.dia) return `${p.dia} ${p.hora} – ${u.hora}`;
+  return `${p.dia} ${p.hora} – ${u.dia} ${u.hora}`;
+}
+
+function tiempoRelativo(segundos) {
+  if (segundos === null || segundos === undefined) return '--';
+  const s = Math.max(0, Math.round(segundos));
+  if (s < 60) return 'hace segundos';
+  if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+  return `hace ${Math.floor(s / 86400)} d`;
 }
 
 function obtenerFiltros() {
@@ -60,41 +81,88 @@ function obtenerFiltros() {
 }
 
 function actualizarContador(total) {
-  medCount.textContent = `${total} ${total === 1 ? 'registro encontrado' : 'registros encontrados'}`;
+  medCount.textContent = `${total} ${total === 1 ? 'empleado con datos en el período' : 'empleados en el período'}`;
 }
 
 function renderEstadoInicial(mensaje) {
-  mediciones = [];
+  resumen = [];
   validacionActual = null;
   renderValidacion(null);
   actualizarContador(0);
   tableBody.innerHTML = `
     <tr>
-      <td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">
+      <td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">
         ${escapeHtml(mensaje)}
       </td>
     </tr>
   `;
 }
 
-function renderTabla() {
-  actualizarContador(mediciones.length);
+function estadoFrescura(fila) {
+  if (fila.lecturas === 0) {
+    return { texto: 'Sin datos', clase: 'badge--neutral' };
+  }
+  if (fila.segundosDesdeUltima !== null && fila.segundosDesdeUltima <= 300) {
+    return { texto: 'Al día', clase: 'badge--normal' };
+  }
+  return { texto: tiempoRelativo(fila.segundosDesdeUltima), clase: 'badge--neutral' };
+}
 
-  if (mediciones.length === 0) {
-    renderEstadoInicial('No hay mediciones que coincidan con los filtros');
+function celdaCobertura(pct) {
+  if (pct === null || pct === undefined) return '<span style="color:var(--text-muted)">--</span>';
+  let color = 'var(--red)';
+  if (pct >= 90) color = 'var(--green)';
+  else if (pct >= 60) color = 'var(--orange)';
+  return `<span style="color:${color}; font-weight:600">${pct}%</span>`;
+}
+
+function celdaAlertas(porTipo) {
+  const entradas = Object.entries(porTipo || {}).filter(([, n]) => n > 0);
+  if (entradas.length === 0) return '<span style="color:var(--text-muted)">—</span>';
+  const total = entradas.reduce((acc, [, n]) => acc + n, 0);
+  const detalle = entradas
+    .map(([tipo, n]) => `${ALERTA_LABEL[tipo] || tipo}: ${n}`)
+    .join(' · ');
+  return `<span class="badge badge--warning" title="${escapeHtml(detalle)}">${total}</span>`;
+}
+
+function renderTabla() {
+  actualizarContador(resumen.length);
+
+  if (resumen.length === 0) {
+    renderEstadoInicial('No hay empleados con datos ni wearable asignado en el período');
     return;
   }
 
-  tableBody.innerHTML = mediciones.map((m) => `
-    <tr>
-      <td>${escapeHtml(m.empleado)}</td>
-      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(m.fecha)} ${escapeHtml(m.hora)}</td>
-      <td><span class="med-fc-value">${escapeHtml(m.bpm)}</span></td>
-      <td style="color:var(--text-secondary)">${escapeHtml(m.actividad)}</td>
-      <td style="color:var(--text-secondary)">${escapeHtml(m.temp)}</td>
-      <td style="color:var(--text-secondary)">${escapeHtml(m.spo2)}</td>
-    </tr>
-  `).join('');
+  tableBody.innerHTML = resumen.map((f) => {
+    const nombre = `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`;
+    const wearable = f.dispositivo
+      ? `${f.dispositivo.marca || ''} ${f.dispositivo.modelo || ''}`.trim() || `#${f.dispositivo.id}`
+      : '<span style="color:var(--text-muted)">sin asignar</span>';
+    const fc = f.lecturas > 0
+      ? `<span class="med-fc-value">${f.fcPromedio ?? '--'}</span> <span style="color:var(--text-muted); font-size:0.82rem">/ ${f.fcMin ?? '--'} / ${f.fcMax ?? '--'}</span>`
+      : '<span style="color:var(--text-muted)">--</span>';
+    const lecturas = f.lecturas > 0
+      ? `${f.lecturas} <span style="color:var(--text-muted); font-size:0.82rem">(${f.minutosMonitoreados} min)</span>`
+      : '<span style="color:var(--text-muted)">0</span>';
+    const est = estadoFrescura(f);
+
+    return `
+      <tr>
+        <td>
+          <div>${escapeHtml(nombre)}</div>
+          <div style="color:var(--text-muted); font-size:0.78rem">${escapeHtml(f.legajo || '')}${f.area ? ` · ${escapeHtml(f.area)}` : ''}</div>
+        </td>
+        <td style="color:var(--text-secondary); font-size:0.85rem">${escapeHtml(wearable)}</td>
+        <td>${fc}</td>
+        <td style="color:var(--text-secondary)">${lecturas}</td>
+        <td>${celdaCobertura(f.coberturaPct)}</td>
+        <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(rangoMarcas(f.primera, f.ultima))}</td>
+        <td>${celdaAlertas(f.alertasPorTipo)}</td>
+        <td><span class="badge ${est.clase}">${escapeHtml(est.texto)}</span></td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderValidacion(v) {
@@ -152,36 +220,49 @@ function destruirGraficas() {
   chartFc = null;
 }
 
-function actualizarGraficas(datos) {
+function actualizarGraficas(filas) {
   destruirGraficas();
 
+  const conFc = filas.filter((f) => f.lecturas > 0 && f.fcPromedio !== null);
   const ctxFc = document.getElementById('chartFrecuencia').getContext('2d');
   chartFc = new Chart(ctxFc, {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: datos.map((_, i) => `${i + 1}`),
+      labels: conFc.map((f) => `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`),
       datasets: [{
-        label: 'BPM',
-        data: datos.map((d) => d.bpm),
+        label: 'FC promedio (BPM)',
+        data: conFc.map((f) => f.fcPromedio),
+        backgroundColor: 'rgba(45, 212, 191, 0.35)',
         borderColor: '#2dd4bf',
-        backgroundColor: 'rgba(45, 212, 191, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 2,
-        pointBackgroundColor: '#2dd4bf',
+        borderWidth: 1,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => {
+              const f = conFc[ctx.dataIndex];
+              return `mín ${f.fcMin ?? '--'} · máx ${f.fcMax ?? '--'} · ${f.lecturas} lecturas`;
+            },
+          },
+        },
+      },
+      scales: {
+        y: { beginAtZero: false, suggestedMin: 50, suggestedMax: 150 },
+      },
     },
   });
 }
 
-function renderEmpleadoOptions(datos) {
+function renderEmpleadoOptions(filas) {
   const actual = filterEmpleado.value;
-  const nombres = Array.from(new Set(datos.map((item) => item.empleado).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const nombres = Array.from(new Set(
+    filas.map((f) => `${f.nombre || ''} ${f.apellido || ''}`.trim()).filter(Boolean),
+  )).sort((a, b) => a.localeCompare(b));
 
   filterEmpleado.innerHTML = '<option value="">Todos</option>' + nombres
     .map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`)
@@ -193,14 +274,14 @@ function renderEmpleadoOptions(datos) {
 }
 
 function obtenerMensajeSinFechas() {
-  return 'Selecciona las fechas Desde y Hasta para consultar el historial de mediciones.';
+  return 'Selecciona las fechas Desde y Hasta para consultar el resumen por empleado.';
 }
 
 function formatearNombreArchivo(fecha = new Date()) {
   return fecha.toISOString().slice(0, 10);
 }
 
-async function cargarMediciones() {
+async function cargarResumen() {
   const { desde, hasta, empleado } = obtenerFiltros();
 
   if (!desde || !hasta) {
@@ -212,71 +293,68 @@ async function cargarMediciones() {
   const params = new URLSearchParams();
   params.set('desde', desde);
   params.set('hasta', hasta);
-  params.set('limit', '200');
   if (empleado) params.set('empleado', empleado);
 
-  const res = await fetch(`${API_BASE_URL}/mediciones?${params.toString()}`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
+  const res = await fetch(`${API_BASE_URL}/mediciones/resumen?${params.toString()}`, {
+    headers: { ...getAuthHeaders() },
   });
 
   if (!res.ok) {
     if (res.status === 401) {
       throw new Error('No autorizado. Volve a iniciar sesion para ver las mediciones.');
     }
-
     if (res.status === 403) {
       throw new Error('Tu usuario no tiene permiso para ver el historial de mediciones.');
     }
-
-    throw new Error(`No se pudo cargar el historial (${res.status})`);
+    throw new Error(`No se pudo cargar el resumen (${res.status})`);
   }
 
   const json = await res.json();
-  const rows = Array.isArray(json.data) ? json.data : [];
-  const validacion = json.validacion || null;
+  resumen = Array.isArray(json.data) ? json.data : [];
+  validacionActual = json.validacion || null;
 
-  mediciones = rows.map((m) => {
-    const fechaHora = formatearFechaHora(m.fecha_hora);
-    return {
-      empleado: `${m.operario_nombre || ''} ${m.operario_apellido || ''}`.trim() || `ID ${m.id_trabajador}`,
-      fecha: fechaHora.fecha,
-      hora: fechaHora.hora,
-      bpm: m.frecuencia_cardiaca ?? '--',
-      actividad: m.actividad || '--',
-      temp: m.temperatura_corporal ?? '--',
-      spo2: m.spo2 ?? '--',
-    };
-  });
-
-  renderEmpleadoOptions(mediciones);
+  renderEmpleadoOptions(resumen);
   renderTabla();
-  actualizarGraficas(mediciones);
-
-  // Después de renderTabla: si no hubo filas coincidentes llamó a
-  // renderEstadoInicial y limpió el panel; lo repoblamos con el resumen real
-  // del período (que no depende del filtro por empleado).
-  validacionActual = validacion;
+  actualizarGraficas(resumen);
   renderValidacion(validacionActual);
 }
 
 function programarRecarga() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
-    cargarMediciones().catch((error) => {
+    cargarResumen().catch((error) => {
       console.error(error);
       medCount.textContent = error.message;
     });
   }, 250);
 }
 
+function filasExport() {
+  return resumen.map((f) => ({
+    Empleado: `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`,
+    Legajo: f.legajo || '',
+    Área: f.area || '',
+    Wearable: f.dispositivo ? `${f.dispositivo.marca || ''} ${f.dispositivo.modelo || ''}`.trim() : 'sin asignar',
+    'FC promedio': f.fcPromedio ?? '',
+    'FC mín': f.fcMin ?? '',
+    'FC máx': f.fcMax ?? '',
+    Lecturas: f.lecturas,
+    'Minutos monitoreados': f.minutosMonitoreados,
+    'Cobertura %': f.coberturaPct ?? '',
+    Primera: f.primera ? new Date(f.primera).toLocaleString('es-AR') : '',
+    Última: f.ultima ? new Date(f.ultima).toLocaleString('es-AR') : '',
+    Alertas: Object.entries(f.alertasPorTipo || {})
+      .filter(([, n]) => n > 0)
+      .map(([t, n]) => `${ALERTA_LABEL[t] || t}: ${n}`)
+      .join(' · '),
+  }));
+}
+
 function exportarPDF() {
-  if (mediciones.length === 0) {
-    alert('No hay mediciones para exportar.');
+  if (resumen.length === 0) {
+    alert('No hay datos para exportar.');
     return;
   }
-
   if (!window.jspdf?.jsPDF) {
     alert('No se pudo cargar la libreria PDF.');
     return;
@@ -286,7 +364,7 @@ function exportarPDF() {
   const doc = new jsPDF('landscape');
 
   doc.setFontSize(16);
-  doc.text('Historial de Mediciones', 14, 15);
+  doc.text('Resumen de Mediciones por Empleado', 14, 15);
   doc.setFontSize(10);
   doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 14, 22);
 
@@ -304,48 +382,41 @@ function exportarPDF() {
     tablaInicio = 34;
   }
 
+  const filas = filasExport();
   doc.autoTable({
     startY: tablaInicio,
-    head: [['Empleado', 'Fecha', 'Hora', 'BPM', 'Actividad', 'Temp.', 'SpO2']],
-    body: mediciones.map((m) => [m.empleado, m.fecha, m.hora, m.bpm, m.actividad, m.temp, m.spo2]),
-    styles: { fontSize: 9, cellPadding: 3 },
+    head: [['Empleado', 'Legajo', 'Wearable', 'FC prom', 'FC mín', 'FC máx', 'Lecturas', 'Cob. %', 'Primera', 'Última', 'Alertas']],
+    body: filas.map((f) => [
+      f.Empleado, f.Legajo, f.Wearable, f['FC promedio'], f['FC mín'], f['FC máx'],
+      f.Lecturas, f['Cobertura %'], f.Primera, f.Última, f.Alertas,
+    ]),
+    styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [17, 24, 39] },
     alternateRowStyles: { fillColor: [241, 245, 249] },
   });
 
-  doc.save(`historial-mediciones-${formatearNombreArchivo()}.pdf`);
+  doc.save(`resumen-mediciones-${formatearNombreArchivo()}.pdf`);
 }
 
 function exportarExcel() {
-  if (mediciones.length === 0) {
-    alert('No hay mediciones para exportar.');
+  if (resumen.length === 0) {
+    alert('No hay datos para exportar.');
     return;
   }
-
   if (!window.XLSX) {
     alert('No se pudo cargar la libreria Excel.');
     return;
   }
 
-  const filas = mediciones.map((m) => ({
-    Empleado: m.empleado,
-    Fecha: m.fecha,
-    Hora: m.hora,
-    BPM: m.bpm,
-    Actividad: m.actividad,
-    Temperatura: m.temp,
-    SpO2: m.spo2,
-  }));
-
-  const hoja = window.XLSX.utils.json_to_sheet(filas);
+  const hoja = window.XLSX.utils.json_to_sheet(filasExport());
   const libro = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(libro, hoja, 'Mediciones');
+  window.XLSX.utils.book_append_sheet(libro, hoja, 'Resumen por empleado');
 
   if (validacionActual) {
     const v = validacionActual;
     const recibidos = v.validas + v.descartesTotal;
     const pct = recibidos > 0 ? Math.round((v.validas / recibidos) * 100) : null;
-    const resumen = [
+    const resumenValidacion = [
       { Métrica: 'Paquetes válidos', Valor: v.validas },
       { Métrica: 'Descartados por validación', Valor: v.descartesTotal },
       { Métrica: 'Tasa de aceptación (%)', Valor: pct === null ? '--' : pct },
@@ -357,11 +428,11 @@ function exportarExcel() {
         })),
       { Métrica: 'Errores de almacenamiento', Valor: v.erroresAlmacenamiento },
     ];
-    const hojaValidacion = window.XLSX.utils.json_to_sheet(resumen);
+    const hojaValidacion = window.XLSX.utils.json_to_sheet(resumenValidacion);
     window.XLSX.utils.book_append_sheet(libro, hojaValidacion, 'Validación');
   }
 
-  window.XLSX.writeFile(libro, `historial-mediciones-${formatearNombreArchivo()}.xlsx`);
+  window.XLSX.writeFile(libro, `resumen-mediciones-${formatearNombreArchivo()}.xlsx`);
 }
 
 btnPDF.addEventListener('click', exportarPDF);
@@ -371,7 +442,7 @@ filterEmpleado.addEventListener('change', () => {
     renderEstadoInicial(obtenerMensajeSinFechas());
     return;
   }
-  cargarMediciones().catch((error) => {
+  cargarResumen().catch((error) => {
     console.error(error);
     medCount.textContent = error.message;
   });

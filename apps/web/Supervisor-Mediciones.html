@@ -58,8 +58,8 @@
             <!-- Encabezado + Filtros + Botones exportación -->
             <div class="med-header">
                 <div>
-                    <h2 class="welcome__title">Historial de Mediciones</h2>
-                    <p class="med-header__count" id="medCount"><!-- Cantidad de registros de mediciones--></p>  
+                    <h2 class="welcome__title">Mediciones por Empleado</h2>
+                    <p class="med-header__count" id="medCount"><!-- Cantidad de empleados en el periodo--></p>
                 </div>
                 <div class="med-export"> 
                     <button class="btn-export" id="btnPDF"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/> </svg> PDF </button>
@@ -88,25 +88,27 @@
             <!-- Resultado del Servicio de Validación de Datos (RF-04 / H0008) -->
             <div class="med-validacion" id="medValidacion" style="padding:0 28px; margin-bottom:16px;"></div>
 
-            <!-- Gráficas -->
+            <!-- Gráfica: FC promedio por empleado en el período -->
             <div class="med-charts">
                 <div class="card">
-                    <div class="card__header"> <span class="card__icon-label"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> </svg> Evolución de Frecuencia Cardíaca </span> </div>
+                    <div class="card__header"> <span class="card__icon-label"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> </svg> Frecuencia Cardíaca promedio por empleado (período) </span> </div>
                     <div class="card__body"> <canvas id="chartFrecuencia" height="200"></canvas> </div>
                 </div>
             </div>
 
-            <!-- Tabla de mediciones -->
+            <!-- Tabla maestro: una fila por empleado -->
             <div class="med-table-wrap">
                 <table class="med-table">
                     <thead>
                         <tr>
                             <th>EMPLEADO</th>
-                            <th>FECHA/HORA</th>
-                            <th>FC (BPM)</th>
-                            <th>ACTIVIDAD</th>
-                            <th>TEMP.</th>
-                            <th>SPO₂</th>
+                            <th>WEARABLE</th>
+                            <th>FC PROM / MÍN / MÁX</th>
+                            <th>LECTURAS</th>
+                            <th>COBERTURA</th>
+                            <th>PRIMERA – ÚLTIMA</th>
+                            <th>ALERTAS</th>
+                            <th>ESTADO</th>
                         </tr>
                     </thead>
                     <tbody id="medTableBody"></tbody>
