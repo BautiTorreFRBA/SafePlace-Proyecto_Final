@@ -5,6 +5,9 @@ const db = require('../config/database');
 // esperaban en un tramo y derivar la cobertura del enlace.
 const INTERVALO_REPORTE_SEGUNDOS = 5;
 
+// Fase 2 / S2: resoluciones de downsampling para la serie temporal del detalle.
+const BUCKETS_VALIDOS = { '10s': 10, '1m': 60, '5m': 300 };
+
 const listarHistorialMediciones = async ({
   desde = null,
   hasta = null,
@@ -231,8 +234,48 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
   });
 };
 
+// Fase 2 / S2: serie temporal de FC de un empleado, submuestreada a baldes de
+// `bucketSegundos` (el endpoint de detalle nunca devuelve el crudo completo).
+// Cada balde trae promedio, mínimo, máximo y cantidad de lecturas. Los baldes
+// sin datos simplemente no aparecen (el front dibuja el hueco).
+const listarSerieMediciones = async ({
+  desde = null,
+  hasta = null,
+  empleado = null,
+  bucketSegundos = 60,
+} = {}) => {
+  const query = `
+    SELECT
+      to_timestamp(floor(extract(epoch FROM m.fecha_hora) / $4) * $4) AS bucket_ts,
+      ROUND(AVG(m.frecuencia_cardiaca))::int AS fc_promedio,
+      MIN(m.frecuencia_cardiaca)::int        AS fc_min,
+      MAX(m.frecuencia_cardiaca)::int        AS fc_max,
+      COUNT(m.frecuencia_cardiaca)::int      AS lecturas
+    FROM medicion m
+    LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
+    LEFT JOIN operario o ON o.id = os.id_operario
+    WHERE ($1::date IS NULL OR m.fecha_hora::date >= $1::date)
+      AND ($2::date IS NULL OR m.fecha_hora::date <= $2::date)
+      AND ($3::text IS NULL OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%')
+      AND m.frecuencia_cardiaca IS NOT NULL
+    GROUP BY 1
+    ORDER BY 1;
+  `;
+
+  const res = await db.query(query, [desde, hasta, empleado, bucketSegundos]);
+  return res.rows.map((r) => ({
+    ts: r.bucket_ts,
+    fcPromedio: Number(r.fc_promedio),
+    fcMin: Number(r.fc_min),
+    fcMax: Number(r.fc_max),
+    lecturas: Number(r.lecturas),
+  }));
+};
+
 module.exports = {
   listarHistorialMediciones,
   resumenValidacion,
   resumenPorEmpleado,
+  listarSerieMediciones,
+  BUCKETS_VALIDOS,
 };

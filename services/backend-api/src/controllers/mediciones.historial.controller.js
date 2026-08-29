@@ -21,20 +21,38 @@ const getHistorialMediciones = async (req, res, next) => {
       });
     }
 
-    const [rows, validacion] = await Promise.all([
-      medicionesHistorialRepository.listarHistorialMediciones({
+    const empleado = normalizarFiltro(req.query.empleado);
+    const bucket = normalizarFiltro(req.query.bucket);
+
+    // Fase 2 / S2: detalle de un empleado como serie temporal submuestreada.
+    if (bucket) {
+      const bucketSegundos = medicionesHistorialRepository.BUCKETS_VALIDOS[bucket];
+      if (!bucketSegundos) {
+        return res.status(400).json({
+          error: 'El parámetro "bucket" debe ser 10s, 1m o 5m.',
+          motivo: 'BUCKET_INVALIDO',
+        });
+      }
+
+      const serie = await medicionesHistorialRepository.listarSerieMediciones({
         desde,
         hasta,
-        empleado: normalizarFiltro(req.query.empleado),
-        limit: req.query.limit ? Number(req.query.limit) : 200,
-        offset: req.query.offset ? Number(req.query.offset) : 0,
-      }),
-      // Resultado del Servicio de Validación de Datos para el período (S1):
-      // no se filtra por empleado (el descarte se audita sin identidad).
-      medicionesHistorialRepository.resumenValidacion({ desde, hasta }),
-    ]);
+        empleado,
+        bucketSegundos,
+      });
+      return res.json({ data: serie, bucket });
+    }
 
-    res.json({ data: rows, validacion });
+    // Sin bucket: filas crudas para la tabla paginada del detalle.
+    const rows = await medicionesHistorialRepository.listarHistorialMediciones({
+      desde,
+      hasta,
+      empleado,
+      limit: req.query.limit ? Number(req.query.limit) : 200,
+      offset: req.query.offset ? Number(req.query.offset) : 0,
+    });
+
+    res.json({ data: rows });
   } catch (error) {
     next(error);
   }

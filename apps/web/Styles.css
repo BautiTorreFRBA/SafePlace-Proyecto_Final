@@ -4050,3 +4050,28 @@ select.cfg-input {
     width: 95%;
   }
 }
+
+/* ── Mediciones · detalle expandible (Fase 2) ───────────────────────────── */
+.med-row--expandible { cursor: pointer; }
+.med-row--expandible:hover { background: var(--bg-card-alt, rgba(148,163,184,0.06)); }
+.med-row__caret { display: inline-block; color: var(--text-muted); transition: transform 0.15s ease; }
+.med-row.is-open .med-row__caret { transform: rotate(90deg); }
+
+.med-detalle > td { background: var(--bg-card-alt, rgba(148,163,184,0.05)); padding: 0; }
+.med-detalle__box { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.med-detalle__toolbar { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-muted); }
+.med-detalle__chart-wrap { height: 200px; }
+
+.med-bucket-btn {
+  background: transparent; border: 1px solid var(--border, rgba(148,163,184,0.25));
+  color: var(--text-secondary); border-radius: 6px; padding: 3px 10px; font-size: 0.8rem;
+  cursor: pointer;
+}
+.med-bucket-btn:hover:not(:disabled) { border-color: var(--teal, #2dd4bf); color: var(--text-primary); }
+.med-bucket-btn.is-active { background: var(--teal, #2dd4bf); border-color: var(--teal, #2dd4bf); color: #06201d; font-weight: 600; }
+.med-bucket-btn:disabled { opacity: 0.4; cursor: default; }
+
+.med-detalle__pager { display: flex; align-items: center; gap: 12px; }
+.med-detalle__inner { width: 100%; border-collapse: collapse; }
+.med-detalle__inner th { text-align: left; font-size: 0.72rem; letter-spacing: 0.04em; color: var(--text-muted); padding: 6px 10px; border-bottom: 1px solid var(--border, rgba(148,163,184,0.15)); }
+.med-detalle__inner td { padding: 5px 10px; border-bottom: 1px solid var(--border, rgba(148,163,184,0.08)); }

@@ -13,6 +13,13 @@ let validacionActual = null;
 let debounceTimer = null;
 let chartFc = null;
 
+// Estado del detalle expandible (acordeón: a lo sumo uno abierto).
+let detalleAbierto = null;
+let chartDetalle = null;
+let detalleBucket = '1m';
+let detallePagina = 0;
+const DETALLE_PAGE_SIZE = 20;
+
 // Motivos de descarte del Servicio de Validación de Datos (errores.js MOTIVOS).
 // SIN_CONSENTIMIENTO no aparece: ese descarte ocurre en memoria y no se audita
 // (Ley 25.326 / RNF-09).
@@ -126,18 +133,24 @@ function celdaAlertas(porTipo) {
   return `<span class="badge badge--warning" title="${escapeHtml(detalle)}">${total}</span>`;
 }
 
+function nombreCompleto(f) {
+  return `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`;
+}
+
 function renderTabla() {
   actualizarContador(resumen.length);
+  detalleAbierto = null;
+  destruirChartDetalle();
 
   if (resumen.length === 0) {
     renderEstadoInicial('No hay empleados con datos ni wearable asignado en el período');
     return;
   }
 
-  tableBody.innerHTML = resumen.map((f) => {
-    const nombre = `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`;
+  tableBody.innerHTML = resumen.map((f, i) => {
+    const nombre = nombreCompleto(f);
     const wearable = f.dispositivo
-      ? `${f.dispositivo.marca || ''} ${f.dispositivo.modelo || ''}`.trim() || `#${f.dispositivo.id}`
+      ? escapeHtml(`${f.dispositivo.marca || ''} ${f.dispositivo.modelo || ''}`.trim() || `#${f.dispositivo.id}`)
       : '<span style="color:var(--text-muted)">sin asignar</span>';
     const fc = f.lecturas > 0
       ? `<span class="med-fc-value">${f.fcPromedio ?? '--'}</span> <span style="color:var(--text-muted); font-size:0.82rem">/ ${f.fcMin ?? '--'} / ${f.fcMax ?? '--'}</span>`
@@ -146,20 +159,34 @@ function renderTabla() {
       ? `${f.lecturas} <span style="color:var(--text-muted); font-size:0.82rem">(${f.minutosMonitoreados} min)</span>`
       : '<span style="color:var(--text-muted)">0</span>';
     const est = estadoFrescura(f);
+    const expandible = f.lecturas > 0;
 
     return `
-      <tr>
+      <tr class="med-row${expandible ? ' med-row--expandible' : ''}" data-idx="${i}">
         <td>
-          <div>${escapeHtml(nombre)}</div>
+          <div>${expandible ? '<span class="med-row__caret">▸</span> ' : ''}${escapeHtml(nombre)}</div>
           <div style="color:var(--text-muted); font-size:0.78rem">${escapeHtml(f.legajo || '')}${f.area ? ` · ${escapeHtml(f.area)}` : ''}</div>
         </td>
-        <td style="color:var(--text-secondary); font-size:0.85rem">${escapeHtml(wearable)}</td>
+        <td style="color:var(--text-secondary); font-size:0.85rem">${wearable}</td>
         <td>${fc}</td>
         <td style="color:var(--text-secondary)">${lecturas}</td>
         <td>${celdaCobertura(f.coberturaPct)}</td>
-        <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(rangoMarcas(f.primera, f.ultima))}</td>
+        <td style="color:var(--text-muted); font-size:0.82rem">${rangoMarcas(f.primera, f.ultima)}</td>
         <td>${celdaAlertas(f.alertasPorTipo)}</td>
         <td><span class="badge ${est.clase}">${escapeHtml(est.texto)}</span></td>
+      </tr>
+      <tr class="med-detalle" data-idx="${i}" hidden>
+        <td colspan="8">
+          <div class="med-detalle__box">
+            <div class="med-detalle__toolbar">
+              <span>Resolución:</span>
+              ${['10s', '1m', '5m'].map((b) => `<button type="button" class="med-bucket-btn${b === detalleBucket ? ' is-active' : ''}" data-bucket="${b}">${b === '10s' ? '10 s' : b === '1m' ? '1 min' : '5 min'}</button>`).join('')}
+            </div>
+            <div class="med-detalle__chart-wrap"><canvas class="med-detalle__chart" height="180"></canvas></div>
+            <div class="med-detalle__tabla"></div>
+            <div class="med-detalle__pager"></div>
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
@@ -218,6 +245,7 @@ function destruirGraficas() {
     chartFc.destroy();
   }
   chartFc = null;
+  destruirChartDetalle();
 }
 
 function actualizarGraficas(filas) {
@@ -257,6 +285,182 @@ function actualizarGraficas(filas) {
     },
   });
 }
+
+// ── Detalle expandible (serie temporal + tabla paginada) ──────────────────
+
+function destruirChartDetalle() {
+  if (chartDetalle && typeof chartDetalle.destroy === 'function') {
+    chartDetalle.destroy();
+  }
+  chartDetalle = null;
+}
+
+function filaDetalle(idx) {
+  return tableBody.querySelector(`tr.med-detalle[data-idx="${idx}"]`);
+}
+
+async function toggleDetalle(idx) {
+  const fila = resumen[idx];
+  if (!fila || fila.lecturas === 0) return;
+
+  // Cerrar el que estuviera abierto.
+  if (detalleAbierto !== null) {
+    const previa = filaDetalle(detalleAbierto);
+    if (previa) previa.hidden = true;
+    const filaPrev = tableBody.querySelector(`tr.med-row[data-idx="${detalleAbierto}"]`);
+    if (filaPrev) filaPrev.classList.remove('is-open');
+    destruirChartDetalle();
+  }
+
+  if (detalleAbierto === idx) {
+    detalleAbierto = null;
+    return;
+  }
+
+  detalleAbierto = idx;
+  detallePagina = 0;
+  const detalle = filaDetalle(idx);
+  const filaMaestra = tableBody.querySelector(`tr.med-row[data-idx="${idx}"]`);
+  if (detalle) detalle.hidden = false;
+  if (filaMaestra) filaMaestra.classList.add('is-open');
+
+  await Promise.all([cargarSerieDetalle(idx), cargarTablaDetalle(idx)]);
+}
+
+function paramsDetalle(idx, extra = {}) {
+  const { desde, hasta } = obtenerFiltros();
+  const params = new URLSearchParams({ desde, hasta, empleado: nombreCompleto(resumen[idx]) });
+  Object.entries(extra).forEach(([k, v]) => params.set(k, v));
+  return params;
+}
+
+async function cargarSerieDetalle(idx) {
+  const contenedor = filaDetalle(idx);
+  if (!contenedor) return;
+  const canvas = contenedor.querySelector('.med-detalle__chart');
+  if (!canvas) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/mediciones?${paramsDetalle(idx, { bucket: detalleBucket })}`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) throw new Error(`serie ${res.status}`);
+    const json = await res.json();
+    const serie = Array.isArray(json.data) ? json.data : [];
+
+    destruirChartDetalle();
+    chartDetalle = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: serie.map((p) => new Date(p.ts).toLocaleString('es-AR', {
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+        })),
+        datasets: [
+          {
+            label: 'máx', data: serie.map((p) => p.fcMax), borderColor: 'rgba(248,113,113,0.4)',
+            borderWidth: 1, pointRadius: 0, fill: false,
+          },
+          {
+            label: 'mín', data: serie.map((p) => p.fcMin), borderColor: 'rgba(96,165,250,0.4)',
+            borderWidth: 1, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(45,212,191,0.08)',
+          },
+          {
+            label: 'promedio', data: serie.map((p) => p.fcPromedio), borderColor: '#2dd4bf',
+            borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterBody: (items) => {
+                const p = serie[items[0].dataIndex];
+                return p ? `${p.lecturas} lecturas en el balde` : '';
+              },
+            },
+          },
+        },
+        scales: { y: { suggestedMin: 50, suggestedMax: 150 } },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    canvas.parentElement.innerHTML = '<div style="color:var(--text-muted); padding:12px; font-size:0.85rem">No se pudo cargar la serie.</div>';
+  }
+}
+
+async function cargarTablaDetalle(idx) {
+  const contenedor = filaDetalle(idx);
+  if (!contenedor) return;
+  const tablaEl = contenedor.querySelector('.med-detalle__tabla');
+  const pagerEl = contenedor.querySelector('.med-detalle__pager');
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/mediciones?${paramsDetalle(idx, {
+      limit: DETALLE_PAGE_SIZE, offset: detallePagina * DETALLE_PAGE_SIZE,
+    })}`, { headers: { ...getAuthHeaders() } });
+    if (!res.ok) throw new Error(`detalle ${res.status}`);
+    const json = await res.json();
+    const rows = Array.isArray(json.data) ? json.data : [];
+
+    tablaEl.innerHTML = `
+      <table class="med-detalle__inner">
+        <thead><tr><th>FECHA/HORA</th><th>FC</th><th>ACTIVIDAD</th><th>TEMP.</th><th>SPO₂</th></tr></thead>
+        <tbody>
+          ${rows.map((m) => {
+            const d = new Date(m.fecha_hora);
+            const fh = Number.isNaN(d.getTime()) ? '--' : d.toLocaleString('es-AR', {
+              day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+            });
+            return `<tr>
+              <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(fh)}</td>
+              <td>${m.frecuencia_cardiaca ?? '--'}</td>
+              <td style="color:var(--text-secondary)">${escapeHtml(m.actividad ?? '--')}</td>
+              <td style="color:var(--text-secondary)">${m.temperatura_corporal ?? '--'}</td>
+              <td style="color:var(--text-secondary)">${m.spo2 ?? '--'}</td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:12px">Sin lecturas en esta página</td></tr>'}
+        </tbody>
+      </table>`;
+
+    pagerEl.innerHTML = `
+      <button type="button" class="med-bucket-btn" data-page="prev" ${detallePagina === 0 ? 'disabled' : ''}>‹ Anteriores</button>
+      <span style="color:var(--text-muted); font-size:0.82rem">Página ${detallePagina + 1}</span>
+      <button type="button" class="med-bucket-btn" data-page="next" ${rows.length < DETALLE_PAGE_SIZE ? 'disabled' : ''}>Siguientes ›</button>`;
+  } catch (error) {
+    console.error(error);
+    tablaEl.innerHTML = '<div style="color:var(--text-muted); padding:12px; font-size:0.85rem">No se pudo cargar el detalle.</div>';
+  }
+}
+
+tableBody.addEventListener('click', (e) => {
+  const bucketBtn = e.target.closest('.med-bucket-btn[data-bucket]');
+  if (bucketBtn) {
+    detalleBucket = bucketBtn.dataset.bucket;
+    const box = bucketBtn.closest('.med-detalle__box');
+    box.querySelectorAll('.med-bucket-btn[data-bucket]').forEach((b) => b.classList.toggle('is-active', b === bucketBtn));
+    if (detalleAbierto !== null) cargarSerieDetalle(detalleAbierto);
+    return;
+  }
+
+  const pageBtn = e.target.closest('.med-bucket-btn[data-page]');
+  if (pageBtn && !pageBtn.disabled) {
+    detallePagina += pageBtn.dataset.page === 'next' ? 1 : -1;
+    if (detallePagina < 0) detallePagina = 0;
+    if (detalleAbierto !== null) cargarTablaDetalle(detalleAbierto);
+    return;
+  }
+
+  const fila = e.target.closest('tr.med-row--expandible');
+  if (fila) {
+    toggleDetalle(Number(fila.dataset.idx)).catch((err) => console.error(err));
+  }
+});
 
 function renderEmpleadoOptions(filas) {
   const actual = filterEmpleado.value;
