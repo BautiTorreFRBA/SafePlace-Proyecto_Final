@@ -314,6 +314,10 @@ const obtenerResumenSupervisor = async () => {
     ORDER BY 1, 2;
   `;
 
+  // Baldes de 15 minutos a lo largo del día (96 slots, 0..1425 min). Los
+  // baldes sin lecturas devuelven promedio NULL para que la línea muestre
+  // los huecos en vez de interpolarlos. `minuto_inicio` = minutos desde la
+  // medianoche UTC.
   const frecuenciaHoyQuery = `
     WITH parametros AS (
       SELECT
@@ -321,18 +325,18 @@ const obtenerResumenSupervisor = async () => {
         date_trunc('day', timezone('UTC', now())) + interval '1 day' AS fin_hoy
     )
     SELECT
-      gs.hora_inicio,
+      gs.minuto_inicio,
       ROUND(AVG(m.frecuencia_cardiaca)::numeric, 2) AS promedio
     FROM parametros p
-    CROSS JOIN generate_series(0, 20, 4) AS gs(hora_inicio)
+    CROSS JOIN generate_series(0, 1425, 15) AS gs(minuto_inicio)
     LEFT JOIN medicion m
-      ON timezone('UTC', m.fecha_hora) >= p.inicio_hoy + make_interval(hours => gs.hora_inicio)
+      ON timezone('UTC', m.fecha_hora) >= p.inicio_hoy + make_interval(mins => gs.minuto_inicio)
      AND timezone('UTC', m.fecha_hora) < LEAST(
-       p.inicio_hoy + make_interval(hours => gs.hora_inicio + 4),
+       p.inicio_hoy + make_interval(mins => gs.minuto_inicio + 15),
        p.fin_hoy
      )
-    GROUP BY gs.hora_inicio
-    ORDER BY gs.hora_inicio;
+    GROUP BY gs.minuto_inicio
+    ORDER BY gs.minuto_inicio;
   `;
 
   const [alertasPorDiaResult, frecuenciaHoyResult] = await Promise.all([
