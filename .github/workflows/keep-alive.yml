@@ -1,0 +1,29 @@
+name: keep-alive
+
+# Mantiene "despierto" el backend de Render (plan free se suspende tras ~15 min
+# sin trafico y tarda 30-60 s en volver a arrancar). Hace un ping liviano a
+# /health para que el login responda rapido cuando un supervisor entra.
+
+on:
+  schedule:
+    # Cada 10 minutos. GitHub puede retrasar los cron unos minutos en horas pico,
+    # por eso 10 y no 14 (margen frente a la ventana de 15 min de Render).
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        run: |
+          URL="https://safeplace-backend-9vhx.onrender.com/health"
+          echo "Pinging $URL"
+          # --max-time alto: si el server estaba frio, el primer request tarda.
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 --retry 2 --retry-all-errors "$URL")
+          echo "HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Health check devolvio $code"
+            exit 1
+          fi
