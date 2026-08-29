@@ -37,10 +37,16 @@ const ALERTA_CONFIG = {
   INACTIVIDAD_PROLONGADA: { label: 'Inactividad', color: COLORS.blue },
 };
 
-const HORAS_FRECUENCIA = [0, 4, 8, 12, 16, 20].map((hora) => ({
-  hora,
-  label: `${String(hora).padStart(2, '0')}:00`,
-}));
+// 96 baldes de 15 minutos (minutos desde medianoche). La etiqueta sólo se
+// muestra en la hora en punto para no saturar el eje.
+const HORAS_FRECUENCIA = Array.from({ length: 96 }, (_, i) => {
+  const minuto = i * 15;
+  const hh = String(Math.floor(minuto / 60)).padStart(2, '0');
+  return {
+    minuto,
+    label: minuto % 60 === 0 ? `${hh}:00` : '',
+  };
+});
 
 let alertsChart = null;
 let heartChart = null;
@@ -313,13 +319,13 @@ function renderGraficoFrecuencia(frecuenciaPromedioHoy) {
 
   const valores = new Map(
     (Array.isArray(frecuenciaPromedioHoy) ? frecuenciaPromedioHoy : []).map((row) => [
-      Number(row.hora_inicio),
+      Number(row.minuto_inicio),
       row.promedio === null || row.promedio === undefined ? null : Number(row.promedio),
     ]),
   );
 
   const labels = HORAS_FRECUENCIA.map((slot) => slot.label);
-  const data = HORAS_FRECUENCIA.map((slot) => valores.get(slot.hora) ?? null);
+  const data = HORAS_FRECUENCIA.map((slot) => valores.get(slot.minuto) ?? null);
 
   const ctx = heartChartCanvas.getContext('2d');
   const gradient = ctx.createLinearGradient(0, 0, 0, 220);
@@ -336,11 +342,12 @@ function renderGraficoFrecuencia(frecuenciaPromedioHoy) {
         borderColor: COLORS.teal,
         backgroundColor: gradient,
         borderWidth: 2,
-        pointRadius: 3,
+        pointRadius: 0,
+        pointHoverRadius: 4,
         pointBackgroundColor: COLORS.teal,
         tension: 0.35,
         fill: true,
-        spanGaps: true,
+        spanGaps: false,
       }],
     },
     options: {
@@ -366,7 +373,15 @@ function renderGraficoFrecuencia(frecuenciaPromedioHoy) {
             drawBorder: false,
           },
           border: { display: false },
-          ticks: { color: COLORS.tickColor },
+          ticks: {
+            color: COLORS.tickColor,
+            autoSkip: false,
+            maxRotation: 0,
+            callback(value) {
+              // `this.getLabelForValue` devuelve '' salvo en la hora en punto.
+              return this.getLabelForValue(value) || null;
+            },
+          },
         },
         y: {
           min: 50,

@@ -21,15 +21,20 @@ const getHistorialMediciones = async (req, res, next) => {
       });
     }
 
-    const rows = await medicionesHistorialRepository.listarHistorialMediciones({
-      desde,
-      hasta,
-      empleado: normalizarFiltro(req.query.empleado),
-      limit: req.query.limit ? Number(req.query.limit) : 200,
-      offset: req.query.offset ? Number(req.query.offset) : 0,
-    });
+    const [rows, validacion] = await Promise.all([
+      medicionesHistorialRepository.listarHistorialMediciones({
+        desde,
+        hasta,
+        empleado: normalizarFiltro(req.query.empleado),
+        limit: req.query.limit ? Number(req.query.limit) : 200,
+        offset: req.query.offset ? Number(req.query.offset) : 0,
+      }),
+      // Resultado del Servicio de Validación de Datos para el período (S1):
+      // no se filtra por empleado (el descarte se audita sin identidad).
+      medicionesHistorialRepository.resumenValidacion({ desde, hasta }),
+    ]);
 
-    res.json({ data: rows });
+    res.json({ data: rows, validacion });
   } catch (error) {
     next(error);
   }
