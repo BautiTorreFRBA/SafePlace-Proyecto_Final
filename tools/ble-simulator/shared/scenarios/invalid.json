@@ -1,0 +1,9 @@
+{
+  "name": "invalid",
+  "description": "RF-04 / H0008 — FC fuera del rango biológico lógico (30-220); el backend descarta y audita",
+  "intervalSeconds": 5,
+  "durationSeconds": 60,
+  "heartRate": { "base": 245, "jitter": 0, "min": 245, "max": 245 },
+  "loop": false,
+  "actions": []
+}

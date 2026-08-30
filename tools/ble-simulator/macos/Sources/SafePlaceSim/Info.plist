@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>ar.edu.utn.safeplace.blesim</string>
+  <key>CFBundleName</key>
+  <string>SafePlaceSim</string>
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>Simula un wearable BLE (Heart Rate Service) para las pruebas E2E de SafePlace.</string>
+  <key>NSBluetoothPeripheralUsageDescription</key>
+  <string>Simula un wearable BLE (Heart Rate Service) para las pruebas E2E de SafePlace.</string>
+</dict>
+</plist>

@@ -10,6 +10,13 @@ const filterTipo = document.getElementById('filterTipo');
 
 let alertas = [];
 
+const ETIQUETA_TIPO_ALERTA = {
+  FATIGA: 'Fatiga',
+  SOBREESFUERZO: 'Sobreesfuerzo',
+  INACTIVIDAD_PROLONGADA: 'Inactividad prolongada (wearable desconectado)',
+};
+const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
+
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
   if (!token) {
@@ -40,7 +47,7 @@ async function cargarAlertas() {
   alertas = (payload.data || []).map((a) => ({
     id: a.id,
     prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
-    tipo: a.tipo_alerta || 'Alerta',
+    tipo: etiquetaTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
     fecha: new Date(a.fecha_hora).toLocaleString('es-AR'),
     estado: a.estado || 'Activa',
