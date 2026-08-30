@@ -218,6 +218,7 @@ const listarUltimaMedicionPorTrabajador = async () => {
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido,
       m.id_dispositivo,
+      d.capacidades AS dispositivo_capacidades,
       m.fecha_hora,
       m.frecuencia_cardiaca,
       m.actividad,
@@ -227,6 +228,7 @@ const listarUltimaMedicionPorTrabajador = async () => {
     FROM medicion m
     JOIN operario_seudonimo os ON os.id = m.id_seudonimo
     JOIN operario o ON o.id = os.id_operario
+    LEFT JOIN dispositivo d ON d.id = m.id_dispositivo
     ORDER BY o.id, m.fecha_hora DESC, m.id DESC;
   `;
   const res = await db.query(query);
@@ -240,6 +242,7 @@ const listarDispositivos = async () => {
       d.marca,
       d.modelo,
       d.estado,
+      d.capacidades,
       o.id AS operario_id,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido,

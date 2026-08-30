@@ -417,10 +417,13 @@ async function cargarTablaDetalle(idx) {
             const fh = Number.isNaN(d.getTime()) ? '--' : d.toLocaleString('es-AR', {
               day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
             });
+            const act = window.MedHelpers
+              ? window.MedHelpers.etiquetarActividad(m.actividad).texto
+              : (m.actividad ?? '--');
             return `<tr>
               <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(fh)}</td>
               <td>${m.frecuencia_cardiaca ?? '--'}</td>
-              <td style="color:var(--text-secondary)">${escapeHtml(m.actividad ?? '--')}</td>
+              <td style="color:var(--text-secondary)">${escapeHtml(act)}</td>
               <td style="color:var(--text-secondary)">${m.temperatura_corporal ?? '--'}</td>
               <td style="color:var(--text-secondary)">${m.spo2 ?? '--'}</td>
             </tr>`;

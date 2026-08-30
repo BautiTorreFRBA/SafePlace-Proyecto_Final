@@ -84,16 +84,20 @@ async function cargarDatos() {
   const trabajadores = mediciones.map((m) => {
     const alerta = alertaPorTrabajador.get(m.id_trabajador);
     const estado = alerta ? (esCritica(alerta.prioridad) ? 'critical' : 'warning') : 'normal';
+    const caps = m.dispositivo_capacidades;
 
     return {
       id: `ID-${m.id_trabajador}`,
       nombre: `${m.operario_nombre || ''} ${m.operario_apellido || ''}`.trim() || 'Sin nombre',
       bpm: m.frecuencia_cardiaca,
-      actividad: m.actividad || 'Sin actividad',
-      temp: m.temperatura_corporal != null ? `${m.temperatura_corporal}°C` : null,
-      spo2: m.spo2 != null ? `${m.spo2}%` : null,
+      actividad: MedHelpers.etiquetarActividad(m.actividad),
+      tempValor: m.temperatura_corporal,
+      spo2Valor: m.spo2,
+      capTemp: MedHelpers.soporta(caps, 'temperatura'),
+      capSpo2: MedHelpers.soporta(caps, 'spo2'),
       estado,
-      hora: new Date(m.fecha_hora).toLocaleTimeString('es-AR'),
+      fechaHora: m.fecha_hora,
+      segundos: MedHelpers.segundosDesde(m.fecha_hora),
     };
   });
 
@@ -102,19 +106,63 @@ async function cargarDatos() {
   document.getElementById('lastUpdate').textContent = horaActual();
 }
 
+function celdaCapacidad(soporta, valor, sufijo) {
+  // soporta: true (mostrar valor o "--"), false (no soportado), null (desconocido → como true).
+  if (soporta === false) {
+    return '<div class="mon-metric"><span style="color:var(--text-muted); font-size:0.8rem">no soportado</span></div>';
+  }
+  if (valor != null) {
+    return `<div class="mon-metric">${valor}${sufijo}</div>`;
+  }
+  return '<div class="mon-metric"><span style="color:var(--text-muted)">---</span></div>';
+}
+
 function renderTabla(trabajadores) {
+  // P4 / S4: ocultar Temp / SpO2 si NINGÚN wearable visible las soporta.
+  const mostrarTemp = trabajadores.some((t) => t.capTemp !== false);
+  const mostrarSpo2 = trabajadores.some((t) => t.capSpo2 !== false);
+  const thTemp = document.getElementById('thTemp');
+  const thSpo2 = document.getElementById('thSpo2');
+  if (thTemp) thTemp.hidden = !mostrarTemp;
+  if (thSpo2) thSpo2.hidden = !mostrarSpo2;
+
+  const totalCols = 5 + (mostrarTemp ? 1 : 0) + (mostrarSpo2 ? 1 : 0);
+
   if (trabajadores.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Sin mediciones recientes</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center; padding:32px; color:var(--text-muted);">Sin mediciones recientes</td></tr>`;
     return;
   }
 
   tbody.innerHTML = trabajadores.map((t) => {
     const { cls, label } = ESTADO_CONFIG[t.estado];
     const bpmColor = BPM_COLOR[t.estado];
-    const bpmHTML = t.bpm != null ? `<div class="mon-metric"><span class="bpm-value ${bpmColor}">${t.bpm}</span>&nbsp;BPM</div>` : '<div class="mon-metric"><span style="color:var(--text-muted)">---</span></div>';
-    const tempHTML = t.temp != null ? `<div class="mon-metric">${t.temp}</div>` : '<div class="mon-metric"><span style="color:var(--text-muted)">---</span></div>';
-    const spo2HTML = t.spo2 != null ? `<div class="mon-metric">${t.spo2}</div>` : '<div class="mon-metric"><span style="color:var(--text-muted)">---</span></div>';
-    return `<tr><td><div class="mon-emp"><div class="avatar avatar--sm">${t.id}</div><span class="mon-emp__name">${t.nombre}</span></div></td><td>${bpmHTML}</td><td style="color:var(--text-secondary)">${t.actividad}</td><td>${tempHTML}</td><td>${spo2HTML}</td><td><span class="badge ${cls}">${label}</span></td><td style="color:var(--text-muted); font-size:0.82rem">${t.hora}</td></tr>`;
+    const bpmHTML = t.bpm != null
+      ? `<div class="mon-metric"><span class="bpm-value ${bpmColor}">${t.bpm}</span>&nbsp;BPM</div>`
+      : '<div class="mon-metric"><span style="color:var(--text-muted)">---</span></div>';
+
+    const actTitle = t.actividad.estimado
+      ? ' title="Estimado a partir de la variabilidad de la FC (ADR-14), no es una medición directa"'
+      : '';
+    const actHTML = `<span${actTitle}>${t.actividad.texto}${t.actividad.estimado ? ' <span style="color:var(--text-muted)">≈</span>' : ''}</span>`;
+
+    const tempTd = mostrarTemp ? `<td>${celdaCapacidad(t.capTemp, t.tempValor, '°C')}</td>` : '';
+    const spo2Td = mostrarSpo2 ? `<td>${celdaCapacidad(t.capSpo2, t.spo2Valor, '%')}</td>` : '';
+
+    const stale = t.segundos != null && t.segundos > 300;
+    const frescuraColor = stale ? 'var(--orange)' : 'var(--text-muted)';
+    const horaHTML = `
+      <div style="font-size:0.82rem">${MedHelpers.marcaTemporal(t.fechaHora)}</div>
+      <div style="font-size:0.72rem; color:${frescuraColor}">${MedHelpers.formatearFrescura(t.segundos)}</div>`;
+
+    return `<tr>
+      <td><div class="mon-emp"><div class="avatar avatar--sm">${t.id}</div><span class="mon-emp__name">${t.nombre}</span></div></td>
+      <td>${bpmHTML}</td>
+      <td style="color:var(--text-secondary)">${actHTML}</td>
+      ${tempTd}
+      ${spo2Td}
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td style="color:var(--text-muted)">${horaHTML}</td>
+    </tr>`;
   }).join('');
 }
 
