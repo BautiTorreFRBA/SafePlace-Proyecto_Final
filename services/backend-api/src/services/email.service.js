@@ -1,8 +1,12 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+const { promisify } = require('util');
+
+const dnsLookup = promisify(dns.lookup);
 
 let transporter;
 
-const getTransporter = () => {
+const getTransporter = async () => {
   if (transporter) return transporter;
 
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
@@ -13,22 +17,27 @@ const getTransporter = () => {
     throw error;
   }
 
+  // nodemailer resuelve el host con dns.resolve4/resolve6 (no dns.lookup),
+  // y en Render resolve4 falla silenciosamente dejando solo la IPv6 -
+  // ENETUNREACH porque Render no tiene salida IPv6. Resolvemos nosotros
+  // con dns.lookup (que sí anda bien ahí) y le pasamos la IP ya resuelta,
+  // manteniendo el hostname original en `servername` para el TLS/SNI.
+  const { address } = await dnsLookup(SMTP_HOST, { family: 4 });
+
   transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
+    host: address,
     port: Number(SMTP_PORT || 587),
     secure: String(SMTP_PORT || 587) === '465',
     auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
-    // Render no tiene salida IPv6: forzamos que la conexión TCP resuelva
-    // solo registros A (IPv4). dns.setDefaultResultOrder('ipv4first') solo
-    // reordena si hay AAAA y A disponibles; acá forzamos la familia.
-    family: 4,
+    tls: { servername: SMTP_HOST },
   });
   return transporter;
 };
 
 const enviarSolicitudConsentimiento = async ({ email, nombre, link, versionPolitica, expiraEn }) => {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  await getTransporter().sendMail({
+  const transport = await getTransporter();
+  await transport.sendMail({
     from,
     to: email,
     subject: 'SafePlace: validá tu consentimiento biométrico',
