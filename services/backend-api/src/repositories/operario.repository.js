@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 const listarActivos = async () => {
   const query = `
-    SELECT id, id_empresa, legajo, nombre, apellido, area, email, estado, alta
+    SELECT id, id_empresa, legajo, nombre, apellido, area, mail AS email, estado, alta
     FROM operario
     WHERE estado IS TRUE
     ORDER BY apellido, nombre, id;
@@ -14,7 +14,7 @@ const listarActivos = async () => {
 
 const obtenerPorId = async (id) => {
   const query = `
-    SELECT id, id_empresa, legajo, nombre, apellido, area, email, estado, alta
+    SELECT id, id_empresa, legajo, nombre, apellido, area, mail AS email, estado, alta
     FROM operario
     WHERE id = $1;
   `;

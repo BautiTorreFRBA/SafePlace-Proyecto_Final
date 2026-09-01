@@ -20,7 +20,7 @@ const listarEmpleados = async () => {
       o.nombre,
       o.apellido,
       o.area AS depto,
-      o.email,
+      o.mail AS email,
       'Operario' AS rol,
       o.estado AS estado,
       o.alta AS alta
@@ -66,9 +66,9 @@ const crearEmpleado = async ({ nombre, apellido, area, email, idEmpresa }) => {
       client.release();
     }
     const query = `
-    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, email, alta, estado)
+    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, mail, alta, estado)
       VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NOW(), TRUE)
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, email, estado;
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, mail AS email, estado;
     `;
 
     const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);
@@ -111,9 +111,9 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, idEmpresa
           nombre = $3,
           apellido = $4,
           area = $5,
-          email = NULLIF($6, '')
+          mail = NULLIF($6, '')
       WHERE id = $1
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, email;
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, mail AS email;
     `;
 
     const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);

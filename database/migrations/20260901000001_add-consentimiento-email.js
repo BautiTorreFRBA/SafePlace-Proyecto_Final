@@ -5,9 +5,9 @@ exports.shorthands = undefined;
 // El email pertenece al operario y las solicitudes quedan separadas del
 // historial legal: una solicitud pendiente nunca cuenta como consentimiento.
 exports.up = (pgm) => {
-  pgm.addColumn('operario', {
-    email: { type: 'varchar(254)' },
-  });
+  // IF NOT EXISTS permite aplicar la migración también si la columna fue
+  // agregada manualmente en la base con el nombre definido por el equipo.
+  pgm.sql('ALTER TABLE operario ADD COLUMN IF NOT EXISTS mail varchar(254);');
 
   pgm.createTable('solicitud_consentimiento', {
     id: { type: 'serial', primaryKey: true },
@@ -29,5 +29,5 @@ exports.up = (pgm) => {
 
 exports.down = (pgm) => {
   pgm.dropTable('solicitud_consentimiento');
-  pgm.dropColumn('operario', 'email');
+  pgm.dropColumn('operario', 'mail');
 };
