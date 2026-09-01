@@ -121,7 +121,9 @@ async function apiFetch(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+    const error = new Error(payload.error || payload.message || `No se pudo completar la operación (HTTP ${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
 
   return payload;
@@ -306,6 +308,8 @@ modalSave.addEventListener('click', guardarEmpleado);
 
 cargarEmpleados().catch((err) => {
   console.error(err);
-  empCount.textContent = 'Error cargando empleados';
-  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los empleados</td></tr>';
+  empCount.textContent = err.status === 401 || err.status === 403
+    ? 'Sesión sin permisos para consultar empleados'
+    : 'Error cargando empleados';
+  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
 });
