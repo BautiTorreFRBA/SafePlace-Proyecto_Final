@@ -13,7 +13,7 @@ router.patch('/users/:id', auth, authorize(['admin']), dashboardController.actua
 router.patch('/users/:id/deactivate', auth, authorize(['admin']), dashboardController.desactivarUsuario);
 router.get('/measurements', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getMediciones);
 router.get('/measurements/latest', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getUltimaMedicionPorTrabajador);
-router.get('/summary', auth, authorize(['supervisor']), dashboardController.getResumenSupervisor);
+router.get('/summary', auth, authorize(['admin', 'supervisor']), dashboardController.getResumenSupervisor);
 router.get('/devices', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getDispositivos);
 router.get('/alerts', auth, authorize(['admin', 'supervisor', 'seguridad']), dashboardController.getAlertas);
 

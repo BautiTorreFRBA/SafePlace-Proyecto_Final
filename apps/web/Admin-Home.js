@@ -1,221 +1,273 @@
-/* FECHA Y HORA EN TIEMPO REAL */
+const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+const POLL_INTERVAL_MS = 30000;
 
-function updateDateTime() {
-  const el = document.getElementById('currentDate');
-  if (!el) return;
+let alertsChart = null;
+let heartChart = null;
 
-  const now = new Date();
+async function apiFetch(path, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'InicioSesion.html';
+    return null;
+  }
 
-  // Formateamos la fecha con ceros a la izquierda (ej: 06/12/2026 21:05)
-  const dd   = String(now.getDate()).padStart(2, '0');
-  const mm   = String(now.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
-  const yyyy = now.getFullYear();
-  const hh   = String(now.getHours()).padStart(2, '0');
-  const min  = String(now.getMinutes()).padStart(2, '0');
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
 
-  el.textContent = `Estado del sistema al ${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+  }
+
+  return payload;
 }
 
-// Ejecutamos inmediatamente y repetimos cada minuto
-updateDateTime();
-setInterval(updateDateTime, 60_000);
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-/*  CONFIGURACIÓN GLOBAL DE GRAFICOS */
-const COLORS = {
-  teal:       '#2dd4bf',
-  tealFill:   'rgba(45, 212, 191, 0.10)',
-  red:        '#f87171',
-  redLine:    'rgba(248, 113, 113, 0.6)',
-  orange:     '#fb923c',
-  yellow:     '#fbbf24',
-  blue:       '#60a5fa',
-  grid:       'rgba(255,255,255,0.04)',
-  tickColor:  '#6b7280',
-  tooltip:    '#413a3a',
-};
+function nombreCompleto(item) {
+  return `${item.operario_nombre || item.nombre || ''} ${item.operario_apellido || item.apellido || ''}`.trim() || 'Sin asignar';
+}
 
-Chart.defaults.color = COLORS.tickColor;
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-Chart.defaults.font.size   = 11;
+function iniciales(nombre) {
+  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return 'SP';
+  return partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
+}
 
-/* GRÁFICA DE BARRAS – Alertas por día (última semana) */
-const alertsCtx = document.getElementById('alertsChart').getContext('2d');
+function esCritica(prioridad) {
+  const normalizada = String(prioridad || '').toLowerCase();
+  return normalizada.includes('crit');
+}
 
-new Chart(alertsCtx, {
-  type: 'bar',
+function renderKpis({ trabajadores, alertas, riesgosHoy, dispositivos }) {
+  const monitoreados = new Set(trabajadores.map((item) => item.id_trabajador).filter((id) => id != null));
+  document.getElementById('kpiTrabajadores').textContent = monitoreados.size;
+  document.getElementById('kpiAlertas').textContent = alertas.length;
+  document.getElementById('kpiRiesgos').textContent = riesgosHoy.length;
 
-  data: {
-    // Días de la semana abreviados (eje X)
-    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+  const conectados = dispositivos.filter((d) => d.ultimo_estado === 'CONECTADO').length;
+  document.getElementById('kpiDispositivos').textContent = `${conectados}/${dispositivos.length}`;
 
-    datasets: [
-      {
-        label: 'Fatiga',
-        // Cantidad de alertas de fatiga por día
-        data: [0, 1, 0, 1, 1, 0, 1],
-        backgroundColor: COLORS.yellow,
-        borderRadius: 4,
-        borderSkipped: false, // Redondea los 4 vértices
-      },
-      {
-        label: 'Sobreesfuerzo',
-        // Alertas de sobreesfuerzo por día
-        data: [0, 0, 1, 1, 0, 1, 0],
-        backgroundColor: COLORS.red,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      {
-        label: 'Inactividad',
-        // Alertas de inactividad prolongada por día
-        data: [1, 2, 2, 4, 3, 3, 2],
-        backgroundColor: COLORS.blue,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-    ],
-  },
+  const alertasBadge = document.getElementById('alertasBadge');
+  if (alertasBadge) {
+    alertasBadge.textContent = `${alertas.length} ${alertas.length === 1 ? 'alerta' : 'alertas'}`;
+  }
+}
 
-  options: {
-    responsive: true,
-    maintainAspectRatio: false, // Permite que el canvas ocupe el alto del contenedor
+function renderAlertList(alertas) {
+  const alertList = document.getElementById('alertList');
+  if (!alertList) return;
 
-    // Agrupación de barras
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          usePointStyle: true, // Usa círculos en lugar de rectángulos en la leyenda
-          pointStyle: 'circle',
-          padding: 16,
-          color: COLORS.tickColor,
-        },
-      },
-      tooltip: {
-        backgroundColor: COLORS.tooltip,
-        borderColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
+  if (alertas.length === 0) {
+    alertList.innerHTML = '<li class="alert-item"><div class="alert-item__info"><span>No hay alertas activas</span></div></li>';
+    return;
+  }
+
+  alertList.innerHTML = alertas.slice(0, 6).map((a) => {
+    const critica = esCritica(a.prioridad);
+    return `<li class="alert-item">
+      <span class="dot ${critica ? 'dot--red' : 'dot--orange'}"></span>
+      <div class="alert-item__info">
+        <strong>${escapeHtml(nombreCompleto(a))}</strong>
+        <span>${escapeHtml(a.tipo_alerta || 'Alerta')}</span>
+      </div>
+      <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${escapeHtml(a.prioridad || 'Normal')}</span>
+    </li>`;
+  }).join('');
+}
+
+function renderWorkerList(trabajadores, alertasActivas) {
+  const workerList = document.getElementById('workerList');
+  if (!workerList) return;
+
+  const alertaPorTrabajador = new Map();
+  for (const a of alertasActivas) {
+    if (a.id_trabajador == null) continue;
+    const actual = alertaPorTrabajador.get(a.id_trabajador);
+    if (!actual || (esCritica(a.prioridad) && !esCritica(actual.prioridad))) {
+      alertaPorTrabajador.set(a.id_trabajador, a);
+    }
+  }
+
+  if (trabajadores.length === 0) {
+    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin mediciones recientes</span></div></li>';
+    return;
+  }
+
+  workerList.innerHTML = trabajadores.slice(0, 6).map((m) => {
+    const nombre = nombreCompleto(m);
+    const alerta = alertaPorTrabajador.get(m.id_trabajador);
+    const badgeClase = alerta ? (esCritica(alerta.prioridad) ? 'badge--critical' : 'badge--warning') : 'badge--normal';
+    const badgeTexto = alerta ? (alerta.tipo_alerta || 'Alerta') : 'Normal';
+
+    return `<li class="worker-item">
+      <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
+      <div class="worker-item__info">
+        <strong>${escapeHtml(nombre)}</strong>
+        <span>${escapeHtml(m.frecuencia_cardiaca ?? '--')} BPM</span>
+      </div>
+      <span class="badge ${badgeClase}">${escapeHtml(badgeTexto)}</span>
+    </li>`;
+  }).join('');
+}
+
+function renderAlertsChart(historico) {
+  const canvas = document.getElementById('alertsChart');
+  if (!canvas || !window.Chart) return;
+
+  const dias = [];
+  const conteoPorDia = {};
+  for (let i = 6; i >= 0; i -= 1) {
+    const fecha = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const clave = fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    dias.push(clave);
+    conteoPorDia[clave] = 0;
+  }
+
+  historico.forEach((a) => {
+    const clave = new Date(a.fecha_hora).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    if (clave in conteoPorDia) conteoPorDia[clave] += 1;
+  });
+
+  alertsChart?.destroy();
+  alertsChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: dias,
+      datasets: [{
+        data: dias.map((d) => conteoPorDia[d]),
+        backgroundColor: '#f59e0b',
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
       },
     },
+  });
+}
 
-    scales: {
-      x: {
-        // Modo 'grouped' coloca las barras de cada dataset lado a lado
-        stacked: false,
-        grid: {
-          color: COLORS.grid, // Líneas de cuadrícula muy sutiles
-          drawBorder: false,
-        },
-        border: { display: false },
-        ticks: { color: COLORS.tickColor },
-      },
-      y: {
-        beginAtZero: true,
-        max: 5, // Techo visual del eje Y
-        ticks: {
-          stepSize: 1, // Solo valores enteros (0, 1, 2…)
-          color: COLORS.tickColor,
-        },
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-      },
-    },
-  },
-});
+function renderHeartChart(medicionesHoy) {
+  const canvas = document.getElementById('heartChart');
+  if (!canvas || !window.Chart) return;
 
-/* GRÁFICA DE LÍNEA – Frecuencia Cardíaca Promedio (hoy) */
-const heartCtx = document.getElementById('heartChart').getContext('2d');
+  const promedioPorHora = new Array(24).fill(null).map(() => ({ suma: 0, cantidad: 0 }));
+  medicionesHoy.forEach((m) => {
+    if (m.frecuencia_cardiaca == null) return;
+    const hora = new Date(m.fecha_hora).getHours();
+    promedioPorHora[hora].suma += Number(m.frecuencia_cardiaca);
+    promedioPorHora[hora].cantidad += 1;
+  });
 
-const gradient = heartCtx.createLinearGradient(0, 0, 0, 200);
-gradient.addColorStop(0,   'rgba(45, 212, 191, 0.20)');
-gradient.addColorStop(1,   'rgba(45, 212, 191, 0.00)');
+  const horaActual = new Date().getHours();
+  const horas = [];
+  const promedios = [];
+  for (let h = 0; h <= horaActual; h += 1) {
+    horas.push(`${String(h).padStart(2, '0')}:00`);
+    const bucket = promedioPorHora[h];
+    promedios.push(bucket.cantidad > 0 ? Math.round(bucket.suma / bucket.cantidad) : null);
+  }
 
-new Chart(heartCtx, {
-  type: 'line',
-
-  data: {
-    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],// Horas del día en el eje X
-
-    datasets: [
-      {
+  heartChart?.destroy();
+  heartChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: horas,
+      datasets: [{
         label: 'BPM promedio',
-        // Valores de frecuencia cardíaca promedio del equipo por hora
-        data: [78, 80, 95, 105, 98, 90],
-        borderColor:     COLORS.teal,
-        backgroundColor: gradient,  // Área de relleno con degradado
-        borderWidth:     2,
-        pointRadius:     3,
-        pointBackgroundColor: COLORS.teal,
-        tension: 0.4,   // Suavizado de la curva (0 = recto, 1 = muy curvo)
-        fill: true,     // Activa el área de relleno
-      },
-      {
-        // Línea de umbral crítico: si el BPM supera este valor,
-        // se genera una alerta automática en el sistema
-        label: 'Umbral crítico (130 BPM)',
-        data: [130, 130, 130, 130, 130, 130], // Línea horizontal constante
-        borderColor:   COLORS.redLine,
-        borderWidth:   1.5,
-        borderDash:    [6, 4],  // Estilo punteado: 6px línea, 4px espacio
-        pointRadius:   0,       // Sin puntos en esta línea de referencia
-        fill:          false,
-        tension:       0,
-      },
-    ],
-  },
-
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-
-    plugins: {
-      legend: {
-        // Ocultamos la leyenda del umbral para no recargar la UI;
-        // el rojo punteado es suficientemente claro visualmente
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: COLORS.tooltip,
-        borderColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-        // Filtramos el dataset del umbral del tooltip para no confundir
-        filter: (item) => item.datasetIndex === 0,
-        callbacks: {
-          // Agregamos la unidad al valor mostrado en el tooltip
-          label: (ctx) => ` ${ctx.parsed.y} BPM`,
-        },
+        data: promedios,
+        borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.15)',
+        fill: true,
+        tension: 0.35,
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', maxTicksLimit: 8 }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
       },
     },
+  });
+}
 
-    scales: {
-      x: {
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-        ticks: { color: COLORS.tickColor },
-      },
-      y: {
-        min: 50,  // Mínimo del eje: empieza en 50 BPM para mejor lectura
-        max: 150, // Máximo del eje: deja espacio sobre el umbral de 130
-        ticks: {
-          stepSize: 25,
-          color: COLORS.tickColor,
-        },
-        grid: {
-          color: COLORS.grid,
-          drawBorder: false,
-        },
-        border: { display: false },
-      },
-    },
-  },
+async function cargarHome() {
+  const inicioHoy = new Date();
+  inicioHoy.setHours(0, 0, 0, 0);
+  const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [medicionesResult, alertasResult, historicoResult, hoyResult, dispositivosResult, medicionesHoyResult] = await Promise.allSettled([
+    apiFetch('/dashboard/measurements/latest'),
+    apiFetch('/alertas/activas'),
+    apiFetch(`/alertas/historico?desde=${encodeURIComponent(hace7dias.toISOString())}`),
+    apiFetch(`/alertas/historico?desde=${encodeURIComponent(inicioHoy.toISOString())}`),
+    apiFetch('/dashboard/devices'),
+    apiFetch(`/dashboard/measurements?desde=${encodeURIComponent(inicioHoy.toISOString())}&limit=1000`),
+  ]);
+
+  const trabajadores = medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [];
+  const alertasActivas = alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [];
+  const historico = historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [];
+  const alertasHoy = hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [];
+  const dispositivos = dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [];
+  const medicionesHoy = medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [];
+
+  renderKpis({ trabajadores, alertas: alertasActivas, riesgosHoy: alertasHoy, dispositivos });
+  renderAlertList(alertasActivas);
+  renderWorkerList(trabajadores, alertasActivas);
+  renderAlertsChart(historico);
+  renderHeartChart(medicionesHoy);
+
+  [
+    medicionesResult,
+    alertasResult,
+    historicoResult,
+    hoyResult,
+    dispositivosResult,
+    medicionesHoyResult,
+  ].forEach((result) => {
+    if (result.status === 'rejected') {
+      console.error(result.reason);
+    }
+  });
+}
+
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-AR', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
 });
+
+cargarHome().catch((error) => {
+  console.error(error);
+  const alertList = document.getElementById('alertList');
+  if (alertList) {
+    alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><span>${escapeHtml(error.message)}</span></div></li>`;
+  }
+});
+
+setInterval(() => cargarHome().catch((error) => console.error(error)), POLL_INTERVAL_MS);

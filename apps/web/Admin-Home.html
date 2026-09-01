@@ -66,8 +66,7 @@
         <div class="kpi-card kpi-card--teal">
           <div class="kpi-card__body">
             <span class="kpi-card__label">TRABAJADORES MONITOREADOS</span>
-            <span class="kpi-card__value">7</span>
-            <span class="kpi-card__trend trend--up">↑ 12% vs. ayer</span>
+            <span class="kpi-card__value" id="kpiTrabajadores">--</span>
           </div>
           <div class="kpi-card__icon kpi-card__icon--teal">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +81,7 @@
         <div class="kpi-card kpi-card--red">
           <div class="kpi-card__body">
             <span class="kpi-card__label">ALERTAS ACTIVAS</span>
-            <span class="kpi-card__value"><!-- Cantidad de alertas activas --></span>
+            <span class="kpi-card__value" id="kpiAlertas">--</span>
           </div>
           <div class="kpi-card__icon kpi-card__icon--red">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -92,7 +91,7 @@
         <div class="kpi-card kpi-card--orange">
           <div class="kpi-card__body">
             <span class="kpi-card__label">RIESGOS DETECTADOS</span>
-            <span class="kpi-card__value"><!-- Cantidad de dispositivos que detectaron un risgo --></span>
+            <span class="kpi-card__value" id="kpiRiesgos">--</span>
           </div>
           <div class="kpi-card__icon kpi-card__icon--orange">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -102,7 +101,7 @@
         <div class="kpi-card kpi-card--blue">
           <div class="kpi-card__body">
             <span class="kpi-card__label">DISPOSITIVOS CONECTADOS</span>
-            <span class="kpi-card__value"><!-- Cantidad de dispositivos conectados del total que hay--></span> 
+            <span class="kpi-card__value" id="kpiDispositivos">--</span> 
           </div>
           <div class="kpi-card__icon kpi-card__icon--blue">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
@@ -145,19 +144,10 @@
         <div class="card">
           <div class="card__header">
             <span class="card__title">Alertas Activas</span>
-            <span class="badge badge--neutral"><!-- Cantidades de Alertas Activas --> alertas</span> 
+            <span class="badge badge--neutral" id="alertasBadge">-- alertas</span> 
           </div>
           <div class="card__body card__body--flush">
-            <ul class="alert-list" id="alertList">
-              <li class="alert-item">
-                <span class="dot dot--red"></span>
-                <div class="alert-item__info">
-                  <strong><!-- Nombre de Trabajadores --></strong>  
-                  <span><!-- Razon por la que se activo la alerta --></span> 
-                </div>
-                <span class="badge badge--critical"><!-- Estado de Trabajadores --> </span> 
-              </li>
-            </ul>
+            <ul class="alert-list" id="alertList"></ul>
           </div>
         </div>
 
@@ -170,16 +160,7 @@
             </span>
           </div>
           <div class="card__body card__body--flush">
-            <ul class="worker-list" id="workerList">
-              <li class="worker-item">
-                <div class="avatar avatar--sm"><!-- Iniciales del Trabajadores --></div> 
-                <div class="worker-item__info">
-                  <strong> <!-- Nombre de Trabajadores --></strong> 
-                  <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> <!-- Pulsaciones de Trabajadores -->  BPM  </span>
-                </div>
-                <span class="badge badge--normal"><!-- Estado de Trabajadores --></span> 
-              </li>
-            </ul>
+            <ul class="worker-list" id="workerList"></ul>
           </div>
         </div>
 
