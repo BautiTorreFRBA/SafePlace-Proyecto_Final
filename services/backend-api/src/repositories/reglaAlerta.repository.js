@@ -1,48 +1,37 @@
 const db = require('../config/database');
 
-const TIPOS = ['FATIGA', 'INACTIVIDAD', 'SOBREESFUERZO'];
+const REGLAS = ['Fatiga', 'Inactividad', 'Sobreesfuerzo'];
 
 const listar = async () => {
   const result = await db.query(
-    `SELECT id, tipo, parametros, id_usuario, fecha_hora
+    `SELECT nombre, valor_minimo, valor_maximo
      FROM regla_alerta
-     WHERE tipo = ANY($1::varchar[])
-     ORDER BY array_position($1::varchar[], tipo);`,
-    [TIPOS],
+     WHERE lower(nombre) = ANY($1::varchar[])
+     ORDER BY array_position($1::varchar[], lower(nombre));`,
+    [REGLAS.map((nombre) => nombre.toLowerCase())],
   );
   return result.rows;
 };
 
-const guardar = async ({ tipo, parametros, idUsuario }) => {
-  const result = await db.query(
-    `INSERT INTO regla_alerta (tipo, parametros, id_usuario)
-     VALUES ($1, $2::jsonb, $3)
-     ON CONFLICT (tipo) DO UPDATE SET
-       parametros = EXCLUDED.parametros,
-       id_usuario = EXCLUDED.id_usuario,
-       fecha_hora = now()
-     RETURNING id, tipo, parametros, id_usuario, fecha_hora;`,
-    [tipo, JSON.stringify(parametros), idUsuario || null],
-  );
-  return result.rows[0];
-};
-
-const guardarTodas = async ({ reglas, idUsuario }) => {
+const guardarTodas = async ({ reglas }) => {
   const client = await db.getPool().connect();
   try {
     await client.query('BEGIN');
     const registros = [];
-    for (const tipo of TIPOS) {
+    for (const nombre of REGLAS) {
       const result = await client.query(
-        `INSERT INTO regla_alerta (tipo, parametros, id_usuario)
-         VALUES ($1, $2::jsonb, $3)
-         ON CONFLICT (tipo) DO UPDATE SET
-           parametros = EXCLUDED.parametros,
-           id_usuario = EXCLUDED.id_usuario,
-           fecha_hora = now()
-         RETURNING id, tipo, parametros, id_usuario, fecha_hora;`,
-        [tipo, JSON.stringify(reglas[tipo]), idUsuario || null],
+        `UPDATE regla_alerta
+         SET valor_minimo = $2, valor_maximo = $3
+         WHERE lower(nombre) = lower($1)
+         RETURNING nombre, valor_minimo, valor_maximo;`,
+        [nombre, reglas[nombre].valorMinimo, reglas[nombre].valorMaximo],
       );
+      if (!result.rows[0]) {
+        const error = new Error(`No existe la regla '${nombre}' en la base de datos.`);
+        error.status = 404;
+        error.motivo = 'REGLA_ALERTA_NO_ENCONTRADA';
+        throw error;
+      }
       registros.push(result.rows[0]);
     }
     await client.query('COMMIT');
@@ -55,4 +44,4 @@ const guardarTodas = async ({ reglas, idUsuario }) => {
   }
 };
 
-module.exports = { TIPOS, listar, guardar, guardarTodas };
+module.exports = { REGLAS, listar, guardarTodas };

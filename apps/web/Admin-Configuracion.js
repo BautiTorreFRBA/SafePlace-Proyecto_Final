@@ -21,36 +21,19 @@ async function apiFetch(path, options = {}) {
 
 function reglasDesdeFormulario() {
   return {
-    FATIGA: {
-      fcMin: numberValue('fcMin'), fcMax: numberValue('fcMax'), fcCritico: numberValue('fcCritico'),
-      variabilidadFc: numberValue('fatVariabilidad'), decliveActividad: numberValue('fatDeclive'),
-      horasConsecutivas: numberValue('fatHoras'),
-    },
-    INACTIVIDAD: {
-      maxInactividad: numberValue('inacMax'), alertaDespues: numberValue('inacAlerta'),
-      maxIntensidadAlta: numberValue('actMax'), intervaloDescanso: numberValue('actDescanso'),
-    },
-    SOBREESFUERZO: {
-      fcSostenidaMin: numberValue('sobreFc'), umbralFc: numberValue('sobreUmbral'),
-      nivelActividad: input('sobreNivel').value,
-    },
+    Fatiga: { valorMinimo: numberValue('fcMin'), valorMaximo: numberValue('fcCritico') },
+    Inactividad: { valorMinimo: numberValue('inacMax'), valorMaximo: numberValue('inacAlerta') },
+    Sobreesfuerzo: { valorMinimo: numberValue('sobreFc'), valorMaximo: numberValue('sobreUmbral') },
   };
 }
 
 function aplicarReglas(registros) {
-  const reglas = Object.fromEntries((registros || []).map((item) => [item.tipo, item.parametros || {}]));
-  const fatiga = reglas.FATIGA || {};
-  const inactividad = reglas.INACTIVIDAD || {};
-  const sobreesfuerzo = reglas.SOBREESFUERZO || {};
+  const reglas = Object.fromEntries((registros || []).map((item) => [String(item.nombre).toLowerCase(), item]));
   Object.entries({
-    fcMin: fatiga.fcMin, fcMax: fatiga.fcMax, fcCritico: fatiga.fcCritico,
-    fatVariabilidad: fatiga.variabilidadFc, fatDeclive: fatiga.decliveActividad,
-    fatHoras: fatiga.horasConsecutivas, inacMax: inactividad.maxInactividad,
-    inacAlerta: inactividad.alertaDespues, actMax: inactividad.maxIntensidadAlta,
-    actDescanso: inactividad.intervaloDescanso, sobreFc: sobreesfuerzo.fcSostenidaMin,
-    sobreUmbral: sobreesfuerzo.umbralFc,
+    fcMin: reglas.fatiga?.valor_minimo, fcCritico: reglas.fatiga?.valor_maximo,
+    inacMax: reglas.inactividad?.valor_minimo, inacAlerta: reglas.inactividad?.valor_maximo,
+    sobreFc: reglas.sobreesfuerzo?.valor_minimo, sobreUmbral: reglas.sobreesfuerzo?.valor_maximo,
   }).forEach(([id, value]) => { if (value != null) input(id).value = value; });
-  if (sobreesfuerzo.nivelActividad) input('sobreNivel').value = sobreesfuerzo.nivelActividad;
 }
 
 async function cargarConfiguracion() {
@@ -65,9 +48,6 @@ async function guardarConfiguracion() {
     .map(([, valor]) => valor));
   if (valores.some((valor) => !Number.isFinite(valor) || valor <= 0)) {
     alert('Todos los valores numéricos deben ser positivos.'); return;
-  }
-  if (!['high', 'medium', 'low'].includes(reglas.SOBREESFUERZO.nivelActividad)) {
-    alert('Seleccioná un nivel de actividad válido.'); return;
   }
   try {
     btnGuardar.disabled = true;
