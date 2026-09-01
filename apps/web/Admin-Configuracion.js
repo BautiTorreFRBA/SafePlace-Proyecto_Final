@@ -12,7 +12,10 @@ async function apiFetch(path, options = {}) {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || payload.message || `Error HTTP ${response.status}`);
+  if (!response.ok) {
+    const detalle = payload.message || payload.error || `Error HTTP ${response.status}`;
+    throw new Error(detalle);
+  }
   return payload;
 }
 
