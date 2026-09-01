@@ -18,6 +18,10 @@ const getTransporter = () => {
     port: Number(SMTP_PORT || 587),
     secure: String(SMTP_PORT || 587) === '465',
     auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+    // Render no tiene salida IPv6: forzamos que la conexión TCP resuelva
+    // solo registros A (IPv4). dns.setDefaultResultOrder('ipv4first') solo
+    // reordena si hay AAAA y A disponibles; acá forzamos la familia.
+    family: 4,
   });
   return transporter;
 };
