@@ -12,6 +12,7 @@ const modalSave = document.getElementById('modalSave');
 const btnNuevo = document.getElementById('btnNuevo');
 const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
+const mEmail = document.getElementById('mEmail');
 const mDept = document.getElementById('mDept');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
@@ -135,6 +136,7 @@ function normalizarEmpleado(emp) {
     legajo: emp.legajo || `EMP-${String(emp.id).padStart(3, '0')}`,
     nombre: emp.nombre || '',
     apellido: emp.apellido || '',
+    email: emp.email || '',
     nombreCompleto: nombreCompleto || 'Sin nombre',
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
@@ -199,11 +201,13 @@ function openModal(modo, id = null) {
     modalTitle.textContent = 'Editar Empleado';
     mNombre.value = emp.nombre || '';
     mApellido.value = emp.apellido || '';
+    mEmail.value = emp.email || '';
     setSelectByText(mDept, emp.depto || emp.area || '');
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
     mApellido.value = '';
+    mEmail.value = '';
     mDept.value = '';
   }
   modalOverlay.classList.add('modal-overlay--visible');
@@ -218,23 +222,25 @@ function closeModal() {
 function limpiarCampos() {
   mNombre.value = '';
   mApellido.value = '';
+  mEmail.value = '';
   mDept.value = '';
 }
 
 async function guardarEmpleado() {
   const nombre = mNombre.value.trim();
   const apellido = mApellido.value.trim();
+  const email = mEmail.value.trim();
   const area = mDept.value.trim();
 
-  if (!nombre || !apellido || !area) {
-    alert('Completá nombre, apellido y departamento.');
+  if (!nombre || !apellido || !area || !email) {
+    alert('Completá nombre, apellido, departamento y email.');
     return;
   }
 
   try {
     await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
-      body: JSON.stringify({ nombre, apellido, area }),
+      body: JSON.stringify({ nombre, apellido, area, email }),
     });
     closeModal();
     limpiarCampos();
@@ -292,7 +298,7 @@ modalSave.addEventListener('click', guardarEmpleado);
     renderTable();
   });
 });
-[mNombre, mApellido, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
+[mNombre, mApellido, mEmail, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
   }

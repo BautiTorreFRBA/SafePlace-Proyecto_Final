@@ -4,6 +4,7 @@ const consentimientoController = require('../controllers/consentimiento.controll
 const { auth, authorize } = require('../middlewares/auth');
 
 router.post('/', auth, authorize(['admin']), consentimientoController.otorgar);
+router.post('/confirmar', consentimientoController.confirmar);
 router.post('/:idTrabajador/revocar', auth, authorize(['admin']), consentimientoController.revocar);
 router.get('/:idTrabajador', auth, authorize(['admin']), consentimientoController.historial);
 

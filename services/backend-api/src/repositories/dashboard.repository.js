@@ -20,6 +20,7 @@ const listarEmpleados = async () => {
       o.nombre,
       o.apellido,
       o.area AS depto,
+      o.email,
       'Operario' AS rol,
       o.estado AS estado,
       o.alta AS alta
@@ -44,13 +45,16 @@ const generarLegajoEmpleado = async (client) => {
   return `EMP-${String(siguiente).padStart(3, '0')}`;
 };
 
-const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
+const crearEmpleado = async ({ nombre, apellido, area, email, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
 
   if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para crear el empleado.');
+  }
+  if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
+    throw new Error('El email del empleado no es válido.');
   }
 
   try {
@@ -62,12 +66,12 @@ const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
       client.release();
     }
     const query = `
-      INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, alta, estado)
-      VALUES ($1, $2, $3, $4, $5, NOW(), TRUE)
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, estado;
+    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, email, alta, estado)
+      VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NOW(), TRUE)
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, email, estado;
     `;
 
-    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia]);
+    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);
     return res.rows[0];
   } catch (error) {
     if (error.code === '23505') {
@@ -88,13 +92,16 @@ const crearEmpleado = async ({ nombre, apellido, area, idEmpresa }) => {
   }
 };
 
-const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => {
+const actualizarEmpleado = async (id, { nombre, apellido, area, email, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
 
   if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para actualizar el empleado.');
+  }
+  if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
+    throw new Error('El email del empleado no es válido.');
   }
 
   try {
@@ -103,12 +110,13 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, idEmpresa }) => 
       SET id_empresa = $2,
           nombre = $3,
           apellido = $4,
-          area = $5
+          area = $5,
+          email = NULLIF($6, '')
       WHERE id = $1
-      RETURNING id, id_empresa, legajo, nombre, apellido, area;
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, email;
     `;
 
-    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia]);
+    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);
     return res.rows[0] || null;
   } catch (error) {
     if (error.code === '23505') {
