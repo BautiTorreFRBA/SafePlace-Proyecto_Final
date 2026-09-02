@@ -2733,6 +2733,20 @@ select.cfg-input {
   display: none;
 }
 
+/* Notificación ya leída: se atenúa para distinguirla de las pendientes */
+.notif-card--leido {
+  opacity: 0.55;
+}
+
+.notif-card--leido:hover {
+  opacity: 0.8;
+}
+
+.notif-btn-leer:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .notif-card__pill {
   display: inline-flex;
   align-items: center;

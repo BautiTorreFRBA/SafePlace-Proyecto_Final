@@ -67,7 +67,7 @@ function actualizarContador() {
 }
 
 function renderNotificaciones() {
-  notifList.innerHTML = notificaciones.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div></div>`).join('');
+  notifList.innerHTML = notificaciones.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('');
 }
 
 window.marcarComoLeido = async (id) => {
@@ -86,6 +86,11 @@ window.marcarComoLeido = async (id) => {
 
 btnLeerTodas.addEventListener('click', async () => {
   const pendientes = notificaciones.filter((n) => !n.leido);
+  if (pendientes.length === 0) {
+    notifCount.textContent = 'Todas leídas';
+    return;
+  }
+  btnLeerTodas.disabled = true;
   try {
     await Promise.all(pendientes.map((n) => apiFetch(`/notificaciones/${n.id}/leida`, { method: 'PATCH' })));
     pendientes.forEach((n) => { n.leido = true; });
@@ -93,6 +98,8 @@ btnLeerTodas.addEventListener('click', async () => {
     renderNotificaciones();
   } catch (error) {
     alert(error.message);
+  } finally {
+    btnLeerTodas.disabled = false;
   }
 });
 
