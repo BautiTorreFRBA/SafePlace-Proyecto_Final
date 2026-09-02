@@ -1,6 +1,10 @@
 const db = require('../config/database');
 const TIMEZONE = 'America/Argentina/Buenos_Aires';
-const SUMMARY_TIMEZONE = 'UTC';
+// Los resúmenes de Home ("Alertas por día", "FC promedio hoy") agrupan por día
+// y por hora del día: tienen que usar el calendario local del usuario, no UTC.
+// Con UTC, una alerta del 1/9 22:24 (Buenos Aires) — que en UTC ya es 2/9 01:24
+// — se contaba en el día de hoy y el operador no la encontraba en ningún lado.
+const SUMMARY_TIMEZONE = TIMEZONE;
 
 const listarEmpresas = async () => {
   const res = await db.query(`
@@ -328,12 +332,13 @@ const obtenerResumenSupervisor = async () => {
   // Baldes de 15 minutos a lo largo del día (96 slots, 0..1425 min). Los
   // baldes sin lecturas devuelven promedio NULL para que la línea muestre
   // los huecos en vez de interpolarlos. `minuto_inicio` = minutos desde la
-  // medianoche UTC.
+  // medianoche local (SUMMARY_TIMEZONE), para que "hoy" y las etiquetas de
+  // hora coincidan con lo que ve el operador.
   const frecuenciaHoyQuery = `
     WITH parametros AS (
       SELECT
-        date_trunc('day', timezone('UTC', now())) AS inicio_hoy,
-        date_trunc('day', timezone('UTC', now())) + interval '1 day' AS fin_hoy
+        date_trunc('day', timezone('${SUMMARY_TIMEZONE}', now())) AS inicio_hoy,
+        date_trunc('day', timezone('${SUMMARY_TIMEZONE}', now())) + interval '1 day' AS fin_hoy
     )
     SELECT
       gs.minuto_inicio,
@@ -341,8 +346,8 @@ const obtenerResumenSupervisor = async () => {
     FROM parametros p
     CROSS JOIN generate_series(0, 1425, 15) AS gs(minuto_inicio)
     LEFT JOIN medicion m
-      ON timezone('UTC', m.fecha_hora) >= p.inicio_hoy + make_interval(mins => gs.minuto_inicio)
-     AND timezone('UTC', m.fecha_hora) < LEAST(
+      ON timezone('${SUMMARY_TIMEZONE}', m.fecha_hora) >= p.inicio_hoy + make_interval(mins => gs.minuto_inicio)
+     AND timezone('${SUMMARY_TIMEZONE}', m.fecha_hora) < LEAST(
        p.inicio_hoy + make_interval(mins => gs.minuto_inicio + 15),
        p.fin_hoy
      )
