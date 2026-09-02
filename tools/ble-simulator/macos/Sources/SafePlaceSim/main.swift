@@ -1,4 +1,5 @@
 import Foundation
+import SafePlaceSimKit
 
 // ─── Argumentos ──────────────────────────────────────────────────────
 
@@ -28,6 +29,8 @@ while i < argv.count {
           inactivity.json      emite y se desconecta             (CP-E2E-04)
           connection-loss.json se desconecta y reconecta         (resiliencia hub / H0007)
           invalid.json         FC fuera de rango biológico       (RF-04 / H0008)
+
+        Para una interfaz visual: swift run SafePlaceSimApp
         """)
         exit(0)
     default:
@@ -46,67 +49,13 @@ do {
     exit(1)
 }
 
-log("[SCENARIO] \(scenario.name) — \(scenario.description ?? "")")
-log("[SCENARIO] intervalo \(scenario.intervalSeconds)s · duración \(scenario.durationSeconds)s · HR base \(scenario.heartRate.base) ± \(scenario.heartRate.jitter)")
-
 // ─── Ejecución ───────────────────────────────────────────────────────
 
-let peripheral = HeartRatePeripheral(localName: localName)
-
-var elapsed = 0
-var emitted = 0
-var emitting = true
-var firedActions = Set<Int>()
-var timer: Timer?
-var started = false
-
-func stopTimer() { timer?.invalidate(); timer = nil }
-
-peripheral.onReady = {
-    peripheral.startAdvertising()
-    log("[SIM] esperando que la Raspberry Pi se conecte y se suscriba…")
+let runner = ScenarioRunner(localName: localName)
+runner.onFinished = {
+    log("[SIM] escenario terminado. El estado BLE queda como está. Ctrl-C para salir.")
 }
-
-peripheral.onSubscribed = {
-    guard !started else { return }
-    started = true
-    log("[SCENARIO] \(scenario.name) started")
-
-    let t = Timer(timeInterval: TimeInterval(scenario.intervalSeconds), repeats: true) { _ in
-        // acciones programadas (disconnect / reconnect)
-        for (idx, a) in scenario.actions.enumerated()
-        where !firedActions.contains(idx) && elapsed >= a.atSeconds {
-            firedActions.insert(idx)
-            switch a.action {
-            case "disconnect":
-                log("[SCENARIO] acción @\(a.atSeconds)s: disconnect (deja de emitir y se desconecta)")
-                emitting = false
-                peripheral.disconnectPeer()
-            case "reconnect":
-                log("[SCENARIO] acción @\(a.atSeconds)s: reconnect")
-                emitting = true
-                peripheral.republish()
-            default:
-                log("[SCENARIO] acción desconocida: \(a.action)")
-            }
-        }
-
-        if emitting {
-            let bpm = scenario.nextBpm()
-            peripheral.sendHeartRate(bpm)
-            emitted += 1
-        }
-        elapsed += scenario.intervalSeconds
-
-        if elapsed >= scenario.durationSeconds && !scenario.loop {
-            log("[SCENARIO] completed — \(emitted) mediciones emitidas")
-            stopTimer()
-            log("[SIM] escenario terminado. El estado BLE queda como está. Ctrl-C para salir.")
-        }
-    }
-    RunLoop.main.add(t, forMode: .common)
-    timer = t
-}
+runner.start(scenario: scenario)
 
 signal(SIGINT) { _ in
     log("[SIM] saliendo")

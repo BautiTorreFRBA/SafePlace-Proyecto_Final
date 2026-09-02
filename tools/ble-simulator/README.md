@@ -8,8 +8,12 @@ backend por su flujo normal — **el hub no necesita ningún cambio de protocolo
 ```
 tools/ble-simulator/
 ├── shared/scenarios/     escenarios de prueba (JSON, compartidos)
-├── macos/                app Swift + CoreBluetooth  (implementada)
-├── windows/              app C# / WinUI            (pendiente)
+├── macos/                Swift + CoreBluetooth (implementada)
+│   └── Sources/
+│       ├── SafePlaceSimKit/   motor: BLE peripheral + escenarios + loop
+│       ├── SafePlaceSim/      CLI headless
+│       └── SafePlaceSimApp/   interfaz visual (SwiftUI)
+├── windows/              app C# / WinUI (pendiente)
 └── docs/ble-contract.md  contrato GATT
 ```
 
@@ -22,10 +26,28 @@ cd tools/ble-simulator/macos
 swift build -c release
 ```
 
-La primera vez, macOS pide permiso de Bluetooth para la Terminal:
-**Ajustes → Privacidad y seguridad → Bluetooth → activar Terminal** (o iTerm).
+La primera vez, macOS pide permiso de Bluetooth para la Terminal (o para la
+app): **Ajustes → Privacidad y seguridad → Bluetooth → activar** la que
+corresponda.
 
-### Correr un escenario
+El paquete tiene dos ejecutables sobre el mismo motor (`SafePlaceSimKit`):
+
+- `SafePlaceSimApp` — interfaz visual (elegir escenario, Start/Stop, logs en vivo).
+- `SafePlaceSim` — CLI headless (automatización E2E, CI, uso sin pantalla).
+
+### Interfaz visual
+
+```bash
+cd tools/ble-simulator/macos
+swift run SafePlaceSimApp
+```
+
+Se abre una ventana con la lista de escenarios, botones Iniciar / Detener, el
+estado (anunciando / hub conectado / emitiendo), tiempo, mediciones emitidas,
+última FC, y la consola de logs. Detener corta la conexión con el hub;
+Iniciar la reanuda con el escenario elegido.
+
+### CLI
 
 ```bash
 cd tools/ble-simulator/macos
