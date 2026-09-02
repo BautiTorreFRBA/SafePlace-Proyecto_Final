@@ -24,7 +24,7 @@ while i < argv.count {
         escenarios en ../shared/scenarios/ :
           normal.json          medición válida, sin alerta       (CP-E2E-01)
           fatigue.json         FC alta sostenida                 (CP-E2E-02)
-          overexertion.json    FC muy alta                       (CP-E2E-03, hub con ACTIVITY_MODE=fixed)
+          overexertion.json    FC muy alta                       (CP-E2E-03)
           inactivity.json      emite y se desconecta             (CP-E2E-04)
           connection-loss.json se desconecta y reconecta         (resiliencia hub / H0007)
           invalid.json         FC fuera de rango biológico       (RF-04 / H0008)

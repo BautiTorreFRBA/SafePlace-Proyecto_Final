@@ -29,10 +29,10 @@ real / Garmin.
 | Actividad explícita en el payload | no (la deriva el proxy del hub, ADR-14) | sí (`activityLevel` / `movementScore`) |
 | "El hub no sabe si es real o simulador" | ✅ | ✗ (necesita rama de código) |
 
-**Nivel de actividad** con HRS estándar: para el caso que lo necesita
-(CP-E2E-03 sobreesfuerzo), correr el hub con `ACTIVITY_MODE=fixed` y
-`ACTIVITY_FIXED_VALUE=0.9` durante ese escenario. Para el resto,
-`ACTIVITY_MODE=hr-proxy` (default) alcanza.
+**Nivel de actividad** con HRS estándar: lo deriva el proxy del hub
+(`ACTIVITY_MODE=hr-proxy`, default). Alcanza para todos los escenarios sin
+configurar nada en la Pi — la FC ~185 de `overexertion.json` se traduce en el
+proxy a `nivelActividad` ~1.0, por encima del umbral de sobreesfuerzo (0.7).
 
 ---
 
@@ -46,7 +46,7 @@ una vez y después:
 |---|---|---|---|
 | 01 | `FORCE_DEVICE_ID=8` | `SafePlaceSim --scenario ../shared/scenarios/normal.json` | Monitoreo: Julio Cesar con FC, sin alerta |
 | 02 | `FORCE_DEVICE_ID=8` | `--scenario ../shared/scenarios/fatigue.json` (~13 min) | Alertas Activas: FATIGA (Media) + notif |
-| 03 | `FORCE_DEVICE_ID=8` + `ACTIVITY_MODE=fixed` + `ACTIVITY_FIXED_VALUE=0.9` | `--scenario ../shared/scenarios/overexertion.json` | Alertas Activas: SOBREESFUERZO (Crítica) |
+| 03 | `FORCE_DEVICE_ID=8` | `--scenario ../shared/scenarios/overexertion.json` | Alertas Activas: SOBREESFUERZO (Crítica) |
 | 04 | `FORCE_DEVICE_ID=8` | `--scenario ../shared/scenarios/inactivity.json` | ~15 min después: INACTIVIDAD_PROLONGADA |
 | 06 | `FORCE_DEVICE_ID=8` | `normal.json` + cortar la red de la Pi ~1 min y restablecer | cola SQLite crece y luego `flush`, sin duplicados |
 | 07 | `FORCE_DEVICE_ID=9` | `--scenario ../shared/scenarios/normal.json` | 400 `DISPOSITIVO_INVALIDO` en el log del hub + `log_auditoria` |
@@ -157,7 +157,7 @@ una vez y después:
 |---|---|---|---|---|
 | **01** normal sin alerta | ✅ testeado | ✅ | ✅ `normal.json` | subir hub a la Pi + compilar sim |
 | **02** fatiga | ✅ testeado | ✅ | ✅ `fatigue.json` | idem |
-| **03** sobreesfuerzo | ✅ testeado | ✅ (`ACTIVITY_MODE=fixed 0.9`) | ✅ `overexertion.json` | idem |
+| **03** sobreesfuerzo | ✅ testeado | ✅ (proxy: FC 185 → act ~1.0) | ✅ `overexertion.json` | idem |
 | **04** inactividad prolongada | ✅ **ya probado en prod** | ✅ | ✅ `inactivity.json` | idem |
 | **06** error de transmisión + reenvío | ✅ (409 dedup) | ✅ **testeado** (`test_resiliencia.py`) | ✅ + corte manual de red | idem |
 | **07** wearable no asociado | ✅ testeado | ✅ (`FORCE_DEVICE_ID=9`) | ✅ `normal.json` | idem |
