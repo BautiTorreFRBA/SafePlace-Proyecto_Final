@@ -1,5 +1,11 @@
 const db = require('../config/database');
 
+// Los filtros Desde/Hasta llegan como fechas (YYYY-MM-DD) desde el navegador y
+// representan días del calendario local del usuario, no UTC. Sin esto, una
+// medición del 1/9 23:00 (Buenos Aires) — que en UTC ya es 2/9 02:00 — queda
+// fuera de un filtro "1/9". Debe coincidir con el TIMEZONE de dashboard.repository.
+const TIMEZONE = 'America/Argentina/Buenos_Aires';
+
 // El hub reporta cada REPORT_INTERVAL segundos (5s por defecto, ver
 // safeplace-hub/.env.example). Se usa para estimar cuántas lecturas se
 // esperaban en un tramo y derivar la cobertura del enlace.
@@ -32,8 +38,8 @@ const listarHistorialMediciones = async ({
     FROM medicion m
     LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
     LEFT JOIN operario o ON o.id = os.id_operario
-    WHERE ($1::date IS NULL OR m.fecha_hora::date >= $1::date)
-      AND ($2::date IS NULL OR m.fecha_hora::date <= $2::date)
+    WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+      AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       AND (
         $3::text IS NULL
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
@@ -61,8 +67,8 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
     WITH validas AS (
       SELECT COUNT(*)::int AS total
       FROM medicion m
-      WHERE ($1::date IS NULL OR m.fecha_hora::date >= $1::date)
-        AND ($2::date IS NULL OR m.fecha_hora::date <= $2::date)
+      WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
     ),
     descartes AS (
       SELECT
@@ -71,8 +77,8 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
       FROM log_auditoria la
       WHERE la.operacion = 'DESCARTE_VALIDACION'
         AND la.tabla_afectada = 'medicion'
-        AND ($1::date IS NULL OR la.fecha_hora::date >= $1::date)
-        AND ($2::date IS NULL OR la.fecha_hora::date <= $2::date)
+        AND ($1::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       GROUP BY 1
     ),
     errores AS (
@@ -80,8 +86,8 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
       FROM log_auditoria la
       WHERE la.operacion = 'ERROR_ALMACENAMIENTO'
         AND la.tabla_afectada = 'medicion'
-        AND ($1::date IS NULL OR la.fecha_hora::date >= $1::date)
-        AND ($2::date IS NULL OR la.fecha_hora::date <= $2::date)
+        AND ($1::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
     )
     SELECT
       (SELECT total FROM validas)  AS validas,
@@ -134,8 +140,8 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
         MAX(m.fecha_hora) FILTER (WHERE m.frecuencia_cardiaca IS NOT NULL) AS ultima
       FROM medicion m
       JOIN operario_seudonimo os ON os.id = m.id_seudonimo
-      WHERE ($1::date IS NULL OR m.fecha_hora::date >= $1::date)
-        AND ($2::date IS NULL OR m.fecha_hora::date <= $2::date)
+      WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       GROUP BY os.id_operario
     ),
     alertas AS (
@@ -146,14 +152,19 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
       FROM alerta a
       JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
       LEFT JOIN medicion m ON m.id = a.id_medicion
-      WHERE ($1::date IS NULL OR a.fecha_hora::date >= $1::date)
-        AND ($2::date IS NULL OR a.fecha_hora::date <= $2::date)
+      WHERE ($1::date IS NULL OR (a.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (a.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       GROUP BY 1, 2
     ),
     asignacion AS (
+      -- El wearable "actual" de cada operario: la asignación VIGENTE
+      -- (fecha_hasta abierta o futura). Sin este filtro, una asignación vieja
+      -- ya finalizada pero con fecha_desde más reciente — p.ej. una prueba de
+      -- 10 segundos — tapaba a la asignación real en curso.
       SELECT DISTINCT ON (ad.id_trabajador)
         ad.id_trabajador, ad.id_dispositivo
       FROM asignacion_dispositivo ad
+      WHERE ad.fecha_hasta IS NULL OR ad.fecha_hasta >= now()
       ORDER BY ad.id_trabajador, ad.fecha_desde DESC, ad.id DESC
     )
     SELECT
@@ -260,8 +271,8 @@ const listarSerieMediciones = async ({
     FROM medicion m
     LEFT JOIN operario_seudonimo os ON os.id = m.id_seudonimo
     LEFT JOIN operario o ON o.id = os.id_operario
-    WHERE ($1::date IS NULL OR m.fecha_hora::date >= $1::date)
-      AND ($2::date IS NULL OR m.fecha_hora::date <= $2::date)
+    WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+      AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       AND ($3::text IS NULL OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%')
       AND m.frecuencia_cardiaca IS NOT NULL
     GROUP BY 1
