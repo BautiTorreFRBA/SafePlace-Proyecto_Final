@@ -484,6 +484,14 @@ function obtenerMensajeSinFechas() {
   return 'Selecciona las fechas Desde y Hasta para consultar el resumen por empleado.';
 }
 
+// YYYY-MM-DD del día de hoy (formato que espera <input type="date">.value).
+function hoyISO() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 function formatearNombreArchivo(fecha = new Date()) {
   return fecha.toISOString().slice(0, 10);
 }
@@ -657,4 +665,11 @@ filterEmpleado.addEventListener('change', () => {
 filterDesde.addEventListener('change', programarRecarga);
 filterHasta.addEventListener('change', programarRecarga);
 
-renderEstadoInicial(obtenerMensajeSinFechas());
+// Por defecto el período es el día de hoy (Desde = Hasta = hoy) y se carga el
+// resumen automáticamente, en vez de arrancar con la tabla vacía.
+if (!filterDesde.value) filterDesde.value = hoyISO();
+if (!filterHasta.value) filterHasta.value = hoyISO();
+cargarResumen().catch((error) => {
+  console.error(error);
+  medCount.textContent = error.message;
+});
