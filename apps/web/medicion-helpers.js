@@ -43,13 +43,21 @@ window.MedHelpers = (function () {
     return `hace ${Math.floor(s / 86400)} d`;
   }
 
+  // new Date(null) === epoch 0 (no es NaN), y new Date('') === Invalid Date:
+  // se filtran los vacíos explícitamente antes de parsear.
+  function esVacio(v) {
+    return v === null || v === undefined || v === '';
+  }
+
   function segundosDesde(fechaHora) {
+    if (esVacio(fechaHora)) return null;
     const d = new Date(fechaHora);
     if (Number.isNaN(d.getTime())) return null;
     return (Date.now() - d.getTime()) / 1000;
   }
 
   function esHoy(fechaHora) {
+    if (esVacio(fechaHora)) return false;
     const d = new Date(fechaHora);
     if (Number.isNaN(d.getTime())) return false;
     const n = new Date();
@@ -60,6 +68,7 @@ window.MedHelpers = (function () {
 
   // Hora si la lectura es de hoy; fecha + hora si es más vieja.
   function marcaTemporal(fechaHora) {
+    if (esVacio(fechaHora)) return '--';
     const d = new Date(fechaHora);
     if (Number.isNaN(d.getTime())) return '--';
     const hora = d.toLocaleTimeString('es-AR');
