@@ -10,7 +10,7 @@
 
 | Pieza | Dónde |
 |---|---|
-| Config tolerancia (global) | `PUT /api/v1/umbrales` → `minutosDesconexionTolerada` — pantalla *Seguridad → Umbrales de Riesgo* |
+| Config tolerancia (global) | Configuración administrativa de la regla `Inactividad` |
 | Config horario (por operario) | `GET/PUT /api/v1/trabajadores/:id/horario` — pantalla *Admin → Horarios Laborales* |
 | Evento de desconexión | Hub (`report_connection_state`) **o** inferencia H0006 (`estadoDispositivo.chequearInactividad`, 5 min sin datos) **o** pulso congelado (`chequearLecturasTrabadas`) |
 | Detección + alerta | `inactividadProlongada.service.chequear()` — corre cada 60 s desde `server.js` |

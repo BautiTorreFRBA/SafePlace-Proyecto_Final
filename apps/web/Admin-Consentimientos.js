@@ -154,7 +154,7 @@ async function otorgarConsentimiento() {
     const data = payload.data || {};
     versionPoliticaInput.value = '';
     await cargarHistorial();
-    ultimaOperacion.textContent = `Otorgamiento registrado el ${formatDate(data.fecha_hora)}`;
+    ultimaOperacion.textContent = `Solicitud enviada a ${data.email || 'el email del operario'}. Debe confirmarla desde su correo.`;
   } catch (error) {
     alert(error.message);
   } finally {

@@ -32,4 +32,4 @@ horario laboral.
 - **§4 / §5 / §7** — El gateway está implementado en **Python 3 (`bleak` + `aiohttp`)**, no Node.js; la cola local es **SQLite**.
 - **§11** — El payload de `POST /api/v1/mediciones` incluye `nivelActividad` (opcional). Endpoints del hub: `GET /api/v1/dispositivos/lookup`, `POST /api/v1/dispositivos/:id/estado-conexion`.
 - **§8 / §9** — Medida de respuesta de inactividad prolongada: desconexión en horario laboral > tolerancia configurable; guarda contra desconexión fuera de horario y contra pulso congelado.
-- **Nueva config** — `umbral_riesgo.minutos_desconexion_tolerada` (global, Seguridad e Higiene, `PUT /api/v1/umbrales`); tabla `horario_operario` (por operario, `GET/PUT /api/v1/trabajadores/:id/horario`).
+- **Nueva config** — `regla_alerta` para la regla `Inactividad`; tabla `horario_operario` (por operario, `GET/PUT /api/v1/trabajadores/:id/horario`).

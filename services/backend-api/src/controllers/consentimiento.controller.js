@@ -27,6 +27,15 @@ const revocar = async (req, res, next) => {
   }
 };
 
+const confirmar = async (req, res, next) => {
+  try {
+    const registro = await consentimientoService.confirmar(req.body?.token || req.query?.token);
+    res.status(200).json({ message: 'Consentimiento confirmado.', data: registro });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const historial = async (req, res, next) => {
   try {
     const registros = await consentimientoService.obtenerHistorial(
@@ -41,5 +50,6 @@ const historial = async (req, res, next) => {
 module.exports = {
   otorgar,
   revocar,
+  confirmar,
   historial,
 };

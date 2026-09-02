@@ -17,6 +17,15 @@ const ETIQUETA_TIPO_ALERTA = {
 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
 
+function separarFechaHora(value) {
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return { fecha: '--', hora: '--' };
+  return {
+    fecha: fecha.toLocaleDateString('es-AR'),
+    hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+  };
+}
+
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
   if (!token) {
@@ -49,7 +58,7 @@ async function cargarAlertas() {
     prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
     tipo: etiquetaTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
-    fecha: new Date(a.fecha_hora).toLocaleString('es-AR'),
+    ...separarFechaHora(a.fecha_hora),
     estado: a.estado || 'Activa',
   }));
   actualizarContador();
@@ -69,6 +78,7 @@ function renderTabla() {
       <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.prioridad}">${a.tipo}</div></td>
       <td class="alert-td-empleado">${a.empleado}</td>
       <td class="alert-td-fecha">${a.fecha}</td>
+      <td class="alert-td-hora">${a.hora}</td>
       <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estado}">${a.estado}</span></td>
       <td class="alert-td-acciones"><div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div></td>
     </tr>`).join('');
@@ -93,6 +103,6 @@ filterTipo.addEventListener('change', renderTabla);
 
 cargarAlertas().catch((error) => {
   console.error(error);
-  tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
 });
 setInterval(() => cargarAlertas().catch((error) => console.error(error)), POLL_INTERVAL_MS);

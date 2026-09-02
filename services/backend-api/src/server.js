@@ -1,9 +1,14 @@
 ﻿const path = require('path');
+const dns = require('dns');
 const dotenv = require('dotenv');
 
 dotenv.config({
   path: path.resolve(__dirname, '../../../.env'),
 });
+
+// Render no tiene salida IPv6: sin esto, Node resuelve smtp.gmail.com a un
+// registro AAAA y el SMTP de nodemailer falla con ENETUNREACH.
+dns.setDefaultResultOrder('ipv4first');
 
 const app = require('./app');
 const { getPool } = require('./config/database');

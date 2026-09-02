@@ -12,6 +12,7 @@ const modalSave = document.getElementById('modalSave');
 const btnNuevo = document.getElementById('btnNuevo');
 const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
+const mEmail = document.getElementById('mEmail');
 const mDept = document.getElementById('mDept');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
@@ -120,7 +121,9 @@ async function apiFetch(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+    const error = new Error(payload.error || payload.message || `No se pudo completar la operación (HTTP ${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
 
   return payload;
@@ -135,6 +138,7 @@ function normalizarEmpleado(emp) {
     legajo: emp.legajo || `EMP-${String(emp.id).padStart(3, '0')}`,
     nombre: emp.nombre || '',
     apellido: emp.apellido || '',
+    email: emp.email || '',
     nombreCompleto: nombreCompleto || 'Sin nombre',
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
@@ -199,11 +203,13 @@ function openModal(modo, id = null) {
     modalTitle.textContent = 'Editar Empleado';
     mNombre.value = emp.nombre || '';
     mApellido.value = emp.apellido || '';
+    mEmail.value = emp.email || '';
     setSelectByText(mDept, emp.depto || emp.area || '');
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
     mApellido.value = '';
+    mEmail.value = '';
     mDept.value = '';
   }
   modalOverlay.classList.add('modal-overlay--visible');
@@ -218,23 +224,25 @@ function closeModal() {
 function limpiarCampos() {
   mNombre.value = '';
   mApellido.value = '';
+  mEmail.value = '';
   mDept.value = '';
 }
 
 async function guardarEmpleado() {
   const nombre = mNombre.value.trim();
   const apellido = mApellido.value.trim();
+  const email = mEmail.value.trim();
   const area = mDept.value.trim();
 
-  if (!nombre || !apellido || !area) {
-    alert('Completá nombre, apellido y departamento.');
+  if (!nombre || !apellido || !area || !email) {
+    alert('Completá nombre, apellido, departamento y email.');
     return;
   }
 
   try {
     await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
-      body: JSON.stringify({ nombre, apellido, area }),
+      body: JSON.stringify({ nombre, apellido, area, email }),
     });
     closeModal();
     limpiarCampos();
@@ -292,7 +300,7 @@ modalSave.addEventListener('click', guardarEmpleado);
     renderTable();
   });
 });
-[mNombre, mApellido, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
+[mNombre, mApellido, mEmail, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
   }
@@ -300,6 +308,8 @@ modalSave.addEventListener('click', guardarEmpleado);
 
 cargarEmpleados().catch((err) => {
   console.error(err);
-  empCount.textContent = 'Error cargando empleados';
-  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los empleados</td></tr>';
+  empCount.textContent = err.status === 401 || err.status === 403
+    ? 'Sesión sin permisos para consultar empleados'
+    : 'Error cargando empleados';
+  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
 });

@@ -7,12 +7,16 @@
 jest.mock('../../src/repositories/operario.repository');
 jest.mock('../../src/repositories/registroConsentimiento.repository');
 jest.mock('../../src/repositories/logAuditoria.repository');
+jest.mock('../../src/repositories/solicitudConsentimiento.repository');
+jest.mock('../../src/services/email.service');
 jest.mock('../../src/services/validacion/consentimiento.cache');
 
 const operarioRepository = require('../../src/repositories/operario.repository');
 const registroConsentimientoRepository = require('../../src/repositories/registroConsentimiento.repository');
 const logAuditoriaRepository = require('../../src/repositories/logAuditoria.repository');
 const consentimientoCache = require('../../src/services/validacion/consentimiento.cache');
+const solicitudRepository = require('../../src/repositories/solicitudConsentimiento.repository');
+const emailService = require('../../src/services/email.service');
 const consentimientoService = require('../../src/services/consentimiento.service');
 
 const actor = { id: 1, ip: '10.0.0.1' };
@@ -24,13 +28,13 @@ describe('consentimiento.service', () => {
   });
 
   describe('otorgar', () => {
-    it('registra el otorgamiento, invalida la caché y audita la operación', async () => {
-      operarioRepository.obtenerPorId.mockResolvedValue({ id: 1, estado: true });
-      registroConsentimientoRepository.crear.mockResolvedValue({
+    it('envía una solicitud y no registra el consentimiento hasta la confirmación', async () => {
+      operarioRepository.obtenerPorId.mockResolvedValue({ id: 1, estado: true, nombre: 'Ana', apellido: 'Pérez', email: 'ana@test.com' });
+      solicitudRepository.crear.mockResolvedValue({
         id: 10,
         id_operario: 1,
-        estado: true,
         version_politica: 'v1',
+        expira_en: new Date(),
       });
 
       const resultado = await consentimientoService.otorgar(
@@ -38,20 +42,10 @@ describe('consentimiento.service', () => {
         actor,
       );
 
-      expect(resultado).toMatchObject({ id: 10 });
-      expect(registroConsentimientoRepository.crear).toHaveBeenCalledWith({
-        idOperario: 1,
-        estado: true,
-        versionPolitica: 'v1',
-      });
-      expect(consentimientoCache.invalidar).toHaveBeenCalledWith(1);
-      expect(logAuditoriaRepository.registrar).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operacion: 'OTORGAR',
-          idRegistro: 10,
-          tablaAfectada: 'registro_consentimiento',
-        }),
-      );
+      expect(resultado).toMatchObject({ id: 10, estado: 'pendiente', email: 'ana@test.com' });
+      expect(emailService.enviarSolicitudConsentimiento).toHaveBeenCalled();
+      expect(registroConsentimientoRepository.crear).not.toHaveBeenCalled();
+      expect(consentimientoCache.invalidar).not.toHaveBeenCalled();
     });
 
     it('rechaza si falta versionPolitica (400)', async () => {
