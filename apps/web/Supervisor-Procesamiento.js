@@ -7,6 +7,14 @@ const kpiTasa = document.getElementById('kpiTasa');
 const chartPercent = document.getElementById('chartPercent');
 
 let registros = [];
+let resumenHoy = { validados: 0, rechazados: 0 };
+
+function hoyISO() {
+  const d = new Date();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -34,8 +42,13 @@ async function apiFetch(path, options = {}) {
 }
 
 async function cargarRegistros() {
-  const json = (await apiFetch('/dashboard/measurements?limit=50')) || {};
-  registros = (json.data || []).map((m) => ({
+  const hoy = hoyISO();
+  const [feed, resumen] = await Promise.all([
+    apiFetch('/dashboard/measurements?limit=50'),
+    apiFetch(`/mediciones/resumen?desde=${hoy}&hasta=${hoy}`),
+  ]);
+
+  registros = ((feed && feed.data) || []).map((m) => ({
     hora: new Date(m.fecha_hora).toLocaleTimeString('es-AR'),
     origen: `BLE-SP-${String(m.id_dispositivo).padStart(3, '0')}`,
     tipo: 'Frec. Cardíaca',
@@ -43,21 +56,28 @@ async function cargarRegistros() {
     estado: m.estado === 'rejected' ? 'rechazado' : m.estado === 'marked' ? 'marcado' : 'validado',
     detalle: m.estado || 'Persistido en DB',
   }));
-  actualizarKPIs();
+
+  actualizarKPIs((resumen && resumen.validacion) || {});
   renderTabla();
   renderChart();
 }
 
-function actualizarKPIs() {
-  const total = registros.length;
-  const validados = registros.filter((r) => r.estado === 'validado').length;
-  const rechazados = registros.filter((r) => r.estado === 'rechazado').length;
-  const porcentajeSinRechazos = total > 0 ? ((validados / total) * 100).toFixed(1) : 0;
+// Las cards muestran el resultado REAL del Servicio de Validación de Datos para
+// el día de hoy (mismo origen que "Validación de ingesta" en Mediciones:
+// log_auditoria / DESCARTE_VALIDACION). No se derivan de la tabla de abajo, que
+// es sólo un feed en vivo de las últimas 50 mediciones persistidas.
+function actualizarKPIs(validacion) {
+  const validados = Number(validacion.validas || 0);
+  const rechazados = Number(validacion.descartesTotal || 0) + Number(validacion.erroresAlmacenamiento || 0);
+  const total = validados + rechazados;
+  const tasaValidacion = total > 0 ? ((validados / total) * 100).toFixed(1) : '0.0';
+  const tasaRechazo = total > 0 ? ((rechazados / total) * 100).toFixed(1) : '0.0';
   kpiTotal.textContent = String(total);
   kpiValidados.textContent = String(validados);
   kpiRechazados.textContent = String(rechazados);
-  kpiTasa.textContent = `${total > 0 ? ((rechazados / total) * 100).toFixed(1) : 0}%`;
-  chartPercent.textContent = `${porcentajeSinRechazos}%`;
+  kpiTasa.textContent = `${tasaRechazo}%`;
+  chartPercent.textContent = `${tasaValidacion}%`;
+  resumenHoy = { validados, rechazados };
 }
 
 function renderTabla() {
@@ -65,8 +85,7 @@ function renderTabla() {
 }
 
 function renderChart() {
-  const validados = registros.filter((r) => r.estado === 'validado').length;
-  const rechazados = registros.filter((r) => r.estado === 'rechazado').length + registros.filter((r) => r.estado === 'marcado').length;
+  const { validados, rechazados } = resumenHoy;
   const ctx = document.getElementById('chartDistribucion').getContext('2d');
   if (window.chartDistribucion) window.chartDistribucion.destroy();
   window.chartDistribucion = new Chart(ctx, { type: 'doughnut', data: { labels: ['Validados', 'Rechazados'], datasets: [{ data: [validados, rechazados], backgroundColor: ['#4ade80', '#f87171'], borderColor: ['#0a0a0a', '#0a0a0a'], borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } });
