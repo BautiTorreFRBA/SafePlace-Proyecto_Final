@@ -35,9 +35,9 @@ El hub (`parse_hr`) ya soporta ambos formatos.
 ## Nivel de actividad
 
 El HRS estándar **no transporta** nivel de actividad. El hub lo estima con el
-proxy derivado de FC (`activity.py`, ADR-14). Para el caso que necesita un
-valor de actividad controlado (CP-E2E-03 sobreesfuerzo), se corre el hub con
-`ACTIVITY_MODE=fixed` + `ACTIVITY_FIXED_VALUE=0.9`.
+proxy derivado de FC (`activity.py`, ADR-14). Para CP-E2E-03 (sobreesfuerzo) no hace falta configurar nada: la FC ~185
+del escenario `overexertion` produce en el proxy `nivelActividad` ~1.0,
+por encima del umbral de sobreesfuerzo (0.7).
 
 ## Identificación del dispositivo
 

@@ -1,6 +1,6 @@
 {
   "name": "overexertion",
-  "description": "CP-E2E-03 — FC muy alta (correr el hub con ACTIVITY_MODE=fixed ACTIVITY_FIXED_VALUE=0.9)",
+  "description": "CP-E2E-03 — FC muy alta; el proxy hr-proxy la traduce a nivelActividad ~1.0",
   "intervalSeconds": 5,
   "durationSeconds": 60,
   "heartRate": { "base": 185, "jitter": 4, "min": 175, "max": 205 },

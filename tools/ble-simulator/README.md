@@ -36,7 +36,7 @@ cd tools/ble-simulator/macos
 |---|---|---|
 | `normal.json` | CP-E2E-01 | FC 70–85, en loop; sin alerta |
 | `fatigue.json` | CP-E2E-02 | FC ~150 durante 13 min → alerta FATIGA (Media) |
-| `overexertion.json` | CP-E2E-03 | FC ~185; **correr el hub con `ACTIVITY_MODE=fixed ACTIVITY_FIXED_VALUE=0.9`** → alerta SOBREESFUERZO (Crítica) |
+| `overexertion.json` | CP-E2E-03 | FC ~185 → el proxy da actividad ~1.0 → alerta SOBREESFUERZO (Crítica) |
 | `inactivity.json` | CP-E2E-04 | emite 30 s y se **desconecta**; a los ~15 min (en horario laboral) → alerta INACTIVIDAD_PROLONGADA |
 | `connection-loss.json` | H0007 | se desconecta a los 40 s y reconecta a los 100 s |
 | `invalid.json` | RF-04 / H0008 | FC 245 (fuera de rango) → descartada y auditada |
@@ -48,7 +48,7 @@ En `~/safeplace-gateway/.env` de la Raspberry Pi:
 ```ini
 FORCE_DEVICE_ID=8            # id del dispositivo del backend (Julio Cesar)
 TARGET_ADDRESSES=            # vacío = auto-scan (encuentra el simulador por HRS)
-ACTIVITY_MODE=hr-proxy       # fixed + ACTIVITY_FIXED_VALUE=0.9 solo para overexertion
+ACTIVITY_MODE=hr-proxy       # default; sirve para todos los escenarios
 ```
 
 `FORCE_DEVICE_ID` es necesario porque la dirección BLE de una Mac es de
