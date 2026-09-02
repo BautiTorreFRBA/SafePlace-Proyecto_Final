@@ -234,6 +234,9 @@ function renderValidacion(v) {
       ${v.erroresAlmacenamiento > 0
         ? `<div class="card__body" style="color:var(--red); font-size:0.82rem; padding-top:0;">⚠ ${v.erroresAlmacenamiento} error(es) de almacenamiento en el período (no son descartes de validación)</div>`
         : ''}
+      ${v.duplicados > 0
+        ? `<div class="card__body" style="color:var(--text-muted); font-size:0.82rem; padding-top:0;">${v.duplicados} paquete(s) duplicado(s) deduplicados por el backend (reenvíos del buffer del gateway; no cuentan como rechazo)</div>`
+        : ''}
       <div class="card__body" style="color:var(--text-muted); font-size:0.75rem; padding-top:0;">
         Fuente: log_auditoria · Servicio de Validación de Datos (RF-04 / H0008). No se desglosa por empleado: el descarte se audita sin identidad ni biodato (Ley 25.326).
       </div>
@@ -642,6 +645,7 @@ function exportarExcel() {
           Valor: total,
         })),
       { Métrica: 'Errores de almacenamiento', Valor: v.erroresAlmacenamiento },
+      { Métrica: 'Duplicados deduplicados (no son rechazo)', Valor: v.duplicados || 0 },
     ];
     const hojaValidacion = window.XLSX.utils.json_to_sheet(resumenValidacion);
     window.XLSX.utils.book_append_sheet(libro, hojaValidacion, 'Validación');

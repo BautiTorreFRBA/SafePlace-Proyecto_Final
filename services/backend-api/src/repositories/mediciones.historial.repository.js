@@ -70,6 +70,10 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
       WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
         AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
     ),
+    -- DUPLICADO no es un descarte por dato inválido (RF-04/H0008): es
+    -- idempotencia. El gateway reenvía su buffer offline entre reinicios y
+    -- el backend deduplica por (wearable, marca de tiempo). Se cuenta aparte
+    -- para no inflar la "tasa de rechazo".
     descartes AS (
       SELECT
         COALESCE(NULLIF(la.detalle::jsonb ->> 'motivo', ''), 'DESCONOCIDO') AS motivo,
@@ -77,9 +81,19 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
       FROM log_auditoria la
       WHERE la.operacion = 'DESCARTE_VALIDACION'
         AND la.tabla_afectada = 'medicion'
+        AND COALESCE(la.detalle::jsonb ->> 'motivo', '') <> 'DUPLICADO'
         AND ($1::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
         AND ($2::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       GROUP BY 1
+    ),
+    duplicados AS (
+      SELECT COUNT(*)::int AS total
+      FROM log_auditoria la
+      WHERE la.operacion = 'DESCARTE_VALIDACION'
+        AND la.tabla_afectada = 'medicion'
+        AND la.detalle::jsonb ->> 'motivo' = 'DUPLICADO'
+        AND ($1::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
+        AND ($2::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
     ),
     errores AS (
       SELECT COUNT(*)::int AS total
@@ -90,8 +104,9 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
         AND ($2::date IS NULL OR (la.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
     )
     SELECT
-      (SELECT total FROM validas)  AS validas,
-      (SELECT total FROM errores)  AS errores_almacenamiento,
+      (SELECT total FROM validas)      AS validas,
+      (SELECT total FROM errores)      AS errores_almacenamiento,
+      (SELECT total FROM duplicados)   AS duplicados,
       COALESCE((SELECT SUM(total) FROM descartes), 0)::int AS descartes_total,
       COALESCE(
         (SELECT jsonb_object_agg(motivo, total) FROM descartes),
@@ -104,6 +119,7 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
   return {
     validas: Number(row.validas || 0),
     descartesTotal: Number(row.descartes_total || 0),
+    duplicados: Number(row.duplicados || 0),
     erroresAlmacenamiento: Number(row.errores_almacenamiento || 0),
     descartesPorMotivo: row.descartes_por_motivo || {},
   };
