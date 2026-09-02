@@ -10,7 +10,7 @@
 
 | Pieza | Dónde |
 |---|---|
-| Config tolerancia (global) | Configuración administrativa de la regla `Inactividad` |
+| Config tolerancia (global) | `umbral_riesgo.minutos_desconexion_tolerada` — `PUT /api/v1/umbrales` (ver nota de reconciliación al final) |
 | Config horario (por operario) | `GET/PUT /api/v1/trabajadores/:id/horario` — pantalla *Admin → Horarios Laborales* |
 | Evento de desconexión | Hub (`report_connection_state`) **o** inferencia H0006 (`estadoDispositivo.chequearInactividad`, 5 min sin datos) **o** pulso congelado (`chequearLecturasTrabadas`) |
 | Detección + alerta | `inactividadProlongada.service.chequear()` — corre cada 60 s desde `server.js` |
@@ -63,3 +63,20 @@ python tools/inject_measurements.py \
 - `tests/integration/inactividadProlongada.test.js` — end-to-end contra Postgres.
 - `tests/services/inactividadProlongada.service.test.js` — unitario.
 - `tests/repositories/historialEstadoDispositivo.repository.test.js` — `listarDesconectadosParaAlerta`, `listarDispositivosTrabados`.
+
+## Nota de reconciliación (post-merge con `main`)
+
+El trabajo paralelo agregó una tabla genérica `regla_alerta`
+(`nombre`, `valor_minimo`, `valor_maximo`) y la pantalla *Admin → Configuración*
+para Fatiga / Inactividad / Sobreesfuerzo, y quitó la pantalla
+*Seguridad → Umbrales*.
+
+CP-E2E-04 **sigue usando `umbral_riesgo.minutos_desconexion_tolerada`**
+(`inactividadProlongada.service.js`): la tolerancia de desconexión es un valor
+en minutos que no encaja en el par min/max de `regla_alerta`. Hoy el valor
+vive en la fila vigente de `umbral_riesgo` (seed = 10 min) y solo se cambia
+por `PUT /api/v1/umbrales` (sin UI, porque la pantalla se quitó).
+
+**Pendiente de equipo:** unificar `regla_alerta` y `umbral_riesgo`, o darle a
+`regla_alerta` un campo de "minutos de tolerancia" para Inactividad y
+migrar el servicio.

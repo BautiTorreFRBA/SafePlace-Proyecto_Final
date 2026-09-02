@@ -1,0 +1,9 @@
+{
+  "name": "fatigue",
+  "description": "CP-E2E-02 — FC sostenida por encima del umbral de fatiga (default 130 bpm / 10 min)",
+  "intervalSeconds": 5,
+  "durationSeconds": 780,
+  "heartRate": { "base": 150, "jitter": 3, "min": 135, "max": 165 },
+  "loop": false,
+  "actions": []
+}

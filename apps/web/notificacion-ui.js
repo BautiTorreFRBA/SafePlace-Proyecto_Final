@@ -45,6 +45,13 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+const ETIQUETA_TIPO_ALERTA = {
+  FATIGA: 'Fatiga',
+  SOBREESFUERZO: 'Sobreesfuerzo',
+  INACTIVIDAD_PROLONGADA: 'Inactividad prolongada',
+};
+const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
+
 function mapNotifType(prioridad = '') {
   return prioridad.toLowerCase().includes('crít') || prioridad.toLowerCase().includes('crit')
     ? 'critico'
@@ -60,7 +67,7 @@ function getNotificationTargetPage() {
 function buildNotifSummary(notif) {
   const person = `${notif.operario_nombre || ''} ${notif.operario_apellido || ''}`.trim() || 'Sin operario asignado';
   const when = notif.fecha_hora ? new Date(notif.fecha_hora).toLocaleString('es-AR') : 'Fecha no disponible';
-  return `${person} · ${notif.tipo_alerta || 'Alerta'} · ${when}`;
+  return `${person} · ${etiquetaTipo(notif.tipo_alerta)} · ${when}`;
 }
 
 function ensureNotifModal() {
@@ -109,7 +116,7 @@ function openNotifModal(notificaciones) {
     ? items.map((notif) => `
       <button class="notif-preview notif-preview--${mapNotifType(notif.prioridad || '')}" type="button" data-notif-target="${targetPage}">
         <div class="notif-preview__top">
-          <strong>${escapeHtml(notif.tipo_alerta || 'Alerta')}</strong>
+          <strong>${escapeHtml(etiquetaTipo(notif.tipo_alerta))}</strong>
           <span class="notif-preview__state">${notif.leida ? 'Leída' : 'Nueva'}</span>
         </div>
         <div class="notif-preview__summary">${escapeHtml(buildNotifSummary(notif))}</div>

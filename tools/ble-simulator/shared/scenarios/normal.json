@@ -1,0 +1,9 @@
+{
+  "name": "normal",
+  "description": "CP-E2E-01 — mediciones válidas dentro de rango, sin alerta",
+  "intervalSeconds": 5,
+  "durationSeconds": 120,
+  "heartRate": { "base": 74, "jitter": 3, "min": 55, "max": 100 },
+  "loop": true,
+  "actions": []
+}

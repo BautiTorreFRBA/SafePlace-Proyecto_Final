@@ -1,0 +1,11 @@
+{
+  "name": "inactivity",
+  "description": "CP-E2E-04 — emite normal y a los 30s se desconecta; el hub/backend lo detecta y, si es horario laboral, alerta a los ~15 min",
+  "intervalSeconds": 5,
+  "durationSeconds": 1200,
+  "heartRate": { "base": 78, "jitter": 2, "min": 60, "max": 95 },
+  "loop": false,
+  "actions": [
+    { "atSeconds": 30, "do": "disconnect" }
+  ]
+}

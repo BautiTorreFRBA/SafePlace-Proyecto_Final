@@ -1,0 +1,12 @@
+{
+  "name": "connection-loss",
+  "description": "Resiliencia del hub (H0007) — emite, se desconecta a los 40s, reconecta a los 100s y sigue emitiendo",
+  "intervalSeconds": 5,
+  "durationSeconds": 240,
+  "heartRate": { "base": 82, "jitter": 3, "min": 65, "max": 100 },
+  "loop": false,
+  "actions": [
+    { "atSeconds": 40, "do": "disconnect" },
+    { "atSeconds": 100, "do": "reconnect" }
+  ]
+}

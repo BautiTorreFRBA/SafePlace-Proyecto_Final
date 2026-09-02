@@ -42,6 +42,15 @@ const listarTrabajadoresActivos = async () => {
       JOIN operario_seudonimo os ON os.id = COALESCE(m.id_seudonimo, a.id_seudonimo)
       WHERE a.estado = 'Activa'
       ORDER BY os.id_operario, a.fecha_hora DESC, a.id DESC
+    ),
+    -- 3.4: umbrales de FC vigentes (H0023). El badge tiene una capa base por
+    -- FC (verde/ámbar/rojo) aunque el motor de reglas todavía no haya
+    -- generado una alerta: una FC de 150 sostenida no debe verse "Normal".
+    umbral AS (
+      SELECT fc_fatiga, fc_sobreesfuerzo
+      FROM umbral_riesgo
+      ORDER BY fecha_hora DESC, id DESC
+      LIMIT 1
     )
     SELECT
       o.id AS id_trabajador,
@@ -51,6 +60,7 @@ const listarTrabajadoresActivos = async () => {
       o.area,
       ua.id_dispositivo,
       ua.monitoreo_desde,
+      d.capacidades AS dispositivo_capacidades,
       um.id_medicion,
       um.fecha_hora,
       um.frecuencia_cardiaca,
@@ -62,16 +72,30 @@ const listarTrabajadoresActivos = async () => {
       aa.alerta_fecha_hora,
       aa.tipo_alerta,
       aa.prioridad_alerta,
+      u.fc_fatiga,
+      u.fc_sobreesfuerzo,
       CASE
         WHEN um.id_medicion IS NULL THEN 'sin_datos'
-        WHEN aa.id_alerta IS NOT NULL AND COALESCE(aa.prioridad_alerta, '') ILIKE '%crit%' THEN 'critico'
-        WHEN aa.id_alerta IS NOT NULL THEN 'advertencia'
+        WHEN (aa.id_alerta IS NOT NULL AND COALESCE(aa.prioridad_alerta, '') ILIKE '%crit%')
+          OR (um.frecuencia_cardiaca IS NOT NULL AND u.fc_sobreesfuerzo IS NOT NULL
+              AND um.frecuencia_cardiaca >= u.fc_sobreesfuerzo)
+          THEN 'critico'
+        WHEN aa.id_alerta IS NOT NULL
+          OR (um.frecuencia_cardiaca IS NOT NULL AND u.fc_fatiga IS NOT NULL
+              AND um.frecuencia_cardiaca >= u.fc_fatiga)
+          THEN 'advertencia'
         WHEN um.fecha_hora < now() - interval '5 minutes' THEN 'desactualizado'
         ELSE 'normal'
       END AS estado_actual,
       CASE
         WHEN um.id_medicion IS NULL THEN 'Sin datos biométricos'
+        WHEN um.frecuencia_cardiaca IS NOT NULL AND u.fc_sobreesfuerzo IS NOT NULL
+             AND um.frecuencia_cardiaca >= u.fc_sobreesfuerzo
+          THEN 'FC crítica (' || um.frecuencia_cardiaca || ' BPM)'
         WHEN aa.id_alerta IS NOT NULL THEN COALESCE(aa.tipo_alerta, 'Alerta activa')
+        WHEN um.frecuencia_cardiaca IS NOT NULL AND u.fc_fatiga IS NOT NULL
+             AND um.frecuencia_cardiaca >= u.fc_fatiga
+          THEN 'FC elevada (' || um.frecuencia_cardiaca || ' BPM)'
         WHEN um.fecha_hora < now() - interval '5 minutes' THEN 'Sin actualización reciente'
         ELSE 'Estado normal'
       END AS estado_descripcion,
@@ -80,6 +104,8 @@ const listarTrabajadoresActivos = async () => {
     INNER JOIN ultima_asignacion ua ON ua.id_trabajador = o.id
     LEFT JOIN ultima_medicion um ON um.id_operario = o.id
     LEFT JOIN alerta_activa aa ON aa.id_operario = o.id
+    LEFT JOIN dispositivo d ON d.id = ua.id_dispositivo
+    LEFT JOIN umbral u ON true
     WHERE o.estado IS TRUE
     ORDER BY o.apellido, o.nombre, o.id;
   `;

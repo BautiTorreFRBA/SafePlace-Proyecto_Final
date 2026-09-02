@@ -88,7 +88,7 @@
                 <div class="kpi-card kpi-card--blue">
                     <div class="kpi-card__body">
                         <span class="kpi-card__label">DISPOSITIVOS</span>
-                        <span class="kpi-card__value" id="kpiDispositivos"><!--Cantidad de dispositivos sobre el total-->/span>
+                        <span class="kpi-card__value" id="kpiDispositivos"><!--Cantidad de dispositivos sobre el total--></span>
                     </div>
                     <div class="kpi-card__icon kpi-card__icon--blue"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/> <path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/> </svg> </div>
                 </div>
@@ -102,8 +102,8 @@
                             <th>EMPLEADO</th>
                             <th>FRECUENCIA CARDÍACA</th>
                             <th>ACTIVIDAD FÍSICA</th>
-                            <th>TEMP.</th>
-                            <th>SPO₂</th>
+                            <th id="thTemp">TEMP.</th>
+                            <th id="thSpo2">SPO₂</th>
                             <th>ESTADO</th>
                             <th>ÚLTIMA ACTUALIZACIÓN</th>
                         </tr>
@@ -115,6 +115,7 @@
         </main>
     </div>
     <script src="session-ui.js"></script>
+  <script src="medicion-helpers.js"></script>
   <script src="Supervisor-Monitoreo.js"></script>
 </body>
 </html>

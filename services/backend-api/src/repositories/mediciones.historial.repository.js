@@ -165,6 +165,7 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
       asig.id_dispositivo,
       d.marca         AS dispositivo_marca,
       d.modelo        AS dispositivo_modelo,
+      d.capacidades   AS dispositivo_capacidades,
       COALESCE(agg.lecturas, 0) AS lecturas,
       COALESCE(agg.minutos_con_datos, 0) AS minutos_con_datos,
       agg.fc_promedio,
@@ -215,7 +216,12 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
       apellido: r.operario_apellido,
       area: r.area,
       dispositivo: r.id_dispositivo
-        ? { id: r.id_dispositivo, marca: r.dispositivo_marca, modelo: r.dispositivo_modelo }
+        ? {
+          id: r.id_dispositivo,
+          marca: r.dispositivo_marca,
+          modelo: r.dispositivo_modelo,
+          capacidades: r.dispositivo_capacidades || null,
+        }
         : null,
       lecturas,
       lecturasEsperadas: esperadas,
