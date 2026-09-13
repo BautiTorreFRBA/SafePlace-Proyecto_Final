@@ -11,15 +11,15 @@ const listarPorOperario = async (idOperario) => {
      FROM horario_operario ho
      LEFT JOIN trabajo t ON t.id = ho.id_trabajo
      WHERE ho.id_operario = $1
-     ORDER BY ho.dia_semana;`,
+     ORDER BY ho.dia_semana, ho.hora_inicio;`,
     [idOperario],
   );
   return res.rows;
 };
 
 // Reemplaza el horario completo del operario por el conjunto de ventanas
-// recibido (una por día). Transaccional: o queda el set nuevo entero, o no
-// cambia nada.
+// recibido (una o más por día, ya validadas sin superposición horaria).
+// Transaccional: o queda el set nuevo entero, o no cambia nada.
 const reemplazar = async (idOperario, ventanas) => {
   const client = await db.getPool().connect();
   try {
