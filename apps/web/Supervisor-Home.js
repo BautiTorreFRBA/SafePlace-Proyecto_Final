@@ -173,7 +173,6 @@ function renderTrabajadores(trabajadores) {
     const nombre = nombreCompleto(item);
     const lectura = [
       `${formatearNumero(item.frecuencia_cardiaca)} BPM`,
-      `${formatearNumero(item.temperatura_corporal, ' C')}`,
       `${formatearNumero(item.spo2, '%')}`,
     ].join(' · ');
     const detalle = [item.area ? `Area ${item.area}` : null, lectura, formatearFechaHora(item.fecha_hora)]

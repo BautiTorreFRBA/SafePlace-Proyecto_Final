@@ -49,7 +49,13 @@ async function cargarRegistros() {
   ]);
 
   registros = ((feed && feed.data) || []).map((m) => ({
-    hora: new Date(m.fecha_hora).toLocaleTimeString('es-AR'),
+    hora: new Date(m.fecha_hora).toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
     origen: `BLE-SP-${String(m.id_dispositivo).padStart(3, '0')}`,
     tipo: 'Frec. Cardíaca',
     valor: String(m.frecuencia_cardiaca),
