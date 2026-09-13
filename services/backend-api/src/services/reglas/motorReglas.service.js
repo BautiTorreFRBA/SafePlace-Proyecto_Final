@@ -1,5 +1,5 @@
 const medicionRepository = require('../../repositories/medicion.repository');
-const umbralRiesgoRepository = require('../../repositories/umbralRiesgo.repository');
+const umbralEfectivoService = require('../umbralEfectivo.service');
 const alertasService = require('../alertas.service');
 
 /**
@@ -69,7 +69,10 @@ const evaluarSobreesfuerzo = (medicion, umbral) => {
 // medición. Sin umbral configurado (H0023 nunca corrido) no hay contra qué
 // evaluar.
 const evaluar = async (medicion) => {
-  const umbral = await umbralRiesgoRepository.obtenerVigente();
+  const umbral = await umbralEfectivoService.resolverPorSeudonimo(
+    medicion.id_seudonimo,
+    new Date(medicion.fecha_hora),
+  );
   if (!umbral) return;
 
   if (evaluarSobreesfuerzo(medicion, umbral)) {

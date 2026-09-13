@@ -6,14 +6,14 @@
  */
 
 jest.mock('../../src/repositories/medicion.repository');
-jest.mock('../../src/repositories/umbralRiesgo.repository');
+jest.mock('../../src/services/umbralEfectivo.service');
 jest.mock('../../src/repositories/tipoAlerta.repository');
 jest.mock('../../src/repositories/alerta.repository');
 jest.mock('../../src/repositories/notificacion.repository');
 jest.mock('../../src/repositories/logAuditoria.repository');
 
 const medicionRepository = require('../../src/repositories/medicion.repository');
-const umbralRiesgoRepository = require('../../src/repositories/umbralRiesgo.repository');
+const umbralEfectivoService = require('../../src/services/umbralEfectivo.service');
 const tipoAlertaRepository = require('../../src/repositories/tipoAlerta.repository');
 const alertaRepository = require('../../src/repositories/alerta.repository');
 const notificacionRepository = require('../../src/repositories/notificacion.repository');
@@ -56,7 +56,7 @@ const ventanaSostenida = (minutos, valorPorFila, cantidad = 3) => {
 describe('motorReglas.service (H0010/H0011)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    umbralRiesgoRepository.obtenerVigente.mockResolvedValue(UMBRAL);
+    umbralEfectivoService.resolverPorSeudonimo.mockResolvedValue(UMBRAL);
     tipoAlertaRepository.obtenerPorNombre.mockImplementation(async (nombre) => TIPOS_MOCK[nombre]);
     alertaRepository.existeActivaParaSeudonimoYTipo.mockResolvedValue(false);
     alertaRepository.crear.mockResolvedValue({ id: 900 });
@@ -66,7 +66,7 @@ describe('motorReglas.service (H0010/H0011)', () => {
   });
 
   it('sin umbral configurado (H0023 nunca corrido): no evalúa nada', async () => {
-    umbralRiesgoRepository.obtenerVigente.mockResolvedValue(undefined);
+    umbralEfectivoService.resolverPorSeudonimo.mockResolvedValue(undefined);
 
     await motorReglasService.evaluar(medicionMock({ frecuencia_cardiaca: 999 }));
 

@@ -6,10 +6,12 @@ const TIMEZONE = process.env.HORARIO_TIMEZONE || 'America/Argentina/Buenos_Aires
 
 const listarPorOperario = async (idOperario) => {
   const res = await db.query(
-    `SELECT id, id_operario, dia_semana, hora_inicio, hora_fin
-     FROM horario_operario
-     WHERE id_operario = $1
-     ORDER BY dia_semana;`,
+    `SELECT ho.id, ho.id_operario, ho.dia_semana, ho.hora_inicio, ho.hora_fin,
+            ho.id_trabajo, t.nombre AS trabajo_nombre
+     FROM horario_operario ho
+     LEFT JOIN trabajo t ON t.id = ho.id_trabajo
+     WHERE ho.id_operario = $1
+     ORDER BY ho.dia_semana;`,
     [idOperario],
   );
   return res.rows;
@@ -26,9 +28,9 @@ const reemplazar = async (idOperario, ventanas) => {
 
     for (const v of ventanas) {
       await client.query(
-        `INSERT INTO horario_operario (id_operario, dia_semana, hora_inicio, hora_fin)
-         VALUES ($1, $2, $3, $4);`,
-        [idOperario, v.diaSemana, v.horaInicio, v.horaFin],
+        `INSERT INTO horario_operario (id_operario, dia_semana, hora_inicio, hora_fin, id_trabajo)
+         VALUES ($1, $2, $3, $4, $5);`,
+        [idOperario, v.diaSemana, v.horaInicio, v.horaFin, v.idTrabajo || null],
       );
     }
 
@@ -45,10 +47,11 @@ const reemplazar = async (idOperario, ventanas) => {
 
 // CP-E2E-04: ¿el instante `ts` cae dentro de alguna ventana laboral del
 // operario? Se evalúa el día ISO (1=lunes..7=domingo) y la hora local en la
-// zona de referencia.
-const estaDentroDeHorario = async (idOperario, ts = new Date()) => {
+// zona de referencia. Devuelve la ventana completa (con id_trabajo, para
+// resolver el umbral efectivo) o undefined si no hay ninguna vigente.
+const obtenerVentanaVigente = async (idOperario, ts = new Date()) => {
   const res = await db.query(
-    `SELECT 1
+    `SELECT id, id_operario, dia_semana, hora_inicio, hora_fin, id_trabajo
      FROM horario_operario
      WHERE id_operario = $1
        AND dia_semana = EXTRACT(ISODOW FROM ($2::timestamptz AT TIME ZONE $3))::int
@@ -56,12 +59,12 @@ const estaDentroDeHorario = async (idOperario, ts = new Date()) => {
      LIMIT 1;`,
     [idOperario, ts, TIMEZONE],
   );
-  return res.rowCount > 0;
+  return res.rows[0];
 };
 
 module.exports = {
   TIMEZONE,
   listarPorOperario,
   reemplazar,
-  estaDentroDeHorario,
+  obtenerVentanaVigente,
 };

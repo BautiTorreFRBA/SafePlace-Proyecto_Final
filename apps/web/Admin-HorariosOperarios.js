@@ -15,6 +15,8 @@ const horarioBody = document.getElementById('horarioBody');
 const btnGuardar = document.getElementById('btnGuardar');
 const infoLine = document.getElementById('infoLine');
 
+let trabajos = [];
+
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
   if (!token) {
@@ -36,6 +38,11 @@ async function apiFetch(path, options = {}) {
   return payload;
 }
 
+function opcionesTrabajo(idSeleccionado) {
+  const opciones = trabajos.map((t) => `<option value="${t.id}" ${String(t.id) === String(idSeleccionado) ? 'selected' : ''}>${t.nombre}</option>`).join('');
+  return `<option value="">Global</option>${opciones}`;
+}
+
 function renderFilas(ventanasPorDia) {
   horarioBody.innerHTML = DIAS.map((d) => {
     const v = ventanasPorDia[d.n];
@@ -45,6 +52,7 @@ function renderFilas(ventanasPorDia) {
       <td><input type="checkbox" class="ho-activo" ${activo ? 'checked' : ''} /></td>
       <td><input class="modal__input ho-inicio" type="time" value="${activo ? String(v.hora_inicio).slice(0, 5) : '08:00'}" ${activo ? '' : 'disabled'} /></td>
       <td><input class="modal__input ho-fin" type="time" value="${activo ? String(v.hora_fin).slice(0, 5) : '17:00'}" ${activo ? '' : 'disabled'} /></td>
+      <td><select class="modal__input ho-trabajo" ${activo ? '' : 'disabled'}>${opcionesTrabajo(v?.id_trabajo)}</select></td>
     </tr>`;
   }).join('');
 
@@ -53,6 +61,7 @@ function renderFilas(ventanasPorDia) {
     chk.addEventListener('change', () => {
       tr.querySelector('.ho-inicio').disabled = !chk.checked;
       tr.querySelector('.ho-fin').disabled = !chk.checked;
+      tr.querySelector('.ho-trabajo').disabled = !chk.checked;
     });
   });
 }
@@ -83,7 +92,13 @@ async function guardar() {
       alert(`Revisá el horario del día ${tr.dataset.dia}: "hasta" debe ser posterior a "desde".`);
       return;
     }
-    ventanas.push({ diaSemana: Number(tr.dataset.dia), horaInicio, horaFin });
+    const idTrabajo = tr.querySelector('.ho-trabajo').value;
+    ventanas.push({
+      diaSemana: Number(tr.dataset.dia),
+      horaInicio,
+      horaFin,
+      idTrabajo: idTrabajo ? Number(idTrabajo) : null,
+    });
   }
 
   try {
@@ -101,6 +116,14 @@ async function guardar() {
 }
 
 async function init() {
+  try {
+    const payloadTrabajos = await apiFetch('/trabajos');
+    trabajos = (payloadTrabajos.data || []).filter((t) => t.activo);
+  } catch (error) {
+    trabajos = [];
+    console.error(error);
+  }
+
   try {
     const payload = await apiFetch('/dashboard/employees');
     const empleados = (payload.data || payload.employees || []).filter((e) => e.estado);

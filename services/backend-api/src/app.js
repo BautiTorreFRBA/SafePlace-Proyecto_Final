@@ -19,6 +19,7 @@ const dispositivosRoutes = require('./routes/dispositivos.routes');
 const auditoriaRoutes = require('./routes/auditoria.routes');
 const umbralesRoutes = require('./routes/umbrales.routes');
 const reglaAlertaRoutes = require('./routes/reglaAlerta.routes');
+const trabajoRoutes = require('./routes/trabajo.routes');
 const notificacionesRoutes = require('./routes/notificaciones.routes');
 
 const app = express();
@@ -80,6 +81,7 @@ app.use(`${API_PREFIX}/dispositivos`, dispositivosRoutes);
 app.use(`${API_PREFIX}/auditoria`, auditoriaRoutes);
 app.use(`${API_PREFIX}/umbrales`, umbralesRoutes);
 app.use(`${API_PREFIX}/reglas-alerta`, reglaAlertaRoutes);
+app.use(`${API_PREFIX}/trabajos`, trabajoRoutes);
 app.use(`${API_PREFIX}/notificaciones`, notificacionesRoutes);
 app.use('/health', healthRoutes);
 

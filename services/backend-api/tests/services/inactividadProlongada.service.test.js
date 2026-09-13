@@ -7,6 +7,7 @@
 jest.mock('../../src/repositories/historialEstadoDispositivo.repository');
 jest.mock('../../src/repositories/horarioOperario.repository');
 jest.mock('../../src/repositories/umbralRiesgo.repository');
+jest.mock('../../src/repositories/trabajo.repository');
 jest.mock('../../src/repositories/operarioSeudonimo.repository');
 jest.mock('../../src/repositories/tipoAlerta.repository');
 jest.mock('../../src/repositories/alerta.repository');
@@ -15,6 +16,7 @@ jest.mock('../../src/services/alertas.service');
 const historialEstadoDispositivoRepository = require('../../src/repositories/historialEstadoDispositivo.repository');
 const horarioOperarioRepository = require('../../src/repositories/horarioOperario.repository');
 const umbralRiesgoRepository = require('../../src/repositories/umbralRiesgo.repository');
+const trabajoRepository = require('../../src/repositories/trabajo.repository');
 const operarioSeudonimoRepository = require('../../src/repositories/operarioSeudonimo.repository');
 const tipoAlertaRepository = require('../../src/repositories/tipoAlerta.repository');
 const alertaRepository = require('../../src/repositories/alerta.repository');
@@ -32,8 +34,9 @@ describe('inactividadProlongada.service.chequear (CP-E2E-04)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     umbralRiesgoRepository.obtenerVigente.mockResolvedValue({ minutos_desconexion_tolerada: 10 });
+    trabajoRepository.listarActivos.mockResolvedValue([]);
     historialEstadoDispositivoRepository.listarDesconectadosParaAlerta.mockResolvedValue([candidato()]);
-    horarioOperarioRepository.estaDentroDeHorario.mockResolvedValue(true);
+    horarioOperarioRepository.obtenerVentanaVigente.mockResolvedValue({ id: 1, id_trabajo: null });
     operarioSeudonimoRepository.obtenerOCrearPorOperario.mockResolvedValue({ id: 7 });
     alertasService.generar.mockResolvedValue({ id: 900 });
   });
@@ -48,7 +51,20 @@ describe('inactividadProlongada.service.chequear (CP-E2E-04)', () => {
   });
 
   it('fuera del horario laboral: NO genera alerta', async () => {
-    horarioOperarioRepository.estaDentroDeHorario.mockResolvedValue(false);
+    horarioOperarioRepository.obtenerVentanaVigente.mockResolvedValue(undefined);
+
+    const n = await inactividadProlongadaService.chequear();
+
+    expect(n).toBe(0);
+    expect(alertasService.generar).not.toHaveBeenCalled();
+  });
+
+  it('con trabajo asignado y activo: usa la tolerancia del trabajo, no la global', async () => {
+    horarioOperarioRepository.obtenerVentanaVigente.mockResolvedValue({ id: 1, id_trabajo: 5 });
+    trabajoRepository.obtenerPorId.mockResolvedValue({ id: 5, activo: true, minutos_desconexion_tolerada: 30 });
+    historialEstadoDispositivoRepository.listarDesconectadosParaAlerta.mockResolvedValue([
+      candidato({ desconectado_desde: new Date(Date.now() - 20 * 60 * 1000) }),
+    ]);
 
     const n = await inactividadProlongadaService.chequear();
 

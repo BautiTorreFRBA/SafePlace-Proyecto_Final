@@ -67,166 +67,157 @@
         </div>
 
         <!-- PANTALLA CONFIGURACIÓN -->
-         
-        <!-- Frecuencia Cardíaca -->
-        <div class="cfg-grid">    
-            <div class="cfg-card"><div class="cfg-card__header"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> </svg> Frecuencia Cardíaca</div>
+        <!-- Los 6 campos de abajo son 1:1 con las columnas de umbral_riesgo,
+             la tabla que el Motor de Reglas realmente lee (H0010/H0011/H0012). -->
+        <div class="cfg-grid">
+            <div class="cfg-card"><div class="cfg-card__header"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/> </svg> Fatiga (H0010)</div>
             <div class="cfg-card__body">
                 <div class="cfg-field">
-                    <label class="cfg-label">Mínimo (BPM)</label>
+                    <label class="cfg-label">FC fatiga (BPM)</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="fcMin" type="number" value="50" />
+                        <input class="cfg-input" id="fcFatiga" type="number" value="140" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fcMin" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fcMin" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="fcFatiga" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="fcFatiga" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
                 <div class="cfg-field">
-                    <label class="cfg-label">Máximo (BPM)</label>
+                    <label class="cfg-label">Minutos sostenidos</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="fcMax" type="number" value="120" />
+                        <input class="cfg-input" id="minutosFatiga" type="number" value="10" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fcMax" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fcMax" data-dir="down">▼</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="cfg-field">
-                    <label class="cfg-label">Crítico Máximo (BPM)</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="fcCritico" type="number" value="140" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fcCritico" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fcCritico" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="minutosFatiga" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="minutosFatiga" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Actividad Física -->
+        <!-- Sobreesfuerzo -->
         <div class="cfg-card">
-            <div class="cfg-card__header"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/> </svg> Actividad Física </div>
+            <div class="cfg-card__header"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/> </svg> Sobreesfuerzo (H0011) </div>
             <div class="cfg-card__body">
                 <div class="cfg-field">
-                    <label class="cfg-label">Máx. intensidad alta (min)</label>
+                    <label class="cfg-label">FC sobreesfuerzo (BPM)</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="actMax" type="number" value="120" />
+                        <input class="cfg-input" id="fcSobreesfuerzo" type="number" value="170" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="actMax" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="actMax" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="fcSobreesfuerzo" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="fcSobreesfuerzo" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
                 <div class="cfg-field">
-                    <label class="cfg-label">Intervalo de descanso (min)</label>
+                    <label class="cfg-label">Actividad mínima (0 a 1)</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="actDescanso" type="number" value="30" />
+                        <input class="cfg-input" id="actividadSobreesfuerzo" type="number" step="0.05" min="0" max="1" value="0.8" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="actDescanso" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="actDescanso" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="actividadSobreesfuerzo" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="actividadSobreesfuerzo" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Inactividad -->
+        <!-- Inactividad / desconexión -->
         <div class="cfg-card">
-            <div class="cfg-card__header"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/> </svg> Inactividad </div>
+            <div class="cfg-card__header"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/> </svg> Inactividad prolongada (H0012) </div>
             <div class="cfg-card__body">
                 <div class="cfg-field">
-                    <label class="cfg-label">Máx. inactividad (min)</label>
+                    <label class="cfg-label">Minutos de inactividad</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="inacMax" type="number" value="45" />
+                        <input class="cfg-input" id="minutosInactividad" type="number" value="30" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="inacMax" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="inacMax" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="minutosInactividad" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="minutosInactividad" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
                 <div class="cfg-field">
-                    <label class="cfg-label">Alerta después de (min)</label>
+                    <label class="cfg-label">Tolerancia de desconexión (min)</label>
                     <div class="cfg-spinner">
-                        <input class="cfg-input" id="inacAlerta" type="number" value="30" />
+                        <input class="cfg-input" id="minutosDesconexionTolerada" type="number" value="15" />
                         <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="inacAlerta" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="inacAlerta" data-dir="down">▼</button>
+                            <button class="cfg-spinner__btn" data-target="minutosDesconexionTolerada" data-dir="up">▲</button>
+                            <button class="cfg-spinner__btn" data-target="minutosDesconexionTolerada" data-dir="down">▼</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Detección de Fatiga -->
-        <div class="cfg-card">
-            <div class="cfg-card__header"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/> </svg> Detección de Fatiga </div>
-            <div class="cfg-card__body">
-                <div class="cfg-field">
-                    <label class="cfg-label">Umbral variabilidad FC (%)</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="fatVariabilidad" type="number" value="15" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fatVariabilidad" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fatVariabilidad" data-dir="down">▼</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="cfg-field">
-                    <label class="cfg-label">Declive actividad (%)</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="fatDeclive" type="number" value="30" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fatDeclive" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fatDeclive" data-dir="down">▼</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="cfg-field">
-                    <label class="cfg-label">Horas consecutivas</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="fatHoras" type="number" value="6" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="fatHoras" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="fatHoras" data-dir="down">▼</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Detección de Sobreesfuerzo (ocupa columna izquierda completa) -->
-        <div class="cfg-card cfg-card--wide">
-            <div class="cfg-card__header"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/> </svg> Detección de Sobreesfuerzo </div>
-            <div class="cfg-card__body">
-                <div class="cfg-field">
-                    <label class="cfg-label">FC sostenida (min)</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="sobreFc" type="number" value="5" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="sobreFc" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="sobreFc" data-dir="down">▼</button>
+        <!-- Trabajos: cada uno con sus propios umbrales, asignables por
+             ventana de horario en Horarios Laborales. Sin trabajo asignado,
+             se usa el umbral global de arriba. -->
+        <div class="emp-header" style="margin-top:8px;">
+            <div>
+                <h2 class="emp-header__title" style="font-size:1.05rem;">Trabajos</h2>
+                <p class="emp-header__count">Tipos de tarea con umbrales propios, asignables por día en Horarios Laborales</p>
+            </div>
+            <button class="btn-nuevo" id="btnNuevoTrabajo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo Trabajo</button>
+        </div>
+
+        <div class="emp-table-wrap">
+            <table class="emp-table">
+                <thead>
+                    <tr>
+                        <th>NOMBRE</th>
+                        <th>DESCRIPCIÓN</th>
+                        <th>ESTADO</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="trabajoTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="modal-overlay" id="trabajoModalOverlay">
+            <div class="modal">
+                <div class="modal__header">
+                    <h3 class="modal__title" id="trabajoModalTitle">Nuevo Trabajo</h3>
+                    <button class="modal__close" id="trabajoModalClose"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div class="modal__body">
+                    <div class="modal__field">
+                        <label class="modal__label">NOMBRE</label>
+                        <input class="modal__input" id="tNombre" type="text" placeholder="Ej: Soldadura" />
+                    </div>
+                    <div class="modal__field">
+                        <label class="modal__label">DESCRIPCIÓN</label>
+                        <input class="modal__input" id="tDescripcion" type="text" placeholder="Opcional" />
+                    </div>
+                    <div class="modal__field">
+                        <label class="modal__label">FC FATIGA (BPM) / MINUTOS SOSTENIDOS</label>
+                        <div style="display:flex; gap:8px;">
+                            <input class="modal__input" id="tFcFatiga" type="number" value="140" />
+                            <input class="modal__input" id="tMinutosFatiga" type="number" value="10" />
                         </div>
                     </div>
-                </div>
-                <div class="cfg-field">
-                    <label class="cfg-label">Umbral FC sostenida (BPM)</label>
-                    <div class="cfg-spinner">
-                        <input class="cfg-input" id="sobreUmbral" type="number" value="130" />
-                        <div class="cfg-spinner__btns">
-                            <button class="cfg-spinner__btn" data-target="sobreUmbral" data-dir="up">▲</button>
-                            <button class="cfg-spinner__btn" data-target="sobreUmbral" data-dir="down">▼</button>
+                    <div class="modal__field">
+                        <label class="modal__label">FC SOBREESFUERZO (BPM) / ACTIVIDAD MÍNIMA (0-1)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input class="modal__input" id="tFcSobreesfuerzo" type="number" value="170" />
+                            <input class="modal__input" id="tActividadSobreesfuerzo" type="number" step="0.05" min="0" max="1" value="0.8" />
                         </div>
                     </div>
+                    <div class="modal__field">
+                        <label class="modal__label">MINUTOS INACTIVIDAD / TOLERANCIA DESCONEXIÓN (MIN)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input class="modal__input" id="tMinutosInactividad" type="number" value="30" />
+                            <input class="modal__input" id="tMinutosDesconexionTolerada" type="number" value="15" />
+                        </div>
+                    </div>
+                    <div class="modal__field" id="tActivoField" style="display:none;">
+                        <label class="modal__label"><input type="checkbox" id="tActivo" /> Activo</label>
+                    </div>
                 </div>
-                <div class="cfg-field">
-                    <label class="cfg-label">Nivel actividad umbral</label>
-                    <select class="cfg-input" id="sobreNivel">
-                    <option value="high" selected>Alto</option>
-                    <option value="medium">Medio</option>
-                    <option value="low">Bajo</option>
-                    </select>
+                <div class="modal__footer">
+                    <button class="modal__btn modal__btn--cancel" id="trabajoModalCancel">Cancelar</button>
+                    <button class="modal__btn modal__btn--save" id="trabajoModalSave">Guardar</button>
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 const historialEstadoDispositivoRepository = require('../repositories/historialEstadoDispositivo.repository');
 const horarioOperarioRepository = require('../repositories/horarioOperario.repository');
 const umbralRiesgoRepository = require('../repositories/umbralRiesgo.repository');
+const trabajoRepository = require('../repositories/trabajo.repository');
 const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
 const tipoAlertaRepository = require('../repositories/tipoAlerta.repository');
 const alertaRepository = require('../repositories/alerta.repository');
@@ -27,21 +28,44 @@ const TIPO = 'INACTIVIDAD_PROLONGADA';
 
 const _bloqueado = { valor: false };
 
+// Tolerancia efectiva para un candidato: la del trabajo asignado a su
+// ventana de horario vigente (si está activo), o la global si no.
+const resolverTolerancia = async (idOperario, umbralGlobal) => {
+  const ventana = await horarioOperarioRepository.obtenerVentanaVigente(idOperario);
+  if (ventana?.id_trabajo) {
+    const trabajo = await trabajoRepository.obtenerPorId(ventana.id_trabajo);
+    if (trabajo?.activo) return { ventana, tolerancia: Number(trabajo.minutos_desconexion_tolerada) };
+  }
+  return { ventana, tolerancia: Number(umbralGlobal.minutos_desconexion_tolerada) };
+};
+
 const chequear = async () => {
   if (_bloqueado.valor) return 0;
   _bloqueado.valor = true;
   try {
-    const umbral = await umbralRiesgoRepository.obtenerVigente();
-    const tolerancia = umbral && Number(umbral.minutos_desconexion_tolerada);
-    if (!tolerancia || Number.isNaN(tolerancia)) return 0;
+    const umbralGlobal = await umbralRiesgoRepository.obtenerVigente();
+    const toleranciaGlobal = umbralGlobal && Number(umbralGlobal.minutos_desconexion_tolerada);
+    if (!toleranciaGlobal || Number.isNaN(toleranciaGlobal)) return 0;
+
+    // Piso de búsqueda: la menor tolerancia entre la global y la de
+    // cualquier trabajo activo, para no perder candidatos que un trabajo
+    // específico quiere alertar antes que el criterio global.
+    const trabajosActivos = await trabajoRepository.listarActivos();
+    const toleranciaMinima = trabajosActivos.reduce(
+      (min, t) => Math.min(min, Number(t.minutos_desconexion_tolerada)),
+      toleranciaGlobal,
+    );
 
     const candidatos = await historialEstadoDispositivoRepository
-      .listarDesconectadosParaAlerta(tolerancia);
+      .listarDesconectadosParaAlerta(toleranciaMinima);
 
     let generadas = 0;
     for (const c of candidatos) {
-      const enHorario = await horarioOperarioRepository.estaDentroDeHorario(c.id_operario);
-      if (!enHorario) continue;
+      const { ventana, tolerancia } = await resolverTolerancia(c.id_operario, umbralGlobal);
+      if (!ventana) continue;
+
+      const minutosDesconectado = (Date.now() - new Date(c.desconectado_desde).getTime()) / 60000;
+      if (minutosDesconectado < tolerancia) continue;
 
       const seudonimo = await operarioSeudonimoRepository.obtenerOCrearPorOperario(c.id_operario);
       const alerta = await alertasService.generar({

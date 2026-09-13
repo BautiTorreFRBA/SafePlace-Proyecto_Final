@@ -36,6 +36,10 @@ const validarVentanas = (ventanas) => {
     if (String(v.horaFin) <= String(v.horaInicio)) {
       throw createHttpError(400, 'horaFin debe ser posterior a horaInicio (turnos nocturnos no soportados).', 'HORARIO_INVALIDO');
     }
+
+    if (v.idTrabajo != null && (!Number.isInteger(Number(v.idTrabajo)) || Number(v.idTrabajo) <= 0)) {
+      throw createHttpError(400, 'idTrabajo debe ser un entero positivo o estar ausente (umbral global).', 'HORARIO_INVALIDO');
+    }
   }
 };
 

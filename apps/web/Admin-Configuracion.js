@@ -4,6 +4,11 @@ const savedMessage = document.getElementById('cfgSaved');
 const input = (id) => document.getElementById(id);
 const numberValue = (id) => Number(input(id).value);
 
+const UMBRAL_CAMPOS = [
+  'fcFatiga', 'minutosFatiga', 'fcSobreesfuerzo',
+  'actividadSobreesfuerzo', 'minutosInactividad', 'minutosDesconexionTolerada',
+];
+
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
   if (!token) { window.location.href = 'InicioSesion.html'; return null; }
@@ -19,39 +24,42 @@ async function apiFetch(path, options = {}) {
   return payload;
 }
 
-function reglasDesdeFormulario() {
-  return {
-    Fatiga: { valorMinimo: numberValue('fcMin'), valorMaximo: numberValue('fcCritico') },
-    Inactividad: { valorMinimo: numberValue('inacMax'), valorMaximo: numberValue('inacAlerta') },
-    Sobreesfuerzo: { valorMinimo: numberValue('sobreFc'), valorMaximo: numberValue('sobreUmbral') },
-  };
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function aplicarReglas(registros) {
-  const reglas = Object.fromEntries((registros || []).map((item) => [String(item.nombre).toLowerCase(), item]));
-  Object.entries({
-    fcMin: reglas.fatiga?.valor_minimo, fcCritico: reglas.fatiga?.valor_maximo,
-    inacMax: reglas.inactividad?.valor_minimo, inacAlerta: reglas.inactividad?.valor_maximo,
-    sobreFc: reglas.sobreesfuerzo?.valor_minimo, sobreUmbral: reglas.sobreesfuerzo?.valor_maximo,
-  }).forEach(([id, value]) => { if (value != null) input(id).value = value; });
+// ---- Umbrales globales (umbral_riesgo, vía /umbrales) ----
+
+function umbralDesdeFormulario() {
+  return Object.fromEntries(UMBRAL_CAMPOS.map((id) => [id, numberValue(id)]));
+}
+
+function aplicarUmbral(umbral) {
+  if (!umbral) return;
+  UMBRAL_CAMPOS.forEach((id) => {
+    const columna = id.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+    if (umbral[columna] != null) input(id).value = umbral[columna];
+  });
 }
 
 async function cargarConfiguracion() {
-  const payload = await apiFetch('/reglas-alerta');
-  aplicarReglas(payload.data);
+  const payload = await apiFetch('/umbrales');
+  aplicarUmbral(payload.data);
 }
 
 async function guardarConfiguracion() {
-  const reglas = reglasDesdeFormulario();
-  const valores = Object.entries(reglas).flatMap(([tipo, parametros]) => Object.entries(parametros)
-    .filter(([nombre]) => !(tipo === 'SOBREESFUERZO' && nombre === 'nivelActividad'))
-    .map(([, valor]) => valor));
-  if (valores.some((valor) => !Number.isFinite(valor) || valor <= 0)) {
+  const umbral = umbralDesdeFormulario();
+  if (Object.values(umbral).some((valor) => !Number.isFinite(valor) || valor <= 0)) {
     alert('Todos los valores numéricos deben ser positivos.'); return;
   }
   try {
     btnGuardar.disabled = true;
-    await apiFetch('/reglas-alerta', { method: 'PUT', body: JSON.stringify({ reglas }) });
+    await apiFetch('/umbrales', { method: 'PUT', body: JSON.stringify(umbral) });
     savedMessage.textContent = '✓ Guardado en la base de datos';
     savedMessage.classList.add('cfg-saved--visible');
     setTimeout(() => savedMessage.classList.remove('cfg-saved--visible'), 2500);
@@ -67,4 +75,106 @@ document.querySelectorAll('.cfg-spinner__btn').forEach((btn) => {
   });
 });
 btnGuardar.addEventListener('click', guardarConfiguracion);
+
+// ---- Trabajos (/trabajos): umbrales por tipo de tarea ----
+
+const trabajoTableBody = document.getElementById('trabajoTableBody');
+const btnNuevoTrabajo = document.getElementById('btnNuevoTrabajo');
+const trabajoModalOverlay = document.getElementById('trabajoModalOverlay');
+const trabajoModalTitle = document.getElementById('trabajoModalTitle');
+const trabajoModalClose = document.getElementById('trabajoModalClose');
+const trabajoModalCancel = document.getElementById('trabajoModalCancel');
+const trabajoModalSave = document.getElementById('trabajoModalSave');
+const tActivoField = document.getElementById('tActivoField');
+
+const T_CAMPOS = [
+  ['tFcFatiga', 'fcFatiga'], ['tMinutosFatiga', 'minutosFatiga'],
+  ['tFcSobreesfuerzo', 'fcSobreesfuerzo'], ['tActividadSobreesfuerzo', 'actividadSobreesfuerzo'],
+  ['tMinutosInactividad', 'minutosInactividad'], ['tMinutosDesconexionTolerada', 'minutosDesconexionTolerada'],
+];
+
+let trabajos = [];
+let editandoTrabajoId = null;
+
+async function cargarTrabajos() {
+  const payload = await apiFetch('/trabajos');
+  trabajos = payload.data || [];
+  renderTrabajos();
+}
+
+function renderTrabajos() {
+  trabajoTableBody.innerHTML = trabajos.length === 0
+    ? '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">Sin trabajos configurados — todas las ventanas usan el umbral global</td></tr>'
+    : trabajos.map((t) => `
+      <tr>
+        <td>${escapeHtml(t.nombre)}</td>
+        <td style="color:var(--text-secondary)">${escapeHtml(t.descripcion || '--')}</td>
+        <td>${t.activo ? '<span class="badge badge--normal">Activo</span>' : '<span class="badge badge--neutral">Inactivo</span>'}</td>
+        <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${t.id}">Editar</button></div></td>
+      </tr>
+    `).join('');
+}
+
+function abrirModalTrabajo(id = null) {
+  editandoTrabajoId = id;
+  const t = id ? trabajos.find((x) => String(x.id) === String(id)) : null;
+
+  trabajoModalTitle.textContent = t ? 'Editar Trabajo' : 'Nuevo Trabajo';
+  input('tNombre').value = t?.nombre || '';
+  input('tDescripcion').value = t?.descripcion || '';
+  T_CAMPOS.forEach(([campoId, prop]) => {
+    input(campoId).value = t ? t[prop.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)] : input(campoId).defaultValue;
+  });
+  tActivoField.style.display = t ? '' : 'none';
+  input('tActivo').checked = t ? Boolean(t.activo) : true;
+
+  trabajoModalOverlay.classList.add('modal-overlay--visible');
+}
+
+function cerrarModalTrabajo() {
+  trabajoModalOverlay.classList.remove('modal-overlay--visible');
+  editandoTrabajoId = null;
+}
+
+async function guardarTrabajo() {
+  const nombre = input('tNombre').value.trim();
+  if (!nombre) { alert('El nombre del trabajo es obligatorio.'); return; }
+
+  const datos = {
+    nombre,
+    descripcion: input('tDescripcion').value.trim(),
+    activo: input('tActivo').checked,
+  };
+  T_CAMPOS.forEach(([campoId, prop]) => { datos[prop] = Number(input(campoId).value); });
+
+  if (Object.values(datos).filter((v) => typeof v === 'number').some((v) => !Number.isFinite(v) || v <= 0)) {
+    alert('Los umbrales deben ser números positivos.'); return;
+  }
+
+  try {
+    trabajoModalSave.disabled = true;
+    await apiFetch(editandoTrabajoId ? `/trabajos/${editandoTrabajoId}` : '/trabajos', {
+      method: editandoTrabajoId ? 'PUT' : 'POST',
+      body: JSON.stringify(datos),
+    });
+    cerrarModalTrabajo();
+    await cargarTrabajos();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    trabajoModalSave.disabled = false;
+  }
+}
+
+trabajoTableBody.addEventListener('click', (e) => {
+  const editBtn = e.target.closest('.emp-actions__edit');
+  if (editBtn) abrirModalTrabajo(editBtn.dataset.id);
+});
+btnNuevoTrabajo.addEventListener('click', () => abrirModalTrabajo());
+trabajoModalClose.addEventListener('click', cerrarModalTrabajo);
+trabajoModalCancel.addEventListener('click', cerrarModalTrabajo);
+trabajoModalOverlay.addEventListener('click', (e) => { if (e.target === trabajoModalOverlay) cerrarModalTrabajo(); });
+trabajoModalSave.addEventListener('click', guardarTrabajo);
+
 cargarConfiguracion().catch((error) => alert(`No se pudo cargar la configuración: ${error.message}`));
+cargarTrabajos().catch((error) => alert(`No se pudieron cargar los trabajos: ${error.message}`));
