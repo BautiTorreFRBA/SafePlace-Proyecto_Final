@@ -173,7 +173,6 @@ function renderTrabajadores(trabajadores) {
     const nombre = nombreCompleto(item);
     const lectura = [
       formatearNumero(item.frecuencia_cardiaca, ' BPM'),
-      formatearNumero(item.spo2, '%'),
     ].filter(Boolean).join(' · ');
     const detalle = [item.area ? `Area ${item.area}` : null, lectura || null, formatearFechaHora(item.fecha_hora)]
       .filter(Boolean)
