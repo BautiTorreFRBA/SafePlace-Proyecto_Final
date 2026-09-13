@@ -96,9 +96,9 @@ function iniciales(nombre) {
 }
 
 function formatearFechaHora(value) {
-  if (!value) return '--';
+  if (!value) return null;
   const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return '--';
+  if (Number.isNaN(fecha.getTime())) return null;
   return fecha.toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',
@@ -110,7 +110,7 @@ function formatearFechaHora(value) {
 }
 
 function formatearNumero(value, sufijo = '') {
-  if (value === null || value === undefined || value === '') return '--';
+  if (value === null || value === undefined || value === '') return null;
   return `${value}${sufijo}`;
 }
 
@@ -172,10 +172,10 @@ function renderTrabajadores(trabajadores) {
     const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
     const nombre = nombreCompleto(item);
     const lectura = [
-      `${formatearNumero(item.frecuencia_cardiaca)} BPM`,
-      `${formatearNumero(item.spo2, '%')}`,
-    ].join(' · ');
-    const detalle = [item.area ? `Area ${item.area}` : null, lectura, formatearFechaHora(item.fecha_hora)]
+      formatearNumero(item.frecuencia_cardiaca, ' BPM'),
+      formatearNumero(item.spo2, '%'),
+    ].filter(Boolean).join(' · ');
+    const detalle = [item.area ? `Area ${item.area}` : null, lectura || null, formatearFechaHora(item.fecha_hora)]
       .filter(Boolean)
       .join(' · ');
 
