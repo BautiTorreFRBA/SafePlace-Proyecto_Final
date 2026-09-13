@@ -3,7 +3,6 @@ const simGrid = document.getElementById('simGrid');
 const tableBody = document.getElementById('wearTableBody');
 const kpiConectados = document.getElementById('kpiConectados');
 const kpiDesconectados = document.getElementById('kpiDesconectados');
-const kpiBateria = document.getElementById('kpiBateria');
 
 let dispositivos = [];
 
@@ -41,7 +40,6 @@ async function cargarDispositivos() {
     ble: d.operario_id ? 'vinculado' : 'buscando',
     signal: null,
     signalQuality: 'Sin dato',
-    bateria: null,
     ultimaSinc: d.ultima_sinc ? new Date(d.ultima_sinc).toLocaleString('es-AR') : '--',
     paquetes: null,
   }));
@@ -51,10 +49,8 @@ function actualizarKPIs() {
   const conectados = dispositivos.filter((d) => d.estado === 'conectado').length;
   const total = dispositivos.length;
   const desconectados = dispositivos.filter((d) => d.estado === 'desconectado').length;
-  const bateriaBaja = dispositivos.filter((d) => d.bateria !== null && d.bateria < 20).length;
   kpiConectados.textContent = `${conectados}/${total}`;
   kpiDesconectados.textContent = desconectados;
-  kpiBateria.textContent = bateriaBaja;
 }
 
 function renderSimulacion() {
@@ -71,7 +67,6 @@ function renderTabla() {
       <td><span class="wear-badge-${d.estado}">${d.estado === 'conectado' ? 'Conectado' : 'Desconectado'}</span></td>
       <td><span class="wear-ble-${d.ble}">${d.ble === 'vinculado' ? 'Vinculado' : 'Buscando'}</span></td>
       <td><div class="wear-signal"><span style="color:var(--text-muted)">--- (Sin dato)</span></div></td>
-      <td><div class="wear-battery"><span style="color:var(--text-muted)">--</span></div></td>
       <td style="color:var(--text-muted); font-size:0.82rem">${d.ultimaSinc}</td>
     </tr>
   `).join('');
