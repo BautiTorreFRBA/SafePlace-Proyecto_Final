@@ -9,6 +9,8 @@
 }
 
 :root {
+  color-scheme: dark;
+
   /* Paleta principal */
   --teal-400:    #2dd4bf;
   --teal-500:    #14b8a6;
