@@ -74,3 +74,59 @@ describe('horarioOperario.service.configurar — múltiples ventanas por día', 
     ]);
   });
 });
+
+describe('horarioOperario.service — excepciones puntuales por fecha', () => {
+  const excepcionExistente = (overrides = {}) => ({
+    id: 1, fecha: '2026-09-20', hora_inicio: '08:00:00', hora_fin: '12:00:00', ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    operarioRepository.obtenerPorId.mockResolvedValue({ id: 1 });
+    horarioOperarioRepository.listarExcepcionesPorOperario.mockResolvedValue([]);
+    horarioOperarioRepository.agregarExcepcion.mockResolvedValue({ id: 10 });
+    horarioOperarioRepository.eliminarExcepcion.mockResolvedValue(true);
+    logAuditoriaRepository.registrar.mockResolvedValue({ id: 1 });
+  });
+
+  it('agrega una excepción válida', async () => {
+    await expect(horarioOperarioService.agregarExcepcion(1, {
+      fecha: '2026-09-20', horaInicio: '08:00', horaFin: '12:00', idTrabajo: null,
+    }, {})).resolves.toEqual({ id: 10 });
+
+    expect(horarioOperarioRepository.agregarExcepcion).toHaveBeenCalledWith(1, expect.objectContaining({
+      fecha: '2026-09-20', horaInicio: '08:00', horaFin: '12:00',
+    }));
+  });
+
+  it('rechaza fecha con formato inválido', async () => {
+    await expect(horarioOperarioService.agregarExcepcion(1, {
+      fecha: '20-09-2026', horaInicio: '08:00', horaFin: '12:00',
+    }, {})).rejects.toMatchObject({ motivo: 'HORARIO_INVALIDO' });
+  });
+
+  it('rechaza superposición con otra excepción de la MISMA fecha', async () => {
+    horarioOperarioRepository.listarExcepcionesPorOperario.mockResolvedValue([excepcionExistente()]);
+
+    await expect(horarioOperarioService.agregarExcepcion(1, {
+      fecha: '2026-09-20', horaInicio: '10:00', horaFin: '14:00',
+    }, {})).rejects.toMatchObject({ motivo: 'HORARIO_INVALIDO' });
+
+    expect(horarioOperarioRepository.agregarExcepcion).not.toHaveBeenCalled();
+  });
+
+  it('NO exige evitar superposición con otra fecha distinta', async () => {
+    horarioOperarioRepository.listarExcepcionesPorOperario.mockResolvedValue([excepcionExistente({ fecha: '2026-09-21' })]);
+
+    await expect(horarioOperarioService.agregarExcepcion(1, {
+      fecha: '2026-09-20', horaInicio: '10:00', horaFin: '14:00',
+    }, {})).resolves.toEqual({ id: 10 });
+  });
+
+  it('eliminarExcepcion propaga 404 si el repositorio no encontró/borró nada', async () => {
+    horarioOperarioRepository.eliminarExcepcion.mockResolvedValue(false);
+
+    await expect(horarioOperarioService.eliminarExcepcion(1, 999, {}))
+      .rejects.toMatchObject({ status: 404, motivo: 'EXCEPCION_NO_ENCONTRADA' });
+  });
+});

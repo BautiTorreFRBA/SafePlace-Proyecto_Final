@@ -22,4 +22,19 @@ router.put(
   horarioOperarioController.configurar,
 );
 
+// Excepciones puntuales por fecha de calendario (reemplazan lo recurrente
+// sólo para esa fecha): mismos roles que el horario recurrente.
+router.post(
+  '/:id/horario/excepciones',
+  auth,
+  authorize(['admin', 'seguridad']),
+  horarioOperarioController.agregarExcepcion,
+);
+router.delete(
+  '/:id/horario/excepciones/:idExcepcion',
+  auth,
+  authorize(['admin', 'seguridad']),
+  horarioOperarioController.eliminarExcepcion,
+);
+
 module.exports = router;

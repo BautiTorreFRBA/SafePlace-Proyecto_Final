@@ -62,6 +62,40 @@
           <tbody id="horarioBody"></tbody>
         </table>
       </div>
+
+      <div class="emp-header" style="margin-top:8px;">
+        <div>
+          <h2 class="emp-header__title" style="font-size:1.05rem;">Horarios puntuales por fecha</h2>
+          <p class="emp-header__count">Reemplazan al horario semanal sólo para esa fecha (ej. un franco puntual o un turno excepcional)</p>
+        </div>
+      </div>
+
+      <div class="emp-toolbar" style="flex-wrap:wrap; gap:12px;">
+        <div class="modal__field" style="min-width:150px;">
+          <label class="modal__label" for="excFecha">FECHA</label>
+          <input class="modal__input" id="excFecha" type="date" />
+        </div>
+        <div class="modal__field" style="min-width:130px;">
+          <label class="modal__label" for="excDesde">DESDE</label>
+          <input class="modal__input" id="excDesde" type="time" value="08:00" />
+        </div>
+        <div class="modal__field" style="min-width:130px;">
+          <label class="modal__label" for="excHasta">HASTA</label>
+          <input class="modal__input" id="excHasta" type="time" value="17:00" />
+        </div>
+        <div class="modal__field" style="min-width:180px;">
+          <label class="modal__label" for="excTrabajo">TRABAJO</label>
+          <select class="modal__input" id="excTrabajo"></select>
+        </div>
+        <button class="btn-nuevo" id="btnAgregarExcepcion" style="align-self:flex-end;" disabled>+ Agregar excepción</button>
+      </div>
+
+      <div class="emp-table-wrap">
+        <table class="emp-table">
+          <thead><tr><th>FECHA</th><th>DESDE</th><th>HASTA</th><th>TRABAJO</th><th></th></tr></thead>
+          <tbody id="excepcionesBody"></tbody>
+        </table>
+      </div>
     </main>
   </div>
 

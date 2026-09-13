@@ -52,19 +52,50 @@ const validarVentanas = (ventanas) => {
   }
 };
 
-const obtenerPorOperario = async (idOperario) => {
+const exigirOperario = async (idOperario) => {
   const operario = await operarioRepository.obtenerPorId(idOperario);
   if (!operario) {
     throw createHttpError(404, 'El operario no existe.', 'OPERARIO_NO_ENCONTRADO');
   }
+  return operario;
+};
+
+// "YYYY-MM-DD"
+const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+// La excepción puntual no valida superposición contra lo recurrente — a
+// propósito lo reemplaza para esa fecha. Sólo no puede superponerse con
+// otra excepción de la MISMA fecha.
+const validarExcepcion = (datos, excepcionesExistentes) => {
+  if (!RE_FECHA.test(String(datos.fecha)) || Number.isNaN(Date.parse(datos.fecha))) {
+    throw createHttpError(400, 'fecha debe tener formato YYYY-MM-DD.', 'HORARIO_INVALIDO');
+  }
+  if (!RE_HORA.test(String(datos.horaInicio)) || !RE_HORA.test(String(datos.horaFin))) {
+    throw createHttpError(400, 'horaInicio y horaFin deben tener formato HH:MM.', 'HORARIO_INVALIDO');
+  }
+  if (String(datos.horaFin) <= String(datos.horaInicio)) {
+    throw createHttpError(400, 'horaFin debe ser posterior a horaInicio (turnos nocturnos no soportados).', 'HORARIO_INVALIDO');
+  }
+  if (datos.idTrabajo != null && (!Number.isInteger(Number(datos.idTrabajo)) || Number(datos.idTrabajo) <= 0)) {
+    throw createHttpError(400, 'idTrabajo debe ser un entero positivo o estar ausente (umbral global).', 'HORARIO_INVALIDO');
+  }
+
+  const mismaFecha = excepcionesExistentes.filter((e) => String(e.fecha).slice(0, 10) === String(datos.fecha));
+  if (mismaFecha.some((otra) => seSuperponen(
+    { horaInicio: String(otra.hora_inicio).slice(0, 5), horaFin: String(otra.hora_fin).slice(0, 5) },
+    datos,
+  ))) {
+    throw createHttpError(400, `Ya hay una excepción horaria superpuesta para el ${datos.fecha}.`, 'HORARIO_INVALIDO');
+  }
+};
+
+const obtenerPorOperario = async (idOperario) => {
+  await exigirOperario(idOperario);
   return horarioOperarioRepository.listarPorOperario(idOperario);
 };
 
 const configurar = async (idOperario, ventanas, actor) => {
-  const operario = await operarioRepository.obtenerPorId(idOperario);
-  if (!operario) {
-    throw createHttpError(404, 'El operario no existe.', 'OPERARIO_NO_ENCONTRADO');
-  }
+  await exigirOperario(idOperario);
   validarVentanas(ventanas);
 
   const resultado = await horarioOperarioRepository.reemplazar(idOperario, ventanas);
@@ -83,7 +114,52 @@ const configurar = async (idOperario, ventanas, actor) => {
   return resultado;
 };
 
+const agregarExcepcion = async (idOperario, datos, actor) => {
+  await exigirOperario(idOperario);
+  const existentes = await horarioOperarioRepository.listarExcepcionesPorOperario(idOperario);
+  validarExcepcion(datos, existentes);
+
+  const registro = await horarioOperarioRepository.agregarExcepcion(idOperario, datos);
+
+  await logAuditoriaRepository
+    .registrar({
+      idUsuario: actor?.id,
+      tablaAfectada: TABLA_AFECTADA,
+      idRegistro: idOperario,
+      operacion: 'CREATE',
+      ipOrigen: actor?.ip,
+      detalle: `Excepción horaria del ${datos.fecha} agregada para el operario ${idOperario} `
+        + `(${datos.horaInicio}-${datos.horaFin}).`,
+    })
+    .catch(() => {});
+
+  return registro;
+};
+
+const eliminarExcepcion = async (idOperario, idExcepcion, actor) => {
+  await exigirOperario(idOperario);
+  const eliminada = await horarioOperarioRepository.eliminarExcepcion(idOperario, idExcepcion);
+  if (!eliminada) {
+    throw createHttpError(404, 'La excepción horaria no existe.', 'EXCEPCION_NO_ENCONTRADA');
+  }
+
+  await logAuditoriaRepository
+    .registrar({
+      idUsuario: actor?.id,
+      tablaAfectada: TABLA_AFECTADA,
+      idRegistro: idOperario,
+      operacion: 'DELETE',
+      ipOrigen: actor?.ip,
+      detalle: `Excepción horaria ${idExcepcion} eliminada para el operario ${idOperario}.`,
+    })
+    .catch(() => {});
+
+  return eliminada;
+};
+
 module.exports = {
   obtenerPorOperario,
   configurar,
+  agregarExcepcion,
+  eliminarExcepcion,
 };

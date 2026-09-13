@@ -14,12 +14,21 @@ const operarioSelect = document.getElementById('operarioSelect');
 const horarioBody = document.getElementById('horarioBody');
 const btnGuardar = document.getElementById('btnGuardar');
 const infoLine = document.getElementById('infoLine');
+const excFecha = document.getElementById('excFecha');
+const excDesde = document.getElementById('excDesde');
+const excHasta = document.getElementById('excHasta');
+const excTrabajo = document.getElementById('excTrabajo');
+const btnAgregarExcepcion = document.getElementById('btnAgregarExcepcion');
+const excepcionesBody = document.getElementById('excepcionesBody');
 
 let trabajos = [];
 // Estado en memoria: día (1-7) -> lista de ventanas { horaInicio, horaFin, idTrabajo }.
 // Varias ventanas por día están permitidas (turnos partidos, distinto
 // trabajo a la mañana y a la tarde) — un día sin ventanas queda inactivo.
 let horarioState = {};
+// Excepciones puntuales por fecha del operario seleccionado (fecha IS NOT
+// NULL en la API) — se gestionan aparte, no forman parte de horarioState.
+let excepciones = [];
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -105,16 +114,34 @@ horarioBody.addEventListener('change', (e) => {
   if (e.target.classList.contains('ho-trabajo')) ventana.idTrabajo = e.target.value ? Number(e.target.value) : null;
 });
 
+function renderExcepciones() {
+  excepcionesBody.innerHTML = excepciones.length === 0
+    ? '<tr><td colspan="5" style="color:var(--text-muted)">Sin excepciones puntuales</td></tr>'
+    : excepciones.map((exc) => `
+      <tr data-id="${exc.id}">
+        <td>${new Date(`${exc.fecha}T00:00:00`).toLocaleDateString('es-AR')}</td>
+        <td>${String(exc.hora_inicio).slice(0, 5)}</td>
+        <td>${String(exc.hora_fin).slice(0, 5)}</td>
+        <td>${exc.trabajo_nombre || 'Global'}</td>
+        <td><button class="emp-actions__deactivate exc-quitar" type="button">Quitar</button></td>
+      </tr>
+    `).join('');
+}
+
 async function cargarHorario(idOperario) {
   if (!idOperario) {
     horarioState = {};
+    excepciones = [];
     horarioBody.innerHTML = '';
+    renderExcepciones();
     btnGuardar.disabled = true;
+    btnAgregarExcepcion.disabled = true;
     return;
   }
   const payload = await apiFetch(`/trabajadores/${idOperario}/horario`);
+  const filas = payload.data || [];
   horarioState = {};
-  (payload.data || []).forEach((v) => {
+  filas.filter((v) => !v.fecha).forEach((v) => {
     horarioState[v.dia_semana] = horarioState[v.dia_semana] || [];
     horarioState[v.dia_semana].push({
       horaInicio: String(v.hora_inicio).slice(0, 5),
@@ -122,9 +149,59 @@ async function cargarHorario(idOperario) {
       idTrabajo: v.id_trabajo,
     });
   });
+  excepciones = filas.filter((v) => v.fecha).map((v) => ({ ...v, fecha: String(v.fecha).slice(0, 10) }));
   renderFilas();
+  renderExcepciones();
   btnGuardar.disabled = false;
+  btnAgregarExcepcion.disabled = false;
 }
+
+async function agregarExcepcion() {
+  const idOperario = operarioSelect.value;
+  if (!idOperario) return;
+  if (!excFecha.value || !excDesde.value || !excHasta.value || excHasta.value <= excDesde.value) {
+    alert('Completá fecha, desde y hasta ("hasta" debe ser posterior a "desde").');
+    return;
+  }
+
+  try {
+    btnAgregarExcepcion.disabled = true;
+    await apiFetch(`/trabajadores/${idOperario}/horario/excepciones`, {
+      method: 'POST',
+      body: JSON.stringify({
+        fecha: excFecha.value,
+        horaInicio: excDesde.value,
+        horaFin: excHasta.value,
+        idTrabajo: excTrabajo.value ? Number(excTrabajo.value) : null,
+      }),
+    });
+    await cargarHorario(idOperario);
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    btnAgregarExcepcion.disabled = false;
+  }
+}
+
+async function quitarExcepcion(idExcepcion) {
+  const idOperario = operarioSelect.value;
+  if (!idOperario) return;
+
+  try {
+    await apiFetch(`/trabajadores/${idOperario}/horario/excepciones/${idExcepcion}`, { method: 'DELETE' });
+    await cargarHorario(idOperario);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+excepcionesBody.addEventListener('click', (e) => {
+  const btn = e.target.closest('.exc-quitar');
+  if (btn) quitarExcepcion(btn.closest('tr').dataset.id);
+});
+btnAgregarExcepcion.addEventListener('click', () => {
+  agregarExcepcion().catch((error) => { console.error(error); alert(error.message); });
+});
 
 async function guardar() {
   const idOperario = operarioSelect.value;
@@ -164,6 +241,10 @@ async function init() {
     trabajos = [];
     console.error(error);
   }
+  excTrabajo.innerHTML = opcionesTrabajo(null);
+  const hoy = new Date();
+  excFecha.min = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  excFecha.value = excFecha.min;
 
   try {
     const payload = await apiFetch('/dashboard/employees');

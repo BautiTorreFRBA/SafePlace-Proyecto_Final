@@ -25,7 +25,36 @@ const configurar = async (req, res, next) => {
   }
 };
 
+const agregarExcepcion = async (req, res, next) => {
+  try {
+    const { fecha, horaInicio, horaFin, idTrabajo } = req.body;
+    const data = await horarioOperarioService.agregarExcepcion(
+      Number(req.params.id),
+      { fecha, horaInicio, horaFin, idTrabajo },
+      actorDesdeRequest(req),
+    );
+    res.status(201).json({ message: 'Excepción horaria agregada.', data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const eliminarExcepcion = async (req, res, next) => {
+  try {
+    await horarioOperarioService.eliminarExcepcion(
+      Number(req.params.id),
+      Number(req.params.idExcepcion),
+      actorDesdeRequest(req),
+    );
+    res.status(200).json({ message: 'Excepción horaria eliminada.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   obtener,
   configurar,
+  agregarExcepcion,
+  eliminarExcepcion,
 };
