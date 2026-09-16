@@ -107,10 +107,18 @@ const listarDispositivosTrabados = async (minRepeticiones) => {
 };
 
 // CP-E2E-04: dispositivos con asignación vigente cuyo ÚLTIMO evento de estado
-// es DESCONECTADO, con una conexión real antes de esa desconexión (no "en
-// algún momento del historial figura DESCONECTADO" — un dispositivo que
-// nunca se conectó de verdad, o cuyo único registro es un DESCONECTADO de
-// una sesión/asignación anterior, no califica).
+// es DESCONECTADO, con una conexión real DURANTE ESA MISMA ASIGNACIÓN antes de
+// esa desconexión (no "en algún momento del historial figura DESCONECTADO" —
+// un dispositivo que nunca se conectó de verdad bajo el operario actual, o
+// cuyo único registro es un DESCONECTADO de una sesión/asignación anterior,
+// no califica).
+//
+// El `AND previo.fecha_hora >= ad.fecha_desde` es clave: un wearable
+// reasignado (ej. se lo sacan a un operario y se lo dan a otro) arrastra el
+// historial de conexión del dueño ANTERIOR. Sin acotar el CONECTADO previo a
+// partir de que arrancó la asignación vigente, ese historial ajeno alcanzaba
+// para "aprobar" al operario nuevo, que nunca conectó el dispositivo ni una
+// vez, y disparaba inactividad prolongada igual.
 //
 // OJO: esto YA NO filtra por tolerancia — devuelve todo candidato desconectado
 // vigente, sin importar desde cuándo. El "hace cuánto" que de verdad importa
@@ -142,6 +150,7 @@ const listarDesconectadosParaAlerta = async () => {
         WHERE previo.id_dispositivo = d.id
           AND previo.estado = 'CONECTADO'
           AND previo.fecha_hora < ult.fecha_hora
+          AND previo.fecha_hora >= ad.fecha_desde
       );
   `;
   const res = await db.query(query);
