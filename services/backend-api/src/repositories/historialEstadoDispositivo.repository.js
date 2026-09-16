@@ -110,6 +110,15 @@ const listarDispositivosTrabados = async (minRepeticiones) => {
 // es DESCONECTADO desde hace más de `minutos`. Trae el operario asignado y
 // desde cuándo está caído, que es lo que el servicio de inactividad
 // prolongada necesita para decidir si generar la alerta.
+//
+// La condición de negocio es "una vez CONECTADO, se desconecta por más de la
+// tolerancia" — no "en algún momento del historial figura DESCONECTADO".
+// Sin el EXISTS de abajo, un dispositivo que nunca llegó a conectarse de
+// verdad en el día (o cuyo único registro es un DESCONECTADO viejo de una
+// asignación/sesión anterior) igual calificaba, porque el "último estado"
+// simplemente nunca había cambiado. Ahora se exige que haya un CONECTADO
+// real anterior a ese DESCONECTADO: recién ahí es una desconexión genuina,
+// no inactividad que "siempre estuvo ahí".
 const listarDesconectadosParaAlerta = async (minutos) => {
   const query = `
     SELECT
@@ -128,7 +137,14 @@ const listarDesconectadosParaAlerta = async (minutos) => {
       LIMIT 1
     ) ult ON true
     WHERE ult.estado = 'DESCONECTADO'
-      AND ult.fecha_hora < now() - ($1 || ' minutes')::interval;
+      AND ult.fecha_hora < now() - ($1 || ' minutes')::interval
+      AND EXISTS (
+        SELECT 1
+        FROM historial_estado_dispositivo previo
+        WHERE previo.id_dispositivo = d.id
+          AND previo.estado = 'CONECTADO'
+          AND previo.fecha_hora < ult.fecha_hora
+      );
   `;
   const res = await db.query(query, [minutos]);
   return res.rows;

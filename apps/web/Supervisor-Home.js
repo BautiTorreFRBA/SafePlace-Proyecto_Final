@@ -99,7 +99,7 @@ function formatearFechaHora(value) {
   if (!value) return null;
   const fecha = new Date(value);
   if (Number.isNaN(fecha.getTime())) return null;
-  return fecha.toLocaleString('es-AR', {
+  return fmtAR(fecha, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -117,7 +117,7 @@ function formatearNumero(value, sufijo = '') {
 function actualizarFechaActualizacion() {
   if (!currentDate) return;
   const now = new Date();
-  currentDate.textContent = `Estado del sistema al ${now.toLocaleString('es-AR', {
+  currentDate.textContent = `Estado del sistema al ${fmtAR(now, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

@@ -21,8 +21,8 @@ function separarFechaHora(value) {
   const fecha = new Date(value);
   if (Number.isNaN(fecha.getTime())) return { fecha: '--', hora: '--' };
   return {
-    fecha: fecha.toLocaleDateString('es-AR'),
-    hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    fecha: fmtARFecha(fecha),
+    hora: fmtARHora(fecha, { hour: '2-digit', minute: '2-digit' }),
   };
 }
 

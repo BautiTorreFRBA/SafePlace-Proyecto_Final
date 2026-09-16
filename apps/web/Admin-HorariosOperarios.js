@@ -119,7 +119,7 @@ function renderExcepciones() {
     ? '<tr><td colspan="5" style="color:var(--text-muted)">Sin excepciones puntuales</td></tr>'
     : excepciones.map((exc) => `
       <tr data-id="${exc.id}">
-        <td>${new Date(`${exc.fecha}T00:00:00`).toLocaleDateString('es-AR')}</td>
+        <td>${fmtARFecha(new Date(`${exc.fecha}T12:00:00Z`))}</td>
         <td>${String(exc.hora_inicio).slice(0, 5)}</td>
         <td>${String(exc.hora_fin).slice(0, 5)}</td>
         <td>${exc.trabajo_nombre || 'Global'}</td>
