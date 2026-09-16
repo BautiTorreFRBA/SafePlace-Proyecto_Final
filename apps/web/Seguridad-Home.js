@@ -35,7 +35,7 @@ function escapeHtml(value) {
 }
 
 function nombreCompleto(item) {
-  return `${item.operario_nombre || ''} ${item.operario_apellido || ''}`.trim() || 'Sin asignar';
+  return `${item.operario_nombre || item.nombre || ''} ${item.operario_apellido || item.apellido || ''}`.trim() || 'Sin asignar';
 }
 
 function iniciales(nombre) {
