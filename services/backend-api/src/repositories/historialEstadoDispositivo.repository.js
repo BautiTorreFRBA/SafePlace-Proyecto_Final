@@ -59,17 +59,27 @@ const listarDispositivosInactivos = async (minutos) => {
 // wearable fuera de la muñeca suele repetir la última pulsación; el hub la
 // reenvía cada REPORT_INTERVAL. La variabilidad latido a latido real siempre
 // mueve el entero, así que N idénticas seguidas => se trata como desconexión.
+//
+// Las `minRepeticiones` tienen que ser recientes y contiguas: sin el filtro
+// de antigüedad, un dispositivo recién reconectado con muy pocas mediciones
+// nuevas completaba el racha con mediciones VIEJAS de una sesión anterior
+// (a veces horas antes) y se marcaba DESCONECTADO estando conectado de
+// verdad. `VENTANA_MINUTOS` acota la racha a algo que pudo haber pasado en
+// una sola sesión de conexión continua.
+const VENTANA_MINUTOS_TRABADO = 5;
 const listarDispositivosTrabados = async (minRepeticiones) => {
   const query = `
     WITH ultimas AS (
       SELECT
         m.id_dispositivo,
         m.frecuencia_cardiaca,
+        m.fecha_hora,
         row_number() OVER (
           PARTITION BY m.id_dispositivo
           ORDER BY m.fecha_hora DESC, m.id DESC
         ) AS rn
       FROM medicion m
+      WHERE m.fecha_hora >= now() - interval '${VENTANA_MINUTOS_TRABADO} minutes'
     ),
     trabados AS (
       SELECT id_dispositivo
