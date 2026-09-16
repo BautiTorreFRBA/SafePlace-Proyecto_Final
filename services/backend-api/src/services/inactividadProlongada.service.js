@@ -5,6 +5,7 @@ const trabajoRepository = require('../repositories/trabajo.repository');
 const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
 const tipoAlertaRepository = require('../repositories/tipoAlerta.repository');
 const alertaRepository = require('../repositories/alerta.repository');
+const inactividadCandidatoRepository = require('../repositories/inactividadCandidato.repository');
 const alertasService = require('./alertas.service');
 
 /**
@@ -47,25 +48,25 @@ const chequear = async () => {
     const toleranciaGlobal = umbralGlobal && Number(umbralGlobal.minutos_desconexion_tolerada);
     if (!toleranciaGlobal || Number.isNaN(toleranciaGlobal)) return 0;
 
-    // Piso de búsqueda: la menor tolerancia entre la global y la de
-    // cualquier trabajo activo, para no perder candidatos que un trabajo
-    // específico quiere alertar antes que el criterio global.
-    const trabajosActivos = await trabajoRepository.listarActivos();
-    const toleranciaMinima = trabajosActivos.reduce(
-      (min, t) => Math.min(min, Number(t.minutos_desconexion_tolerada)),
-      toleranciaGlobal,
-    );
-
-    const candidatos = await historialEstadoDispositivoRepository
-      .listarDesconectadosParaAlerta(toleranciaMinima);
+    // Todo dispositivo desconectado con asignación vigente y una conexión
+    // real previa — sin filtrar por tolerancia acá: el "hace cuánto" real es
+    // desde que ESTE chequeo lo detectó (inactividad_candidato), no la marca
+    // del evento histórico, que puede ser de antes de que nadie lo mirara.
+    const candidatos = await historialEstadoDispositivoRepository.listarDesconectadosParaAlerta();
 
     let generadas = 0;
     for (const c of candidatos) {
       const { ventana, tolerancia } = await resolverTolerancia(c.id_operario, umbralGlobal);
       if (!ventana) continue;
 
-      const minutosDesconectado = (Date.now() - new Date(c.desconectado_desde).getTime()) / 60000;
-      if (minutosDesconectado < tolerancia) continue;
+      // Primera vez que se ve este dispositivo desconectado => arranca el
+      // reloj ahora. Si ya había un candidato de un chequeo anterior, se
+      // reusa su fila sin tocarla.
+      const candidato = await inactividadCandidatoRepository.marcarPrimeraDeteccion(c.id_dispositivo);
+      if (!candidato || candidato.alertado) continue; // este corte ya avisó una vez
+
+      const minutosObservadoDesconectado = (Date.now() - new Date(candidato.primera_deteccion).getTime()) / 60000;
+      if (minutosObservadoDesconectado < tolerancia) continue;
 
       const seudonimo = await operarioSeudonimoRepository.obtenerOCrearPorOperario(c.id_operario);
       const alerta = await alertasService.generar({
@@ -73,10 +74,14 @@ const chequear = async () => {
         idSeudonimo: seudonimo.id,
         idMedicion: null,
         detalle: `Wearable ${c.id_dispositivo} del operario ${c.id_operario} desconectado desde `
-          + `${new Date(c.desconectado_desde).toISOString()} durante horario laboral `
+          + `${new Date(c.desconectado_desde).toISOString()} (detectado desde `
+          + `${new Date(candidato.primera_deteccion).toISOString()}) durante horario laboral `
           + `(tolerancia ${tolerancia} min).`,
       });
-      if (alerta) generadas += 1;
+      if (alerta) {
+        generadas += 1;
+        await inactividadCandidatoRepository.marcarAlertado(c.id_dispositivo);
+      }
     }
     return generadas;
   } finally {
@@ -85,8 +90,14 @@ const chequear = async () => {
 };
 
 // Cierre de la alerta cuando el wearable se reconecta. Llamado desde el
-// registro de estado CONECTADO y desde la ingesta de una nueva medición.
-const resolverPorReconexion = async (idOperario) => {
+// registro de estado CONECTADO. Limpia también el candidato de inactividad
+// del dispositivo: el próximo corte tiene que arrancar el reloj de cero, no
+// seguir contando desde la desconexión anterior.
+const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
+  if (idDispositivo != null) {
+    await inactividadCandidatoRepository.limpiar(idDispositivo);
+  }
+
   const seudonimo = await operarioSeudonimoRepository.obtenerPorOperario(idOperario);
   if (!seudonimo) return [];
 

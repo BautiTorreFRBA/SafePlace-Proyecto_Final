@@ -9,11 +9,11 @@ const chartPercent = document.getElementById('chartPercent');
 let registros = [];
 let resumenHoy = { validados: 0, rechazados: 0 };
 
+// "Hoy" es el día calendario en Buenos Aires (backend), no en la zona del
+// sistema operativo de quien mira la pantalla — con getMonth/getDate locales
+// esta vista podía terminar pidiendo el resumen de un día distinto al real.
 function hoyISO() {
-  const d = new Date();
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const dia = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mes}-${dia}`;
+  return new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE_AR });
 }
 
 async function apiFetch(path, options = {}) {
@@ -49,7 +49,7 @@ async function cargarRegistros() {
   ]);
 
   registros = ((feed && feed.data) || []).map((m) => ({
-    hora: new Date(m.fecha_hora).toLocaleString('es-AR', {
+    hora: fmtAR(new Date(m.fecha_hora), {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',

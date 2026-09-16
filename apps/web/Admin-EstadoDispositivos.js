@@ -2,6 +2,10 @@ const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-
 
 const tableBody = document.getElementById('estadoDispositivosTableBody');
 const estadoDispositivosCount = document.getElementById('estadoDispositivosCount');
+const nuevoMarcaInput = document.getElementById('nuevoMarcaInput');
+const nuevoModeloInput = document.getElementById('nuevoModeloInput');
+const nuevoMacInput = document.getElementById('nuevoMacInput');
+const btnNuevoDispositivo = document.getElementById('btnNuevoDispositivo');
 
 let dispositivos = [];
 
@@ -48,7 +52,7 @@ function formatDate(value) {
   if (!value) return '--';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '--';
-  return date.toLocaleString('es-AR', {
+  return fmtAR(date, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -129,6 +133,40 @@ async function guardarMac(id, button) {
     button.disabled = false;
   }
 }
+
+async function crearDispositivo() {
+  const marca = nuevoMarcaInput.value.trim();
+  const modelo = nuevoModeloInput.value.trim();
+  const direccionMac = nuevoMacInput.value.trim();
+
+  if (!marca || !modelo) {
+    alert('Marca y modelo son obligatorios.');
+    return;
+  }
+
+  try {
+    btnNuevoDispositivo.disabled = true;
+    await apiFetch('/wearables', {
+      method: 'POST',
+      body: JSON.stringify({ marca, modelo, direccionMac: direccionMac || undefined }),
+    });
+    nuevoMarcaInput.value = '';
+    nuevoModeloInput.value = '';
+    nuevoMacInput.value = '';
+    await cargarDispositivos();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    btnNuevoDispositivo.disabled = false;
+  }
+}
+
+btnNuevoDispositivo.addEventListener('click', crearDispositivo);
+[nuevoMarcaInput, nuevoModeloInput, nuevoMacInput].forEach((input) => {
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') crearDispositivo();
+  });
+});
 
 tableBody.addEventListener('click', (e) => {
   const button = e.target.closest('button[data-action="guardar-mac"]');

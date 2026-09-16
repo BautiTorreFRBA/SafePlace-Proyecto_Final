@@ -50,7 +50,7 @@ async function cargarNotificaciones() {
     tipo: mapearTipo(n.prioridad || ''),
     titulo: n.tipo_alerta || 'Alerta',
     descripcion: `${n.operario_nombre || ''} ${n.operario_apellido || ''}`.trim() || 'Sin operario asignado',
-    hora: new Date(n.fecha_hora).toLocaleString('es-AR'),
+    hora: fmtAR(new Date(n.fecha_hora)),
     leido: Boolean(n.leida),
   }));
   actualizarContador();

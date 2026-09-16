@@ -57,8 +57,8 @@ function formatearMarca(iso) {
   const fecha = new Date(iso);
   if (!iso || Number.isNaN(fecha.getTime())) return null;
   return {
-    dia: fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }),
-    hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    dia: fmtARFecha(fecha, { day: '2-digit', month: '2-digit' }),
+    hora: fmtARHora(fecha, { hour: '2-digit', minute: '2-digit' }),
   };
 }
 
@@ -355,7 +355,7 @@ async function cargarSerieDetalle(idx) {
     chartDetalle = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: {
-        labels: serie.map((p) => new Date(p.ts).toLocaleString('es-AR', {
+        labels: serie.map((p) => fmtAR(new Date(p.ts), {
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
         })),
         datasets: [
@@ -417,7 +417,7 @@ async function cargarTablaDetalle(idx) {
         <tbody>
           ${rows.map((m) => {
             const d = new Date(m.fecha_hora);
-            const fh = Number.isNaN(d.getTime()) ? '--' : d.toLocaleString('es-AR', {
+            const fh = Number.isNaN(d.getTime()) ? '--' : fmtAR(d, {
               day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
             });
             const act = window.MedHelpers
@@ -559,8 +559,8 @@ function filasExport() {
     Lecturas: f.lecturas,
     'Minutos monitoreados': f.minutosMonitoreados,
     'Cobertura %': f.coberturaPct ?? '',
-    Primera: f.primera ? new Date(f.primera).toLocaleString('es-AR') : '',
-    Última: f.ultima ? new Date(f.ultima).toLocaleString('es-AR') : '',
+    Primera: f.primera ? fmtAR(new Date(f.primera)) : '',
+    Última: f.ultima ? fmtAR(new Date(f.ultima)) : '',
     Alertas: Object.entries(f.alertasPorTipo || {})
       .filter(([, n]) => n > 0)
       .map(([t, n]) => `${ALERTA_LABEL[t] || t}: ${n}`)
@@ -584,7 +584,7 @@ function exportarPDF() {
   doc.setFontSize(16);
   doc.text('Resumen de Mediciones por Empleado', 14, 15);
   doc.setFontSize(10);
-  doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 14, 22);
+  doc.text(`Generado el ${fmtAR(new Date())}`, 14, 22);
 
   let tablaInicio = 28;
   if (validacionActual) {

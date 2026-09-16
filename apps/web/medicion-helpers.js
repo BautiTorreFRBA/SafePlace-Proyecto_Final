@@ -56,14 +56,20 @@ window.MedHelpers = (function () {
     return (Date.now() - d.getTime()) / 1000;
   }
 
+  // "Hoy" es el día calendario en Buenos Aires, no en la zona del sistema
+  // operativo de quien mira la pantalla — comparar getFullYear/getMonth/
+  // getDate (hora local del navegador) corre el riesgo de un desfasaje de
+  // día si esa PC no está en ART (nos pasó). en-CA da YYYY-MM-DD, cómodo
+  // para comparar como texto.
+  function diaARISO(d) {
+    return d.toLocaleDateString('en-CA', { timeZone: TIMEZONE_AR });
+  }
+
   function esHoy(fechaHora) {
     if (esVacio(fechaHora)) return false;
     const d = new Date(fechaHora);
     if (Number.isNaN(d.getTime())) return false;
-    const n = new Date();
-    return d.getFullYear() === n.getFullYear()
-      && d.getMonth() === n.getMonth()
-      && d.getDate() === n.getDate();
+    return diaARISO(d) === diaARISO(new Date());
   }
 
   // Hora si la lectura es de hoy; fecha + hora si es más vieja.
@@ -71,9 +77,9 @@ window.MedHelpers = (function () {
     if (esVacio(fechaHora)) return '--';
     const d = new Date(fechaHora);
     if (Number.isNaN(d.getTime())) return '--';
-    const hora = d.toLocaleTimeString('es-AR');
+    const hora = fmtARHora(d);
     if (esHoy(fechaHora)) return hora;
-    return `${d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })} ${hora}`;
+    return `${fmtARFecha(d, { day: '2-digit', month: '2-digit' })} ${hora}`;
   }
 
   // ── Capacidades del wearable (P4 / S4) ──────────────────────────────────

@@ -4,6 +4,7 @@ const wearablesController = require('../controllers/wearables.controller');
 const { auth, authorize } = require('../middlewares/auth');
 
 router.get('/', auth, authorize(['admin']), wearablesController.listar);
+router.post('/', auth, authorize(['admin']), wearablesController.crear);
 router.patch('/:id', auth, authorize(['admin']), wearablesController.actualizarMac);
 
 module.exports = router;

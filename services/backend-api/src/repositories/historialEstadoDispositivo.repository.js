@@ -59,17 +59,27 @@ const listarDispositivosInactivos = async (minutos) => {
 // wearable fuera de la muñeca suele repetir la última pulsación; el hub la
 // reenvía cada REPORT_INTERVAL. La variabilidad latido a latido real siempre
 // mueve el entero, así que N idénticas seguidas => se trata como desconexión.
+//
+// Las `minRepeticiones` tienen que ser recientes y contiguas: sin el filtro
+// de antigüedad, un dispositivo recién reconectado con muy pocas mediciones
+// nuevas completaba el racha con mediciones VIEJAS de una sesión anterior
+// (a veces horas antes) y se marcaba DESCONECTADO estando conectado de
+// verdad. `VENTANA_MINUTOS` acota la racha a algo que pudo haber pasado en
+// una sola sesión de conexión continua.
+const VENTANA_MINUTOS_TRABADO = 5;
 const listarDispositivosTrabados = async (minRepeticiones) => {
   const query = `
     WITH ultimas AS (
       SELECT
         m.id_dispositivo,
         m.frecuencia_cardiaca,
+        m.fecha_hora,
         row_number() OVER (
           PARTITION BY m.id_dispositivo
           ORDER BY m.fecha_hora DESC, m.id DESC
         ) AS rn
       FROM medicion m
+      WHERE m.fecha_hora >= now() - interval '${VENTANA_MINUTOS_TRABADO} minutes'
     ),
     trabados AS (
       SELECT id_dispositivo
@@ -97,10 +107,18 @@ const listarDispositivosTrabados = async (minRepeticiones) => {
 };
 
 // CP-E2E-04: dispositivos con asignación vigente cuyo ÚLTIMO evento de estado
-// es DESCONECTADO desde hace más de `minutos`. Trae el operario asignado y
-// desde cuándo está caído, que es lo que el servicio de inactividad
-// prolongada necesita para decidir si generar la alerta.
-const listarDesconectadosParaAlerta = async (minutos) => {
+// es DESCONECTADO, con una conexión real antes de esa desconexión (no "en
+// algún momento del historial figura DESCONECTADO" — un dispositivo que
+// nunca se conectó de verdad, o cuyo único registro es un DESCONECTADO de
+// una sesión/asignación anterior, no califica).
+//
+// OJO: esto YA NO filtra por tolerancia — devuelve todo candidato desconectado
+// vigente, sin importar desde cuándo. El "hace cuánto" que de verdad importa
+// no es la marca de tiempo del evento (podría ser de antes de que el
+// servicio arrancara a chequear), sino desde que inactividadProlongada.service
+// lo detectó por primera vez (inactividad_candidato). Eso se resuelve ahí,
+// no acá.
+const listarDesconectadosParaAlerta = async () => {
   const query = `
     SELECT
       d.id AS id_dispositivo,
@@ -118,9 +136,15 @@ const listarDesconectadosParaAlerta = async (minutos) => {
       LIMIT 1
     ) ult ON true
     WHERE ult.estado = 'DESCONECTADO'
-      AND ult.fecha_hora < now() - ($1 || ' minutes')::interval;
+      AND EXISTS (
+        SELECT 1
+        FROM historial_estado_dispositivo previo
+        WHERE previo.id_dispositivo = d.id
+          AND previo.estado = 'CONECTADO'
+          AND previo.fecha_hora < ult.fecha_hora
+      );
   `;
-  const res = await db.query(query, [minutos]);
+  const res = await db.query(query);
   return res.rows;
 };
 

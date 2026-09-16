@@ -141,13 +141,13 @@ function renderAlertsChart(historico) {
   const conteoPorDia = {};
   for (let i = 6; i >= 0; i -= 1) {
     const fecha = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const clave = fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    const clave = fmtARFecha(fecha, { day: '2-digit', month: '2-digit' });
     dias.push(clave);
     conteoPorDia[clave] = 0;
   }
 
   historico.forEach((a) => {
-    const clave = new Date(a.fecha_hora).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    const clave = fmtARFecha(new Date(a.fecha_hora), { day: '2-digit', month: '2-digit' });
     if (clave in conteoPorDia) conteoPorDia[clave] += 1;
   });
 
@@ -263,7 +263,7 @@ async function cargarHome() {
   });
 }
 
-document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-AR', {
+document.getElementById('currentDate').textContent = fmtARFecha(new Date(), {
   weekday: 'long',
   year: 'numeric',
   month: 'long',

@@ -40,7 +40,7 @@ async function cargarDispositivos() {
     ble: d.operario_id ? 'vinculado' : 'buscando',
     signal: null,
     signalQuality: 'Sin dato',
-    ultimaSinc: d.ultima_sinc ? new Date(d.ultima_sinc).toLocaleString('es-AR') : '--',
+    ultimaSinc: d.ultima_sinc ? fmtAR(new Date(d.ultima_sinc)) : '--',
     paquetes: null,
   }));
 }

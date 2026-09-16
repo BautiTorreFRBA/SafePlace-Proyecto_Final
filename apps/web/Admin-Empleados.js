@@ -144,7 +144,7 @@ function normalizarEmpleado(emp) {
     depto: emp.depto || emp.area || 'Sin asignar',
     rol: emp.rol || 'Operario',
     estado: estaActivo ? 'activo' : 'inactivo',
-    alta: emp.alta ? new Date(emp.alta).toLocaleDateString('es-AR') : '--',
+    alta: emp.alta ? fmtARFecha(new Date(emp.alta)) : '--',
   };
 }
 

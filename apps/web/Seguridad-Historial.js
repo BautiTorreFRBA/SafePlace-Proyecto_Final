@@ -96,7 +96,7 @@ function formatearFecha(fechaHora = '') {
     return '--';
   }
 
-  return fecha.toLocaleString('es-AR');
+  return fmtAR(fecha);
 }
 
 function obtenerFiltros() {
@@ -243,7 +243,7 @@ function exportarPDF() {
   doc.setFontSize(16);
   doc.text('Historial de Alertas', 14, 15);
   doc.setFontSize(10);
-  doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 14, 22);
+  doc.text(`Generado el ${fmtAR(new Date())}`, 14, 22);
 
   doc.autoTable({
     startY: 28,

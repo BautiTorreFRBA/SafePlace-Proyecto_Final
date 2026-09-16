@@ -66,7 +66,7 @@ function getNotificationTargetPage() {
 
 function buildNotifSummary(notif) {
   const person = `${notif.operario_nombre || ''} ${notif.operario_apellido || ''}`.trim() || 'Sin operario asignado';
-  const when = notif.fecha_hora ? new Date(notif.fecha_hora).toLocaleString('es-AR') : 'Fecha no disponible';
+  const when = notif.fecha_hora ? fmtAR(new Date(notif.fecha_hora)) : 'Fecha no disponible';
   return `${person} · ${etiquetaTipo(notif.tipo_alerta)} · ${when}`;
 }
 
