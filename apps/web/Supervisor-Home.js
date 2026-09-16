@@ -109,6 +109,13 @@ function formatearFechaHora(value) {
   });
 }
 
+function formatearHora(value) {
+  if (!value) return '';
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function formatearNumero(value, sufijo = '') {
   if (value === null || value === undefined || value === '') return null;
   return `${value}${sufijo}`;
@@ -156,6 +163,7 @@ function renderAlertas(trabajadores) {
           <strong>${escapeHtml(nombreCompleto(item))}</strong>
           <span>${escapeHtml(descripcion)}</span>
         </div>
+        <span class="alert-item__time">${escapeHtml(formatearHora(item.fecha_hora))}</span>
         <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
       </li>
     `;

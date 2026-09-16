@@ -552,6 +552,13 @@ html, body {
   white-space: nowrap;
 }
 
+.alert-item__time {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ── LISTA DE TRABAJADORES ──────────────────────────────────── */
 
 .worker-list {

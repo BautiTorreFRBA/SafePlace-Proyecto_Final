@@ -53,6 +53,13 @@ function esCritica(prioridad) {
   return normalizada.includes('crit');
 }
 
+function formatearHora(value) {
+  if (!value) return '';
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function renderKpis({ trabajadores, alertas, riesgosHoy, dispositivos }) {
   const monitoreados = new Set(trabajadores.map((item) => item.id_trabajador).filter((id) => id != null));
   document.getElementById('kpiTrabajadores').textContent = monitoreados.size;
@@ -85,6 +92,7 @@ function renderAlertList(alertas) {
         <strong>${escapeHtml(nombreCompleto(a))}</strong>
         <span>${escapeHtml(a.tipo_alerta || 'Alerta')}</span>
       </div>
+      <span class="alert-item__time">${escapeHtml(formatearHora(a.fecha_hora))}</span>
       <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${escapeHtml(a.prioridad || 'Normal')}</span>
     </li>`;
   }).join('');

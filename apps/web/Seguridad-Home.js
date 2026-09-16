@@ -49,6 +49,13 @@ function esCritica(prioridad) {
   return normalizada.includes('crít') || normalizada.includes('crit');
 }
 
+function formatearHora(value) {
+  if (!value) return '';
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
 // Una lectura por trabajador (la más reciente): /dashboard/measurements trae
 // el log completo (más reciente primero), acá se reduce a "estado actual".
 function medicionMasRecientePorTrabajador(mediciones) {
@@ -105,6 +112,7 @@ function renderAlertList(activas) {
         <strong>${escapeHtml(nombreCompleto(a))}</strong>
         <span>${escapeHtml(a.tipo_alerta)}</span>
       </div>
+      <span class="alert-item__time">${escapeHtml(formatearHora(a.fecha_hora))}</span>
       <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${escapeHtml(a.prioridad)}</span>
     </li>`;
   }).join('');
