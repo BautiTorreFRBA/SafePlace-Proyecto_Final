@@ -61,9 +61,11 @@ const chequear = async () => {
 
       // Primera vez que se ve este dispositivo desconectado => arranca el
       // reloj ahora. Si ya había un candidato de un chequeo anterior, se
-      // reusa su primera_deteccion sin tocarla.
-      const primeraDeteccion = await inactividadCandidatoRepository.marcarPrimeraDeteccion(c.id_dispositivo);
-      const minutosObservadoDesconectado = (Date.now() - new Date(primeraDeteccion).getTime()) / 60000;
+      // reusa su fila sin tocarla.
+      const candidato = await inactividadCandidatoRepository.marcarPrimeraDeteccion(c.id_dispositivo);
+      if (!candidato || candidato.alertado) continue; // este corte ya avisó una vez
+
+      const minutosObservadoDesconectado = (Date.now() - new Date(candidato.primera_deteccion).getTime()) / 60000;
       if (minutosObservadoDesconectado < tolerancia) continue;
 
       const seudonimo = await operarioSeudonimoRepository.obtenerOCrearPorOperario(c.id_operario);
@@ -73,10 +75,13 @@ const chequear = async () => {
         idMedicion: null,
         detalle: `Wearable ${c.id_dispositivo} del operario ${c.id_operario} desconectado desde `
           + `${new Date(c.desconectado_desde).toISOString()} (detectado desde `
-          + `${new Date(primeraDeteccion).toISOString()}) durante horario laboral `
+          + `${new Date(candidato.primera_deteccion).toISOString()}) durante horario laboral `
           + `(tolerancia ${tolerancia} min).`,
       });
-      if (alerta) generadas += 1;
+      if (alerta) {
+        generadas += 1;
+        await inactividadCandidatoRepository.marcarAlertado(c.id_dispositivo);
+      }
     }
     return generadas;
   } finally {
