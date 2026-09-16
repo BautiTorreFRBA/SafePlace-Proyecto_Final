@@ -163,7 +163,7 @@ function renderAlertas(trabajadores) {
           <strong>${escapeHtml(nombreCompleto(item))}</strong>
           <span>${escapeHtml(descripcion)}</span>
         </div>
-        <span class="alert-item__time">${escapeHtml(formatearHora(item.fecha_hora))}</span>
+        <span class="alert-item__time">${escapeHtml(formatearHora(item.alerta_fecha_hora))}</span>
         <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
       </li>
     `;
