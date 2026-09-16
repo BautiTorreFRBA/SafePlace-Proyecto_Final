@@ -60,6 +60,31 @@ function formatearHora(value) {
   return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Mismo criterio de "estado actual" que ya usa Supervisor (estado.repository
+// en el backend): normal/advertencia/crítico por FC + alerta activa, o
+// desactualizado/sin_datos si la última lectura es vieja o no existe. Antes
+// esta pantalla armaba su propio "Normal" a mano con /dashboard/measurements/
+// latest, que no distinguía una lectura de hace meses de una de hace un minuto.
+const ESTADO_CONFIG = {
+  normal: { label: 'Normal', badge: 'badge--normal' },
+  advertencia: { label: 'Advertencia', badge: 'badge--warning' },
+  critico: { label: 'Crítico', badge: 'badge--critical' },
+  desactualizado: { label: 'Desactualizado', badge: 'badge--warning' },
+  sin_datos: { label: 'Sin datos', badge: 'badge--neutral' },
+};
+
+function formatearAntiguedad(fechaHora) {
+  if (!fechaHora) return 'sin lecturas';
+  const ms = Date.now() - new Date(fechaHora).getTime();
+  if (Number.isNaN(ms)) return '';
+  const minutos = Math.floor(ms / 60000);
+  if (minutos < 1) return 'hace instantes';
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  return `hace ${Math.floor(horas / 24)} d`;
+}
+
 function renderKpis({ trabajadores, alertas, riesgosHoy, dispositivos }) {
   const monitoreados = new Set(trabajadores.map((item) => item.id_trabajador).filter((id) => id != null));
   document.getElementById('kpiTrabajadores').textContent = monitoreados.size;
@@ -98,37 +123,29 @@ function renderAlertList(alertas) {
   }).join('');
 }
 
-function renderWorkerList(trabajadores, alertasActivas) {
+function renderWorkerList(trabajadores) {
   const workerList = document.getElementById('workerList');
   if (!workerList) return;
 
-  const alertaPorTrabajador = new Map();
-  for (const a of alertasActivas) {
-    if (a.id_trabajador == null) continue;
-    const actual = alertaPorTrabajador.get(a.id_trabajador);
-    if (!actual || (esCritica(a.prioridad) && !esCritica(actual.prioridad))) {
-      alertaPorTrabajador.set(a.id_trabajador, a);
-    }
-  }
-
   if (trabajadores.length === 0) {
-    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin mediciones recientes</span></div></li>';
+    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin trabajadores monitoreados</span></div></li>';
     return;
   }
 
-  workerList.innerHTML = trabajadores.slice(0, 6).map((m) => {
-    const nombre = nombreCompleto(m);
-    const alerta = alertaPorTrabajador.get(m.id_trabajador);
-    const badgeClase = alerta ? (esCritica(alerta.prioridad) ? 'badge--critical' : 'badge--warning') : 'badge--normal';
-    const badgeTexto = alerta ? (alerta.tipo_alerta || 'Alerta') : 'Normal';
+  workerList.innerHTML = trabajadores.slice(0, 6).map((item) => {
+    const nombre = nombreCompleto(item);
+    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
+    const lectura = item.frecuencia_cardiaca != null
+      ? `${item.frecuencia_cardiaca} BPM · ${escapeHtml(formatearAntiguedad(item.fecha_hora))}`
+      : 'Sin lecturas';
 
     return `<li class="worker-item">
       <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
       <div class="worker-item__info">
         <strong>${escapeHtml(nombre)}</strong>
-        <span>${escapeHtml(m.frecuencia_cardiaca ?? '--')} BPM</span>
+        <span>${lectura}</span>
       </div>
-      <span class="badge ${badgeClase}">${escapeHtml(badgeTexto)}</span>
+      <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
     </li>`;
   }).join('');
 }
@@ -228,7 +245,7 @@ async function cargarHome() {
   const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [medicionesResult, alertasResult, historicoResult, hoyResult, dispositivosResult, medicionesHoyResult] = await Promise.allSettled([
-    apiFetch('/dashboard/measurements/latest'),
+    apiFetch('/estado/trabajadores-activos'),
     apiFetch('/alertas/activas'),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(hace7dias.toISOString())}`),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(inicioHoy.toISOString())}`),
@@ -245,7 +262,7 @@ async function cargarHome() {
 
   renderKpis({ trabajadores, alertas: alertasActivas, riesgosHoy: alertasHoy, dispositivos });
   renderAlertList(alertasActivas);
-  renderWorkerList(trabajadores, alertasActivas);
+  renderWorkerList(trabajadores);
   renderAlertsChart(historico);
   renderHeartChart(medicionesHoy);
 

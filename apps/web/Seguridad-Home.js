@@ -56,36 +56,33 @@ function formatearHora(value) {
   return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Una lectura por trabajador (la más reciente): /dashboard/measurements trae
-// el log completo (más reciente primero), acá se reduce a "estado actual".
-function medicionMasRecientePorTrabajador(mediciones) {
-  const porTrabajador = new Map();
-  for (const m of mediciones) {
-    if (m.id_trabajador == null) continue;
-    if (!porTrabajador.has(m.id_trabajador)) {
-      porTrabajador.set(m.id_trabajador, m);
-    }
-  }
-  return [...porTrabajador.values()];
+// Mismo criterio de "estado actual" que ya usa Supervisor (estado.repository
+// en el backend): normal/advertencia/crítico por FC + alerta activa, o
+// desactualizado/sin_datos si la última lectura es vieja o no existe. Antes
+// esta pantalla armaba su propio estado a mano con /dashboard/measurements,
+// que no distinguía una lectura de hace meses de una de hace un minuto.
+const ESTADO_CONFIG = {
+  normal: { label: 'Normal', badge: 'badge--normal' },
+  advertencia: { label: 'Advertencia', badge: 'badge--warning' },
+  critico: { label: 'Crítico', badge: 'badge--critical' },
+  desactualizado: { label: 'Desactualizado', badge: 'badge--warning' },
+  sin_datos: { label: 'Sin datos', badge: 'badge--neutral' },
+};
+
+function formatearAntiguedad(fechaHora) {
+  if (!fechaHora) return 'sin lecturas';
+  const ms = Date.now() - new Date(fechaHora).getTime();
+  if (Number.isNaN(ms)) return '';
+  const minutos = Math.floor(ms / 60000);
+  if (minutos < 1) return 'hace instantes';
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  return `hace ${Math.floor(horas / 24)} d`;
 }
 
-// H0013: el estado "real" de un trabajador en el panel es si tiene una
-// alerta activa y de qué prioridad — no `medicion.estado` (ninguna historia
-// implementada hasta ahora llena esa columna).
-function alertaActivaPorTrabajador(alertasActivas) {
-  const mapa = new Map();
-  for (const a of alertasActivas) {
-    if (a.id_trabajador == null) continue;
-    const actual = mapa.get(a.id_trabajador);
-    if (!actual || (esCritica(a.prioridad) && !esCritica(actual.prioridad))) {
-      mapa.set(a.id_trabajador, a);
-    }
-  }
-  return mapa;
-}
-
-function renderKpis({ mediciones, activas, riesgosHoy, dispositivos }) {
-  const trabajadoresActivos = new Set(mediciones.map((m) => m.id_trabajador).filter((id) => id != null));
+function renderKpis({ trabajadores, activas, riesgosHoy, dispositivos }) {
+  const trabajadoresActivos = new Set(trabajadores.map((t) => t.id_trabajador).filter((id) => id != null));
   document.getElementById('kpiTrabajadores').textContent = trabajadoresActivos.size;
   document.getElementById('kpiAlertas').textContent = activas.length;
   document.getElementById('kpiRiesgos').textContent = riesgosHoy.length;
@@ -118,28 +115,28 @@ function renderAlertList(activas) {
   }).join('');
 }
 
-function renderWorkerList(mediciones, alertaPorTrabajador) {
+function renderWorkerList(trabajadores) {
   const workerList = document.getElementById('workerList');
-  const recientes = medicionMasRecientePorTrabajador(mediciones);
 
-  if (recientes.length === 0) {
-    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin mediciones recientes</span></div></li>';
+  if (trabajadores.length === 0) {
+    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin trabajadores monitoreados</span></div></li>';
     return;
   }
 
-  workerList.innerHTML = recientes.slice(0, 6).map((m) => {
-    const nombre = nombreCompleto(m);
-    const alerta = alertaPorTrabajador.get(m.id_trabajador);
-    const badgeClase = alerta ? (esCritica(alerta.prioridad) ? 'badge--critical' : 'badge--warning') : 'badge--normal';
-    const badgeTexto = alerta ? alerta.tipo_alerta : 'Normal';
+  workerList.innerHTML = trabajadores.slice(0, 6).map((item) => {
+    const nombre = nombreCompleto(item);
+    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
+    const lectura = item.frecuencia_cardiaca != null
+      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> ${item.frecuencia_cardiaca} BPM · ${escapeHtml(formatearAntiguedad(item.fecha_hora))}`
+      : 'Sin lecturas';
 
     return `<li class="worker-item">
       <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
       <div class="worker-item__info">
         <strong>${escapeHtml(nombre)}</strong>
-        <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> ${m.frecuencia_cardiaca ?? '--'} BPM</span>
+        <span>${lectura}</span>
       </div>
-      <span class="badge ${badgeClase}">${escapeHtml(badgeTexto)}</span>
+      <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
     </li>`;
   }).join('');
 }
@@ -235,8 +232,8 @@ async function cargarDashboard() {
   inicioHoy.setHours(0, 0, 0, 0);
   const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [medicionesPayload, activasPayload, historicoPayload, hoyAlertasPayload, medicionesHoyPayload, dispositivosPayload] = await Promise.all([
-    apiFetch('/dashboard/measurements?limit=200'),
+  const [trabajadoresPayload, activasPayload, historicoPayload, hoyAlertasPayload, medicionesHoyPayload, dispositivosPayload] = await Promise.all([
+    apiFetch('/estado/trabajadores-activos'),
     apiFetch('/alertas/activas'),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(hace7dias.toISOString())}`),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(inicioHoy.toISOString())}`),
@@ -244,18 +241,17 @@ async function cargarDashboard() {
     apiFetch('/dashboard/devices'),
   ]);
 
-  const mediciones = medicionesPayload.data || [];
+  const trabajadores = trabajadoresPayload.data || [];
   const activas = activasPayload.data || [];
-  const alertaPorTrabajador = alertaActivaPorTrabajador(activas);
 
   renderKpis({
-    mediciones,
+    trabajadores,
     activas,
     riesgosHoy: hoyAlertasPayload.data || [],
     dispositivos: dispositivosPayload.data || [],
   });
   renderAlertList(activas);
-  renderWorkerList(mediciones, alertaPorTrabajador);
+  renderWorkerList(trabajadores);
   renderAlertsChart(historicoPayload.data || []);
   renderHeartChart(medicionesHoyPayload.data || []);
 }
