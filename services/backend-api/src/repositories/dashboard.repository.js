@@ -258,6 +258,7 @@ const listarDispositivos = async () => {
       o.id AS operario_id,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido,
+      ad.id AS asignacion_id,
       ad.fecha_desde,
       ad.fecha_hasta,
       hed.estado AS ultimo_estado,

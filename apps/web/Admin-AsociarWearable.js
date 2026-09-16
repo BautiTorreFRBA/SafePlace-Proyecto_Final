@@ -103,12 +103,46 @@ async function cargarOpciones() {
   renderSelects();
 }
 
+// La tabla solo mostraba lo asociado durante la visita actual: una
+// asociación hecha antes (por otra sesión, u otro día) no aparecía en
+// ningún lado, así que tampoco había forma de finalizarla desde acá. Esto
+// carga las asignaciones realmente vigentes en la base (mismo dato que ya
+// expone /dashboard/devices) para que se puedan ver y desasignar sin salir
+// de esta pantalla.
+async function cargarAsociacionesVigentes() {
+  const payload = await apiFetch('/dashboard/devices');
+  const dispositivos = payload.data || [];
+  const legajoPorOperario = new Map(trabajadores.map((t) => [Number(t.id), t.legajo]));
+
+  const idsYaListados = new Set(asociaciones.map((asoc) => asoc.id));
+
+  dispositivos
+    .filter((d) => d.operario_id != null && !d.fecha_hasta && d.asignacion_id != null && !idsYaListados.has(d.asignacion_id))
+    .forEach((d) => {
+      const trabajadorNombre = `${d.operario_nombre || ''} ${d.operario_apellido || ''}`.trim() || `Trabajador ${d.operario_id}`;
+      asociaciones.push({
+        id: d.asignacion_id,
+        idTrabajador: d.operario_id,
+        idDispositivo: d.id,
+        trabajadorNombre,
+        iniciales: iniciales(trabajadorNombre),
+        legajo: legajoPorOperario.get(Number(d.operario_id)) || `ID-${d.operario_id}`,
+        wearableNombre: descripcionWearable(d),
+        fechaDesde: d.fecha_desde,
+        fechaHasta: d.fecha_hasta,
+        finalizada: false,
+      });
+    });
+
+  renderTable();
+}
+
 function renderTable() {
   const activas = asociaciones.filter((asoc) => !asoc.finalizada);
-  asocCount.textContent = `${activas.length} asociaci${activas.length === 1 ? 'ón activa' : 'ones activas'} en esta sesión`;
+  asocCount.textContent = `${activas.length} asociaci${activas.length === 1 ? 'ón activa' : 'ones activas'}`;
 
   tableBody.innerHTML = asociaciones.length === 0
-    ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay asociaciones creadas en esta sesión</td></tr>'
+    ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay asociaciones vigentes</td></tr>'
     : asociaciones.map((asoc) => rowHTML(asoc)).join('');
 }
 
@@ -275,9 +309,11 @@ fechaHastaInput.addEventListener('keydown', (e) => {
 });
 
 renderTable();
-cargarOpciones().catch((err) => {
-  console.error(err);
-  trabajadorSelect.innerHTML = '<option value="">Error cargando trabajadores</option>';
-  wearableSelect.innerHTML = '<option value="">Error cargando wearables</option>';
-  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los datos para asociar wearables</td></tr>';
-});
+cargarOpciones()
+  .then(() => cargarAsociacionesVigentes())
+  .catch((err) => {
+    console.error(err);
+    trabajadorSelect.innerHTML = '<option value="">Error cargando trabajadores</option>';
+    wearableSelect.innerHTML = '<option value="">Error cargando wearables</option>';
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los datos para asociar wearables</td></tr>';
+  });
