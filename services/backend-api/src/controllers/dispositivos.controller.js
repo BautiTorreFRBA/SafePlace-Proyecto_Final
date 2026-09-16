@@ -64,7 +64,7 @@ const registrarEstadoConexion = async (req, res, next) => {
         .obtenerVigentePorDispositivo(Number(req.params.id));
       if (asignacion) {
         await inactividadProlongadaService
-          .resolverPorReconexion(asignacion.id_trabajador)
+          .resolverPorReconexion(asignacion.id_trabajador, Number(req.params.id))
           .catch((err) => console.error('[dispositivos.controller] cierre por reconexión:', err.message));
       }
     }

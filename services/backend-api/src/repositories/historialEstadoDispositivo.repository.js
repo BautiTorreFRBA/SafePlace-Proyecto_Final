@@ -107,19 +107,18 @@ const listarDispositivosTrabados = async (minRepeticiones) => {
 };
 
 // CP-E2E-04: dispositivos con asignación vigente cuyo ÚLTIMO evento de estado
-// es DESCONECTADO desde hace más de `minutos`. Trae el operario asignado y
-// desde cuándo está caído, que es lo que el servicio de inactividad
-// prolongada necesita para decidir si generar la alerta.
+// es DESCONECTADO, con una conexión real antes de esa desconexión (no "en
+// algún momento del historial figura DESCONECTADO" — un dispositivo que
+// nunca se conectó de verdad, o cuyo único registro es un DESCONECTADO de
+// una sesión/asignación anterior, no califica).
 //
-// La condición de negocio es "una vez CONECTADO, se desconecta por más de la
-// tolerancia" — no "en algún momento del historial figura DESCONECTADO".
-// Sin el EXISTS de abajo, un dispositivo que nunca llegó a conectarse de
-// verdad en el día (o cuyo único registro es un DESCONECTADO viejo de una
-// asignación/sesión anterior) igual calificaba, porque el "último estado"
-// simplemente nunca había cambiado. Ahora se exige que haya un CONECTADO
-// real anterior a ese DESCONECTADO: recién ahí es una desconexión genuina,
-// no inactividad que "siempre estuvo ahí".
-const listarDesconectadosParaAlerta = async (minutos) => {
+// OJO: esto YA NO filtra por tolerancia — devuelve todo candidato desconectado
+// vigente, sin importar desde cuándo. El "hace cuánto" que de verdad importa
+// no es la marca de tiempo del evento (podría ser de antes de que el
+// servicio arrancara a chequear), sino desde que inactividadProlongada.service
+// lo detectó por primera vez (inactividad_candidato). Eso se resuelve ahí,
+// no acá.
+const listarDesconectadosParaAlerta = async () => {
   const query = `
     SELECT
       d.id AS id_dispositivo,
@@ -137,7 +136,6 @@ const listarDesconectadosParaAlerta = async (minutos) => {
       LIMIT 1
     ) ult ON true
     WHERE ult.estado = 'DESCONECTADO'
-      AND ult.fecha_hora < now() - ($1 || ' minutes')::interval
       AND EXISTS (
         SELECT 1
         FROM historial_estado_dispositivo previo
@@ -146,7 +144,7 @@ const listarDesconectadosParaAlerta = async (minutos) => {
           AND previo.fecha_hora < ult.fecha_hora
       );
   `;
-  const res = await db.query(query, [minutos]);
+  const res = await db.query(query);
   return res.rows;
 };
 
