@@ -78,11 +78,13 @@ const listarTrabajadoresActivos = async () => {
         WHEN um.id_medicion IS NULL THEN 'sin_datos'
         WHEN (aa.id_alerta IS NOT NULL AND COALESCE(aa.prioridad_alerta, '') ILIKE '%crit%')
           OR (um.frecuencia_cardiaca IS NOT NULL AND u.fc_sobreesfuerzo IS NOT NULL
-              AND um.frecuencia_cardiaca >= u.fc_sobreesfuerzo)
+              AND um.frecuencia_cardiaca >= u.fc_sobreesfuerzo
+              AND um.fecha_hora >= now() - interval '5 minutes')
           THEN 'critico'
         WHEN aa.id_alerta IS NOT NULL
           OR (um.frecuencia_cardiaca IS NOT NULL AND u.fc_fatiga IS NOT NULL
-              AND um.frecuencia_cardiaca >= u.fc_fatiga)
+              AND um.frecuencia_cardiaca >= u.fc_fatiga
+              AND um.fecha_hora >= now() - interval '5 minutes')
           THEN 'advertencia'
         WHEN um.fecha_hora < now() - interval '5 minutes' THEN 'desactualizado'
         ELSE 'normal'
@@ -91,10 +93,12 @@ const listarTrabajadoresActivos = async () => {
         WHEN um.id_medicion IS NULL THEN 'Sin datos biométricos'
         WHEN um.frecuencia_cardiaca IS NOT NULL AND u.fc_sobreesfuerzo IS NOT NULL
              AND um.frecuencia_cardiaca >= u.fc_sobreesfuerzo
+             AND um.fecha_hora >= now() - interval '5 minutes'
           THEN 'FC crítica (' || um.frecuencia_cardiaca || ' BPM)'
         WHEN aa.id_alerta IS NOT NULL THEN COALESCE(aa.tipo_alerta, 'Alerta activa')
         WHEN um.frecuencia_cardiaca IS NOT NULL AND u.fc_fatiga IS NOT NULL
              AND um.frecuencia_cardiaca >= u.fc_fatiga
+             AND um.fecha_hora >= now() - interval '5 minutes'
           THEN 'FC elevada (' || um.frecuencia_cardiaca || ' BPM)'
         WHEN um.fecha_hora < now() - interval '5 minutes' THEN 'Sin actualización reciente'
         ELSE 'Estado normal'
