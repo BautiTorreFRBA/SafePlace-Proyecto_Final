@@ -38,9 +38,13 @@ async function startServer() {
     // cuando la caída ocurre en horario laboral.
     setInterval(async () => {
       try {
+        console.log('[Backend API] Chequeo periódico: inicio');
         await estadoDispositivoService.chequearInactividad();
+        console.log('[Backend API] Chequeo periódico: chequearInactividad OK');
         await estadoDispositivoService.chequearLecturasTrabadas();
-        await inactividadProlongadaService.chequear();
+        console.log('[Backend API] Chequeo periódico: chequearLecturasTrabadas OK');
+        const generadas = await inactividadProlongadaService.chequear();
+        console.log(`[Backend API] Chequeo periódico: inactividadProlongada OK (alertas generadas=${generadas})`);
       } catch (error) {
         console.error('[Backend API] Error en el chequeo periódico de conexión:', error.message);
       }
