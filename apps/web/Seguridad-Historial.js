@@ -52,11 +52,11 @@ function formatearSeveridad(prioridad = '') {
   }
 
   if (['critico', 'critica', 'alta', 'high', '1'].includes(normalizada)) {
-    return { clase: 'critico', texto: capitalizar(prioridad) || 'Critico' };
+    return { clase: 'critico', texto: 'Alta' };
   }
 
   if (['advertencia', 'warning', 'media', 'medio', 'medium', '2'].includes(normalizada)) {
-    return { clase: 'advertencia', texto: capitalizar(prioridad) || 'Advertencia' };
+    return { clase: 'advertencia', texto: 'Media' };
   }
 
   if (['info', 'informativa', 'informacion', 'baja', 'low', '3'].includes(normalizada)) {
@@ -107,6 +107,28 @@ function obtenerFiltros() {
   };
 }
 
+function nombreEmpleado(empleado = {}) {
+  return `${empleado.nombre || ''} ${empleado.apellido || ''}`.trim()
+    || `${empleado.operario_nombre || ''} ${empleado.operario_apellido || ''}`.trim()
+    || `Empleado ${empleado.id || empleado.id_trabajador || ''}`.trim();
+}
+
+async function cargarEmpleados() {
+  const res = await fetch(`${API_BASE_URL}/trabajadores`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('No se pudieron cargar los empleados.');
+
+  const json = await res.json();
+  const empleados = (json.data || [])
+    .map((empleado) => nombreEmpleado(empleado))
+    .filter(Boolean)
+    .filter((nombre, indice, lista) => lista.indexOf(nombre) === indice)
+    .sort((a, b) => a.localeCompare(b, 'es'));
+
+  filterEmpleado.innerHTML = '<option value="">Todos los empleados</option>'
+    + empleados.map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`).join('');
+  filterEmpleado.disabled = false;
+}
+
 function actualizarContador(cantidad) {
   histCount.textContent = `${cantidad} ${cantidad === 1 ? 'registro encontrado' : 'registros encontrados'}`;
 }
@@ -152,7 +174,7 @@ function renderTabla() {
             ${escapeHtml(a.severidad.texto)}
           </span>
         </td>
-        <td class="hist-td-tipo">${escapeHtml(a.tipo)}</td>
+        <td class="hist-td-tipo hist-td-tipo--${a.tipoClase}">${escapeHtml(a.tipo)}</td>
         <td class="hist-td-empleado">${escapeHtml(a.empleado)}</td>
         <td class="hist-td-fecha">${escapeHtml(a.fecha)}</td>
         <td>
@@ -167,8 +189,8 @@ function renderTabla() {
 function renderGraficas() {
   const conteoPorTipo = {};
   const conteoPorSeveridad = {
-    Critico: 0,
-    Advertencia: 0,
+    Alta: 0,
+    Media: 0,
     Info: 0,
   };
 
@@ -176,9 +198,9 @@ function renderGraficas() {
     conteoPorTipo[a.tipo] = (conteoPorTipo[a.tipo] || 0) + 1;
 
     if (a.severidad.clase === 'critico') {
-      conteoPorSeveridad.Critico += 1;
+      conteoPorSeveridad.Alta += 1;
     } else if (a.severidad.clase === 'advertencia') {
-      conteoPorSeveridad.Advertencia += 1;
+      conteoPorSeveridad.Media += 1;
     } else {
       conteoPorSeveridad.Info += 1;
     }
@@ -192,7 +214,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorTipo),
       datasets: [{
         data: Object.values(conteoPorTipo),
-        backgroundColor: ['#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#14b8a6'],
+        backgroundColor: Object.keys(conteoPorTipo).map((tipo) => ({ FATIGA: '#4ade80', SOBREESFUERZO: '#a78bfa', INACTIVIDAD_PROLONGADA: '#38bdf8' }[String(tipo).trim().toUpperCase()] || '#9ca3af')),
         borderColor: '#111827',
         borderWidth: 2,
       }],
@@ -215,7 +237,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorSeveridad),
       datasets: [{
         data: Object.values(conteoPorSeveridad),
-        backgroundColor: ['#ef4444', '#f59e0b', '#60a5fa'],
+        backgroundColor: ['#f87171', '#fb923c', '#60a5fa'],
         borderRadius: 10,
       }],
     },
@@ -319,6 +341,7 @@ async function cargarHistorial() {
     return {
       severidad,
       tipo: a.tipo_alerta || 'Alerta',
+      tipoClase: ({ FATIGA: 'fatiga', SOBREESFUERZO: 'sobreesfuerzo', INACTIVIDAD_PROLONGADA: 'inactividad' }[String(a.tipo_alerta || '').trim().toUpperCase()] || ''),
       empleado: nombreEmpleado || '--',
       fecha: formatearFecha(a.fecha_hora),
       estado,
@@ -344,7 +367,7 @@ function programarRecarga() {
   }, 250);
 }
 
-filterEmpleado.addEventListener('input', programarRecarga);
+filterEmpleado.addEventListener('change', programarRecarga);
 filterTipo.addEventListener('change', programarRecarga);
 filterDesde.addEventListener('change', () => {
   if (!filterDesde.value) {
@@ -361,3 +384,7 @@ btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
 renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
+cargarEmpleados().catch((error) => {
+  console.error(error);
+  filterEmpleado.innerHTML = '<option value="">No se pudieron cargar los empleados</option>';
+});

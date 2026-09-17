@@ -16,6 +16,11 @@ const ETIQUETA_TIPO_ALERTA = {
   INACTIVIDAD_PROLONGADA: 'Inactividad prolongada (wearable desconectado)',
 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
+const claseTipo = (t) => ({
+  FATIGA: 'fatiga',
+  SOBREESFUERZO: 'sobreesfuerzo',
+  INACTIVIDAD_PROLONGADA: 'inactividad',
+}[String(t || '').toUpperCase()] || '');
 
 function separarFechaHora(value) {
   const fecha = new Date(value);
@@ -57,6 +62,7 @@ async function cargarAlertas() {
     id: a.id,
     prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
     tipo: etiquetaTipo(a.tipo_alerta),
+    claseTipo: claseTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
     ...separarFechaHora(a.fecha_hora),
     estado: a.estado || 'Activa',
@@ -74,8 +80,8 @@ function renderTabla() {
   const filtro = filterTipo.value;
   const filtrados = filtro ? alertas.filter((a) => a.prioridad === filtro) : alertas;
   tableBody.innerHTML = filtrados.map((a) => `<tr>
-      <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Crítico' : 'Advertencia'}</span></td>
-      <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.prioridad}">${a.tipo}</div></td>
+      <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Alta' : 'Media'}</span></td>
+      <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}">${a.tipo}</div></td>
       <td class="alert-td-empleado">${a.empleado}</td>
       <td class="alert-td-fecha">${a.fecha}</td>
       <td class="alert-td-hora">${a.hora}</td>

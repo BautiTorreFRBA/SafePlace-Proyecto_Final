@@ -16,8 +16,9 @@ const COLORS = {
   tealFill: 'rgba(45, 212, 191, 0.12)',
   red: '#f87171',
   orange: '#fb923c',
-  yellow: '#fbbf24',
-  blue: '#60a5fa',
+  green: '#4ade80',
+  celeste: '#38bdf8',
+  violet: '#a78bfa',
   grid: 'rgba(255,255,255,0.06)',
   tickColor: '#9ca3af',
   tooltip: '#111827',
@@ -25,16 +26,16 @@ const COLORS = {
 
 const ESTADO_CONFIG = {
   normal: { label: 'Normal', badge: 'badge--normal', dot: 'dot--green' },
-  advertencia: { label: 'Advertencia', badge: 'badge--warning', dot: 'dot--orange' },
-  critico: { label: 'Crítico', badge: 'badge--critical', dot: 'dot--red' },
+  advertencia: { label: 'Media', badge: 'badge--warning', dot: 'dot--orange' },
+  critico: { label: 'Alta', badge: 'badge--critical', dot: 'dot--red' },
   desactualizado: { label: 'Desactualizado', badge: 'badge--warning', dot: 'dot--orange' },
   sin_datos: { label: 'Sin datos', badge: 'badge--neutral', dot: 'dot--orange' },
 };
 
 const ALERTA_CONFIG = {
-  FATIGA: { label: 'Fatiga', color: COLORS.yellow },
-  SOBREESFUERZO: { label: 'Sobreesfuerzo', color: COLORS.red },
-  INACTIVIDAD_PROLONGADA: { label: 'Inactividad', color: COLORS.blue },
+  FATIGA: { label: 'Fatiga', color: COLORS.green },
+  SOBREESFUERZO: { label: 'Sobreesfuerzo', color: COLORS.violet },
+  INACTIVIDAD_PROLONGADA: { label: 'Inactividad prolongada', color: COLORS.celeste },
 };
 
 // 96 baldes de 15 minutos (minutos desde medianoche). La etiqueta sólo se

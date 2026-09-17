@@ -53,6 +53,10 @@ function esCritica(prioridad) {
   return normalizada.includes('crit');
 }
 
+function etiquetaSeveridad(prioridad) {
+  return esCritica(prioridad) ? 'Alta' : 'Media';
+}
+
 function formatearHora(value) {
   if (!value) return '';
   const fecha = new Date(value);
@@ -67,8 +71,8 @@ function formatearHora(value) {
 // latest, que no distinguía una lectura de hace meses de una de hace un minuto.
 const ESTADO_CONFIG = {
   normal: { label: 'Normal', badge: 'badge--normal' },
-  advertencia: { label: 'Advertencia', badge: 'badge--warning' },
-  critico: { label: 'Crítico', badge: 'badge--critical' },
+  advertencia: { label: 'Media', badge: 'badge--warning' },
+  critico: { label: 'Alta', badge: 'badge--critical' },
   desactualizado: { label: 'Desactualizado', badge: 'badge--warning' },
   sin_datos: { label: 'Sin datos', badge: 'badge--neutral' },
 };
@@ -118,7 +122,7 @@ function renderAlertList(alertas) {
         <span>${escapeHtml(a.tipo_alerta || 'Alerta')}</span>
       </div>
       <span class="alert-item__time">${escapeHtml(formatearHora(a.fecha_hora))}</span>
-      <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${escapeHtml(a.prioridad || 'Normal')}</span>
+      <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${etiquetaSeveridad(a.prioridad)}</span>
     </li>`;
   }).join('');
 }

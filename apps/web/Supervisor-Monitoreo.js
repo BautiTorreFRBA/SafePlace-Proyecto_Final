@@ -7,8 +7,8 @@ const tbody = document.getElementById('monTableBody');
 // combina alerta activa (H0013) + capa base por umbral de FC (3.4) + frescura.
 const ESTADO_CONFIG = {
   normal: { cls: 'badge--normal', label: '● Normal', bpm: 'bpm-value--normal' },
-  advertencia: { cls: 'badge--warning', label: '● Advertencia', bpm: 'bpm-value--warning' },
-  critico: { cls: 'badge--critical', label: '● Crítico', bpm: 'bpm-value--critical' },
+  advertencia: { cls: 'badge--warning', label: '● Media', bpm: 'bpm-value--warning' },
+  critico: { cls: 'badge--critical', label: '● Alta', bpm: 'bpm-value--critical' },
   desactualizado: { cls: 'badge--neutral', label: '● Desactualizado', bpm: 'bpm-value--normal' },
   sin_datos: { cls: 'badge--neutral', label: '● Sin datos', bpm: 'bpm-value--normal' },
 };
