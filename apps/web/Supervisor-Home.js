@@ -27,7 +27,7 @@ const COLORS = {
 const ESTADO_CONFIG = {
   normal: { label: 'Normal', badge: 'badge--normal', dot: 'dot--green' },
   advertencia: { label: 'Media', badge: 'badge--warning', dot: 'dot--orange' },
-  critico: { label: 'Alta', badge: 'badge--critical', dot: 'dot--red' },
+  critico: { label: 'Crítica', badge: 'badge--critical', dot: 'dot--red' },
   desactualizado: { label: 'Desactualizado', badge: 'badge--warning', dot: 'dot--orange' },
   sin_datos: { label: 'Sin datos', badge: 'badge--neutral', dot: 'dot--orange' },
 };

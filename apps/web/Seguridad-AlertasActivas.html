@@ -56,19 +56,15 @@
         <h2 class="welcome__title">Alertas Activas</h2>
         <p class="alert-header__count" id="alertCount"><!-- Cantidad de alertas pendientes --> alertas pendientes</p>
       </div>
-      <div class="alert-filter">
-        <select class="alert-select" id="filterSeveridad" aria-label="Filtrar por severidad">
-          <option value="">Todas las severidades</option>
-          <option value="critico">Alta</option>
-          <option value="advertencia">Media</option>
-        </select>
-      </div>
     </div>
 
     <div class="alert-status-filters" role="group" aria-label="Filtrar por estado">
       <button class="alert-status-filter is-active" type="button" data-filter="pendientes">Pendientes</button>
       <button class="alert-status-filter" type="button" data-filter="resueltas">Resueltas</button>
       <button class="alert-status-filter" type="button" data-filter="todas">Ver todas</button>
+      <span class="alert-filter-separator" aria-hidden="true"></span>
+      <button class="alert-severity-filter is-active" type="button" data-severidad="critico" aria-pressed="true">Críticas</button>
+      <button class="alert-severity-filter is-active" type="button" data-severidad="advertencia" aria-pressed="true">Medias</button>
     </div>
  
     <!-- Tabla de alertas -->

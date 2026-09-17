@@ -8,7 +8,7 @@ const tbody = document.getElementById('monTableBody');
 const ESTADO_CONFIG = {
   normal: { cls: 'badge--normal', label: '● Normal', bpm: 'bpm-value--normal' },
   advertencia: { cls: 'badge--warning', label: '● Media', bpm: 'bpm-value--warning' },
-  critico: { cls: 'badge--critical', label: '● Alta', bpm: 'bpm-value--critical' },
+  critico: { cls: 'badge--critical', label: '● Crítica', bpm: 'bpm-value--critical' },
   desactualizado: { cls: 'badge--neutral', label: '● Desactualizado', bpm: 'bpm-value--normal' },
   sin_datos: { cls: 'badge--neutral', label: '● Sin datos', bpm: 'bpm-value--normal' },
 };

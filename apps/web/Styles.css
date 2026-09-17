@@ -3175,6 +3175,35 @@ select.cfg-input {
   background: var(--teal-dim);
 }
 
+.alert-filter-separator {
+  width: 1px;
+  height: 30px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.alert-severity-filter {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 600 0.78rem var(--font);
+  cursor: pointer;
+}
+
+.alert-severity-filter[data-severidad="critico"].is-active {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.alert-severity-filter[data-severidad="advertencia"].is-active {
+  color: #fed7aa;
+  border-color: rgba(251, 146, 60, 0.55);
+  background: rgba(251, 146, 60, 0.16);
+}
+
 .alert-select {
   padding: 8px 12px;
   background: var(--bg-card);
@@ -3223,6 +3252,15 @@ select.cfg-input {
   color: var(--text-secondary);
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.alert-table th:last-child {
+  text-align: center;
+}
+
+.alert-table th:nth-child(5),
+.alert-td-hora {
+  min-width: 150px;
 }
 
 .alert-table tbody tr {

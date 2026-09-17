@@ -52,7 +52,7 @@ function formatearSeveridad(prioridad = '') {
   }
 
   if (['critico', 'critica', 'alta', 'high', '1'].includes(normalizada)) {
-    return { clase: 'critico', texto: 'Alta' };
+    return { clase: 'critico', texto: 'Crítica' };
   }
 
   if (['advertencia', 'warning', 'media', 'medio', 'medium', '2'].includes(normalizada)) {
@@ -194,7 +194,7 @@ function renderTabla() {
 function renderGraficas() {
   const conteoPorTipo = {};
   const conteoPorSeveridad = {
-    Alta: 0,
+    Crítica: 0,
     Media: 0,
     Info: 0,
   };
@@ -203,7 +203,7 @@ function renderGraficas() {
     conteoPorTipo[a.tipo] = (conteoPorTipo[a.tipo] || 0) + 1;
 
     if (a.severidad.clase === 'critico') {
-      conteoPorSeveridad.Alta += 1;
+      conteoPorSeveridad.Crítica += 1;
     } else if (a.severidad.clase === 'advertencia') {
       conteoPorSeveridad.Media += 1;
     } else {

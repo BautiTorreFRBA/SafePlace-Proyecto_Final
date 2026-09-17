@@ -6,10 +6,9 @@ const POLL_INTERVAL_MS = 20000;
 
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
-const filterSeveridad = document.getElementById('filterSeveridad');
-
 let alertas = [];
 let filtroEstado = 'pendientes';
+const severidadesActivas = new Set(['critico', 'advertencia']);
 
 const ETIQUETA_TIPO_ALERTA = {
   FATIGA: 'Fatiga',
@@ -107,15 +106,14 @@ function actualizarContador() {
 }
 
 function renderTabla() {
-  const severidad = filterSeveridad.value;
   const filtrados = alertas.filter((a) => {
-    const coincideSeveridad = !severidad || a.prioridad === severidad;
+    const coincideSeveridad = severidadesActivas.has(a.prioridad);
     const esResuelta = a.estadoClase === 'cerrada';
     const coincideEstado = filtroEstado === 'todas' || (filtroEstado === 'resueltas' ? esResuelta : !esResuelta);
     return coincideSeveridad && coincideEstado;
   });
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
-      <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Alta' : 'Media'}</span></td>
+      <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Crítica' : 'Media'}</span></td>
       <td class="alert-td-tipo"><div class="alert-tipo">${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
@@ -140,11 +138,23 @@ async function cambiarEstado(id, estado) {
 window.revisarAlerta = (id) => cambiarEstado(id, 'Atendida');
 window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
 
-filterSeveridad.addEventListener('change', renderTabla);
 document.querySelectorAll('.alert-status-filter').forEach((button) => {
   button.addEventListener('click', () => {
     filtroEstado = button.dataset.filter;
     document.querySelectorAll('.alert-status-filter').forEach((item) => item.classList.toggle('is-active', item === button));
+    renderTabla();
+  });
+});
+document.querySelectorAll('.alert-severity-filter').forEach((button) => {
+  button.addEventListener('click', () => {
+    const severidad = button.dataset.severidad;
+    if (severidadesActivas.has(severidad)) {
+      severidadesActivas.delete(severidad);
+    } else {
+      severidadesActivas.add(severidad);
+    }
+    button.classList.toggle('is-active', severidadesActivas.has(severidad));
+    button.setAttribute('aria-pressed', String(severidadesActivas.has(severidad)));
     renderTabla();
   });
 });

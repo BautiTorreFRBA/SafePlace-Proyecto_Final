@@ -54,7 +54,7 @@ function esCritica(prioridad) {
 }
 
 function etiquetaSeveridad(prioridad) {
-  return esCritica(prioridad) ? 'Alta' : 'Media';
+  return esCritica(prioridad) ? 'Crítica' : 'Media';
 }
 
 function formatearHora(value) {
@@ -72,7 +72,7 @@ function formatearHora(value) {
 const ESTADO_CONFIG = {
   normal: { label: 'Normal', badge: 'badge--normal' },
   advertencia: { label: 'Media', badge: 'badge--warning' },
-  critico: { label: 'Alta', badge: 'badge--critical' },
+  critico: { label: 'Crítica', badge: 'badge--critical' },
   desactualizado: { label: 'Desactualizado', badge: 'badge--warning' },
   sin_datos: { label: 'Sin datos', badge: 'badge--neutral' },
 };
