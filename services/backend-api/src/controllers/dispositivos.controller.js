@@ -69,6 +69,18 @@ const registrarEstadoConexion = async (req, res, next) => {
       }
     }
 
+    // Con una tolerancia baja, el chequeo periódico (setInterval) puede no
+    // coincidir con desconexiones breves. Disparar el chequeo acá mismo,
+    // apenas se reporta DESCONECTADO, evita depender del timing del polling
+    // para este camino (el hub reportando el evento en tiempo real); el
+    // camino inferido por H0006 sigue dependiendo del chequeo periódico,
+    // porque ese nunca pasa por este endpoint.
+    if (estado === 'DESCONECTADO') {
+      await inactividadProlongadaService
+        .chequear()
+        .catch((err) => console.error('[dispositivos.controller] chequeo por desconexión:', err.message));
+    }
+
     res.status(201).json({ message: 'Estado de conexión registrado.', data: registro });
   } catch (error) {
     next(error);
