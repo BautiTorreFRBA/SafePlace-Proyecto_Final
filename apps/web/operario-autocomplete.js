@@ -1,13 +1,17 @@
-/* Convierte selectores de operarios en campos buscables sin cambiar los IDs
- * ni los valores que consumen los formularios existentes. */
+/* Convierte selectores en campos buscables sin cambiar los valores que
+ * consumen los formularios existentes. */
 (function () {
+  let nextId = 0;
+
   function activar(select) {
     if (!select || select.dataset.autocompleteReady === 'true') return;
     select.dataset.autocompleteReady = 'true';
 
     const input = document.createElement('input');
     const list = document.createElement('datalist');
-    const inputId = `${select.id}Autocomplete`;
+    const inputId = select.id
+      ? `${select.id}Autocomplete`
+      : `selectAutocomplete${nextId += 1}`;
     const listId = `${inputId}List`;
 
     input.id = inputId;
@@ -22,7 +26,9 @@
     select.insertAdjacentElement('beforebegin', list);
     select.hidden = true;
     select.tabIndex = -1;
-    document.querySelector(`label[for="${select.id}"]`)?.setAttribute('for', inputId);
+    if (select.id) {
+      document.querySelector(`label[for="${select.id}"]`)?.setAttribute('for', inputId);
+    }
 
     function actualizarOpciones() {
       const opciones = [...select.options];
@@ -64,5 +70,20 @@
     actualizarOpciones();
   }
 
-  document.querySelectorAll('[data-operario-autocomplete]').forEach(activar);
+  function activarTodos(root = document) {
+    if (root.matches?.('select:not([data-no-autocomplete])')) activar(root);
+    root.querySelectorAll?.('select:not([data-no-autocomplete])').forEach(activar);
+  }
+
+  activarTodos();
+
+  // Algunos selectores se crean después de cargar la página (por ejemplo,
+  // las filas de horarios). También deben conservar el mismo buscador.
+  new MutationObserver((mutaciones) => {
+    mutaciones.forEach((mutacion) => {
+      mutacion.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) activarTodos(node);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
 }());
