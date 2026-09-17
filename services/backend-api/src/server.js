@@ -16,7 +16,12 @@ const estadoDispositivoService = require('./services/estadoDispositivo.service')
 const inactividadProlongadaService = require('./services/inactividadProlongada.service');
 
 const PORT = process.env.PORT || 8000;
-const CHEQUEO_INACTIVIDAD_MS = 60 * 1000;
+// Con tolerancia=0 en umbral_riesgo, este intervalo es el principal
+// componente de la latencia desconexión→alerta (la alerta dispara en el
+// primer chequeo que ve el dispositivo desconectado). Default bajo
+// (10s) para demo/testing; en producción real conviene subirlo (más
+// carga de queries periódicas a Neon cuanto más bajo).
+const CHEQUEO_INACTIVIDAD_MS = (Number(process.env.CHEQUEO_INACTIVIDAD_SEGUNDOS) || 10) * 1000;
 
 async function startServer() {
   try {
