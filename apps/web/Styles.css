@@ -33,8 +33,8 @@
   --text-muted:     #4b5563;
 
   /* Colores semánticos */
-  --red:         #f87171;
-  --red-dim:     rgba(248, 113, 113, 0.12);
+  --red:         #ef4444;
+  --red-dim:     rgba(239, 68, 68, 0.16);
   --orange:      #fb923c;
   --orange-dim:  rgba(251, 146, 60, 0.12);
   --yellow:      #fbbf24;
@@ -3240,7 +3240,7 @@ select.cfg-input {
 }
 
 .alert-badge-critico {
-  background: rgba(248, 113, 113, 0.18);
+  background: rgba(239, 68, 68, 0.22);
   color: var(--red);
 }
 
@@ -3647,7 +3647,7 @@ select.cfg-input {
 }
 
 .hist-badge-critico {
-  background: rgba(248, 113, 113, 0.18);
+  background: rgba(239, 68, 68, 0.22);
   color: var(--red);
 }
 

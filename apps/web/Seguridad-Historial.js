@@ -114,7 +114,12 @@ function nombreEmpleado(empleado = {}) {
 }
 
 async function cargarEmpleados() {
-  const res = await fetch(`${API_BASE_URL}/trabajadores`, { headers: getAuthHeaders() });
+  // Seguridad no siempre tiene permiso para /trabajadores. El endpoint de
+  // monitoreo sí está disponible para este rol y expone los mismos nombres.
+  let res = await fetch(`${API_BASE_URL}/trabajadores`, { headers: getAuthHeaders() });
+  if (!res.ok) {
+    res = await fetch(`${API_BASE_URL}/estado/trabajadores-activos`, { headers: getAuthHeaders() });
+  }
   if (!res.ok) throw new Error('No se pudieron cargar los empleados.');
 
   const json = await res.json();
@@ -237,7 +242,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorSeveridad),
       datasets: [{
         data: Object.values(conteoPorSeveridad),
-        backgroundColor: ['#f87171', '#fb923c', '#60a5fa'],
+        backgroundColor: ['#ef4444', '#fb923c', '#60a5fa'],
         borderRadius: 10,
       }],
     },

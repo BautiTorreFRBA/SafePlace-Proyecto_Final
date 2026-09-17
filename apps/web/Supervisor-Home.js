@@ -14,7 +14,7 @@ const heartChartCanvas = document.getElementById('heartChart');
 const COLORS = {
   teal: '#2dd4bf',
   tealFill: 'rgba(45, 212, 191, 0.12)',
-  red: '#f87171',
+  red: '#ef4444',
   orange: '#fb923c',
   green: '#4ade80',
   celeste: '#38bdf8',
