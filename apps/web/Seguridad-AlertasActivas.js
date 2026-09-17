@@ -7,8 +7,8 @@ const POLL_INTERVAL_MS = 20000;
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
 let alertas = [];
-let filtroEstado = 'pendientes';
 const severidadesActivas = new Set(['critico', 'advertencia']);
+const tiposActivos = new Set(['FATIGA', 'INACTIVIDAD_PROLONGADA', 'SOBREESFUERZO']);
 
 const ETIQUETA_TIPO_ALERTA = {
   FATIGA: 'Fatiga',
@@ -34,6 +34,7 @@ function normalizarAlerta(a) {
   return {
     id: a.id,
     prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
+    tipoAlerta: String(a.tipo_alerta || '').trim().toUpperCase(),
     tipo: etiquetaTipo(a.tipo_alerta),
     claseTipo: claseTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
@@ -80,19 +81,8 @@ async function apiFetch(path, options = {}) {
 }
 
 async function cargarAlertas() {
-  const desde = new Date();
-  desde.setDate(desde.getDate() - 30);
-  const [activas, historico] = await Promise.allSettled([
-    apiFetch('/alertas/activas'),
-    apiFetch(`/alertas/historico?desde=${encodeURIComponent(desde.toISOString())}`),
-  ]);
-  if (activas.status !== 'fulfilled' && historico.status !== 'fulfilled') throw activas.reason || historico.reason;
-
-  const porId = new Map();
-  (historico.status === 'fulfilled' ? historico.value?.data || [] : []).forEach((a) => porId.set(a.id, normalizarAlerta(a)));
-  // La versión activa reemplaza a cualquier copia del historial.
-  (activas.status === 'fulfilled' ? activas.value?.data || [] : []).forEach((a) => porId.set(a.id, normalizarAlerta(a)));
-  alertas = [...porId.values()].sort((a, b) => {
+  const payload = await apiFetch('/alertas/activas');
+  alertas = (payload.data || []).map(normalizarAlerta).sort((a, b) => {
     const prioridad = { critico: 0, advertencia: 1 };
     return prioridad[a.prioridad] - prioridad[b.prioridad];
   });
@@ -108,9 +98,9 @@ function actualizarContador() {
 function renderTabla() {
   const filtrados = alertas.filter((a) => {
     const coincideSeveridad = severidadesActivas.has(a.prioridad);
-    const esResuelta = a.estadoClase === 'cerrada';
-    const coincideEstado = filtroEstado === 'todas' || (filtroEstado === 'resueltas' ? esResuelta : !esResuelta);
-    return coincideSeveridad && coincideEstado;
+    const coincideTipo = tiposActivos.has(a.tipoAlerta);
+    const coincideEstado = a.estadoClase !== 'cerrada';
+    return coincideSeveridad && coincideTipo && coincideEstado;
   });
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Crítica' : 'Media'}</span></td>
@@ -138,13 +128,6 @@ async function cambiarEstado(id, estado) {
 window.revisarAlerta = (id) => cambiarEstado(id, 'Atendida');
 window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
 
-document.querySelectorAll('.alert-status-filter').forEach((button) => {
-  button.addEventListener('click', () => {
-    filtroEstado = button.dataset.filter;
-    document.querySelectorAll('.alert-status-filter').forEach((item) => item.classList.toggle('is-active', item === button));
-    renderTabla();
-  });
-});
 document.querySelectorAll('.alert-severity-filter').forEach((button) => {
   button.addEventListener('click', () => {
     const severidad = button.dataset.severidad;
@@ -155,6 +138,19 @@ document.querySelectorAll('.alert-severity-filter').forEach((button) => {
     }
     button.classList.toggle('is-active', severidadesActivas.has(severidad));
     button.setAttribute('aria-pressed', String(severidadesActivas.has(severidad)));
+    renderTabla();
+  });
+});
+document.querySelectorAll('.alert-type-filter').forEach((button) => {
+  button.addEventListener('click', () => {
+    const tipo = button.dataset.tipo;
+    if (tiposActivos.has(tipo)) {
+      tiposActivos.delete(tipo);
+    } else {
+      tiposActivos.add(tipo);
+    }
+    button.classList.toggle('is-active', tiposActivos.has(tipo));
+    button.setAttribute('aria-pressed', String(tiposActivos.has(tipo)));
     renderTabla();
   });
 });

@@ -3204,6 +3204,22 @@ select.cfg-input {
   background: rgba(251, 146, 60, 0.16);
 }
 
+.alert-type-filter {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 600 0.78rem var(--font);
+  cursor: pointer;
+}
+
+.alert-type-filter.is-active {
+  color: var(--teal-400);
+  border-color: var(--teal-500);
+  background: var(--teal-dim);
+}
+
 .alert-select {
   padding: 8px 12px;
   background: var(--bg-card);
