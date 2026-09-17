@@ -6,9 +6,10 @@ const POLL_INTERVAL_MS = 20000;
 
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
-const filterTipo = document.getElementById('filterTipo');
+const filterSeveridad = document.getElementById('filterSeveridad');
 
 let alertas = [];
+let filtroEstado = 'pendientes';
 
 const ETIQUETA_TIPO_ALERTA = {
   FATIGA: 'Fatiga',
@@ -21,6 +22,29 @@ const claseTipo = (t) => ({
   SOBREESFUERZO: 'sobreesfuerzo',
   INACTIVIDAD_PROLONGADA: 'inactividad',
 }[String(t || '').toUpperCase()] || '');
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function normalizarAlerta(a) {
+  const estado = a.estado || 'Activa';
+  const estadoNormalizado = String(estado).toLowerCase();
+  return {
+    id: a.id,
+    prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
+    tipo: etiquetaTipo(a.tipo_alerta),
+    claseTipo: claseTipo(a.tipo_alerta),
+    empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
+    ...separarFechaHora(a.fecha_hora),
+    estado,
+    estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
+      ? 'cerrada'
+      : estadoNormalizado.includes('rev') ? 'enrevision' : 'activo',
+  };
+}
 
 function separarFechaHora(value) {
   const fecha = new Date(value);
@@ -57,37 +81,48 @@ async function apiFetch(path, options = {}) {
 }
 
 async function cargarAlertas() {
-  const payload = await apiFetch('/alertas/activas');
-  alertas = (payload.data || []).map((a) => ({
-    id: a.id,
-    prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
-    tipo: etiquetaTipo(a.tipo_alerta),
-    claseTipo: claseTipo(a.tipo_alerta),
-    empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
-    ...separarFechaHora(a.fecha_hora),
-    estado: a.estado || 'Activa',
-  }));
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 30);
+  const [activas, historico] = await Promise.allSettled([
+    apiFetch('/alertas/activas'),
+    apiFetch(`/alertas/historico?desde=${encodeURIComponent(desde.toISOString())}`),
+  ]);
+  if (activas.status !== 'fulfilled' && historico.status !== 'fulfilled') throw activas.reason || historico.reason;
+
+  const porId = new Map();
+  (historico.status === 'fulfilled' ? historico.value?.data || [] : []).forEach((a) => porId.set(a.id, normalizarAlerta(a)));
+  // La versión activa reemplaza a cualquier copia del historial.
+  (activas.status === 'fulfilled' ? activas.value?.data || [] : []).forEach((a) => porId.set(a.id, normalizarAlerta(a)));
+  alertas = [...porId.values()].sort((a, b) => {
+    const prioridad = { critico: 0, advertencia: 1 };
+    return prioridad[a.prioridad] - prioridad[b.prioridad];
+  });
   actualizarContador();
   renderTabla();
 }
 
 function actualizarContador() {
-  const total = alertas.length;
+  const total = alertas.filter((a) => a.estadoClase !== 'cerrada').length;
   alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
 }
 
 function renderTabla() {
-  const filtro = filterTipo.value;
-  const filtrados = filtro ? alertas.filter((a) => a.prioridad === filtro) : alertas;
-  tableBody.innerHTML = filtrados.map((a) => `<tr>
+  const severidad = filterSeveridad.value;
+  const filtrados = alertas.filter((a) => {
+    const coincideSeveridad = !severidad || a.prioridad === severidad;
+    const esResuelta = a.estadoClase === 'cerrada';
+    const coincideEstado = filtroEstado === 'todas' || (filtroEstado === 'resueltas' ? esResuelta : !esResuelta);
+    return coincideSeveridad && coincideEstado;
+  });
+  tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Alta' : 'Media'}</span></td>
-      <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}">${a.tipo}</div></td>
-      <td class="alert-td-empleado">${a.empleado}</td>
-      <td class="alert-td-fecha">${a.fecha}</td>
-      <td class="alert-td-hora">${a.hora}</td>
-      <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estado}">${a.estado}</span></td>
-      <td class="alert-td-acciones"><div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div></td>
-    </tr>`).join('');
+      <td class="alert-td-tipo"><div class="alert-tipo">${escapeHtml(a.tipo)}</div></td>
+      <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
+      <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
+      <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
+      <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estadoClase}">${escapeHtml(a.estado)}</span></td>
+      <td class="alert-td-acciones">${a.estadoClase === 'cerrada' ? '<span class="alert-action-done">Resuelta</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
+    </tr>`).join('') : '<tr><td colspan="7" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 
 async function cambiarEstado(id, estado) {
@@ -105,7 +140,14 @@ async function cambiarEstado(id, estado) {
 window.revisarAlerta = (id) => cambiarEstado(id, 'Atendida');
 window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
 
-filterTipo.addEventListener('change', renderTabla);
+filterSeveridad.addEventListener('change', renderTabla);
+document.querySelectorAll('.alert-status-filter').forEach((button) => {
+  button.addEventListener('click', () => {
+    filtroEstado = button.dataset.filter;
+    document.querySelectorAll('.alert-status-filter').forEach((item) => item.classList.toggle('is-active', item === button));
+    renderTabla();
+  });
+});
 
 cargarAlertas().catch((error) => {
   console.error(error);

@@ -3152,6 +3152,29 @@ select.cfg-input {
   gap: 8px;
 }
 
+.alert-status-filters {
+  display: flex;
+  gap: 8px;
+  padding: 0 28px 18px;
+}
+
+.alert-status-filter {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 600 0.78rem var(--font);
+  cursor: pointer;
+}
+
+.alert-status-filter:hover,
+.alert-status-filter.is-active {
+  color: var(--teal-400);
+  border-color: var(--teal-500);
+  background: var(--teal-dim);
+}
+
 .alert-select {
   padding: 8px 12px;
   background: var(--bg-card);
@@ -3192,7 +3215,7 @@ select.cfg-input {
 }
 
 .alert-table th {
-  padding: 14px 20px;
+  padding: 14px 16px;
   text-align: left;
   font-size: 0.67rem;
   font-weight: 600;
@@ -3216,7 +3239,7 @@ select.cfg-input {
 }
 
 .alert-table td {
-  padding: 14px 20px;
+  padding: 14px 16px;
   color: var(--text-primary);
   vertical-align: middle;
 }
@@ -3251,14 +3274,14 @@ select.cfg-input {
 
 /* Celda de tipo (triángulo + texto) */
 .alert-td-tipo {
-  width: 140px;
+  min-width: 230px;
 }
 
 .alert-tipo {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .alert-tipo svg {
@@ -3275,10 +3298,10 @@ select.cfg-input {
   color: var(--orange);
 }
 
-/* Color fijo por tipo de alerta. La severidad se comunica por su badge. */
-.alert-tipo--fatiga { color: var(--green); }
-.alert-tipo--sobreesfuerzo { color: var(--violet); }
-.alert-tipo--inactividad { color: var(--celeste); }
+/* El tipo se muestra con el color de texto normal; la severidad usa el badge. */
+.alert-tipo--fatiga,
+.alert-tipo--sobreesfuerzo,
+.alert-tipo--inactividad { color: var(--text-primary); }
 
 /* Celda de empleado */
 .alert-td-empleado {
@@ -3329,27 +3352,30 @@ select.cfg-input {
 
 /* Celda de acciones */
 .alert-td-acciones {
-  width: auto;
+  min-width: 190px;
 }
 
 .alert-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .alert-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   font-family: var(--font);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
   flex-shrink: 0;
 }
 
@@ -3370,12 +3396,16 @@ select.cfg-input {
 
 /* Botón Revisar */
 .alert-btn--revisar {
-  color: var(--text-secondary);
+  color: #fed7aa;
+  background: rgba(251, 146, 60, 0.14);
+  border-color: rgba(251, 146, 60, 0.45);
 }
 
 .alert-btn--revisar:hover {
-  background: rgba(74, 222, 128, 0.1);
-  color: var(--green);
+  background: var(--orange);
+  border-color: var(--orange);
+  color: #231005;
+  transform: translateY(-1px);
 }
 
 .alert-btn--revisar:disabled {
@@ -3390,12 +3420,27 @@ select.cfg-input {
 
 /* Botón Cerrar */
 .alert-btn--cerrar {
-  color: var(--text-secondary);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.48);
 }
 
 .alert-btn--cerrar:hover {
-  background: rgba(248, 113, 113, 0.1);
-  color: var(--red);
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.alert-action-done {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.alert-empty {
+  padding: 32px !important;
+  color: var(--text-secondary) !important;
+  text-align: center;
 }
 
 /* ── RESPONSIVE ─────────────────────────────────────────────── */
@@ -3409,6 +3454,11 @@ select.cfg-input {
 
   .alert-filter {
     width: 100%;
+  }
+
+  .alert-status-filters {
+    padding: 0 16px 16px;
+    flex-wrap: wrap;
   }
 
   .alert-select {
