@@ -75,6 +75,7 @@
               <th><button class="emp-sort" type="button" data-sort="legajo">LEGAJO</button></th>
               <th><button class="emp-sort" type="button" data-sort="nombreCompleto">NOMBRE</button></th>
               <th><button class="emp-sort" type="button" data-sort="depto">DEPARTAMENTO</button></th>
+              <th><button class="emp-sort" type="button" data-sort="turno">TURNO</button></th>
               <th><button class="emp-sort" type="button" data-sort="rol">ROL</button></th>
               <th><button class="emp-sort" type="button" data-sort="estado">ESTADO</button></th>
               <th><button class="emp-sort" type="button" data-sort="alta">ALTA</button></th>
@@ -108,10 +109,19 @@
               <label class="modal__label">DEPARTAMENTO</label>
               <select class="modal__input" id="mDept">
                 <option value="">Seleccionar...</option>
-                <option>Producción</option>
-                <option>Logóstica</option>
-                <option>Mantenimiento</option>
-                <option>Almacón</option>
+                <option value="Logística">Logística</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Producción">Producción</option>
+                <option value="Prueba">Prueba</option>
+              </select>
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="mTurno">TURNO</label>
+              <select class="modal__input" id="mTurno" required>
+                <option value="">Seleccionar...</option>
+                <option value="mañana">Mañana</option>
+                <option value="tarde">Tarde</option>
+                <option value="noche">Noche</option>
               </select>
             </div>
           </div>

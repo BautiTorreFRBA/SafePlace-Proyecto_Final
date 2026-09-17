@@ -11,6 +11,8 @@ const DIAS = [
 ];
 
 const operarioSelect = document.getElementById('operarioSelect');
+const gruposAreaTurno = document.getElementById('gruposAreaTurno');
+const horarioOperarioTitulo = document.getElementById('horarioOperarioTitulo');
 const horarioBody = document.getElementById('horarioBody');
 const btnGuardar = document.getElementById('btnGuardar');
 const infoLine = document.getElementById('infoLine');
@@ -29,6 +31,67 @@ let horarioState = {};
 // Excepciones puntuales por fecha del operario seleccionado (fecha IS NOT
 // NULL en la API) — se gestionan aparte, no forman parte de horarioState.
 let excepciones = [];
+
+const AREAS = ['Logística', 'Mantenimiento', 'Producción', 'Prueba'];
+const TURNOS = ['mañana', 'tarde', 'noche'];
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function etiquetaTurno(turno) {
+  return turno ? turno.charAt(0).toUpperCase() + turno.slice(1) : 'Sin turno';
+}
+
+function renderGrupos(empleados) {
+  const grupos = new Map();
+  AREAS.forEach((area) => {
+    TURNOS.forEach((turno) => {
+      grupos.set(`${area}::${turno}`, { area, turno, empleados: [] });
+    });
+  });
+  empleados.forEach((empleado) => {
+    const area = empleado.depto || empleado.area || 'Sin área';
+    const turno = String(empleado.turno || '').toLowerCase() || 'sin turno';
+    const clave = `${area}::${turno}`;
+    if (!grupos.has(clave)) grupos.set(clave, { area, turno, empleados: [] });
+    grupos.get(clave).empleados.push(empleado);
+  });
+
+  const orden = (a, b) => {
+    const areaA = AREAS.indexOf(a.area);
+    const areaB = AREAS.indexOf(b.area);
+    if (areaA !== areaB) return (areaA === -1 ? AREAS.length : areaA) - (areaB === -1 ? AREAS.length : areaB);
+    const turnoA = TURNOS.indexOf(a.turno);
+    const turnoB = TURNOS.indexOf(b.turno);
+    return (turnoA === -1 ? TURNOS.length : turnoA) - (turnoB === -1 ? TURNOS.length : turnoB);
+  };
+
+  const gruposOrdenados = [...grupos.values()].sort(orden);
+  gruposAreaTurno.innerHTML = gruposOrdenados.length === 0
+    ? '<p class="emp-header__count">No hay operarios activos para mostrar.</p>'
+    : gruposOrdenados.map((grupo) => `
+      <article class="grupo-area-turno">
+        <header class="grupo-area-turno__header">
+          <h3>${escapeHtml(grupo.area)} · ${escapeHtml(etiquetaTurno(grupo.turno))}</h3>
+          <span>${grupo.empleados.length} operario${grupo.empleados.length !== 1 ? 's' : ''}</span>
+        </header>
+        <div class="grupo-area-turno__operarios">
+          ${grupo.empleados.length === 0
+    ? '<span class="grupo-area-turno__vacio">Sin operarios asignados</span>'
+    : grupo.empleados
+    .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`, 'es'))
+    .map((empleado) => `<button type="button" class="grupo-area-turno__operario" data-operario-id="${empleado.id}">
+              ${escapeHtml(`${empleado.apellido}, ${empleado.nombre}`)} <small>${escapeHtml(empleado.legajo)}</small>
+            </button>`).join('')}
+        </div>
+      </article>`).join('');
+}
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -136,6 +199,7 @@ async function cargarHorario(idOperario) {
     renderExcepciones();
     btnGuardar.disabled = true;
     btnAgregarExcepcion.disabled = true;
+    horarioOperarioTitulo.textContent = 'Horario laboral';
     return;
   }
   const payload = await apiFetch(`/trabajadores/${idOperario}/horario`);
@@ -154,6 +218,17 @@ async function cargarHorario(idOperario) {
   renderExcepciones();
   btnGuardar.disabled = false;
   btnAgregarExcepcion.disabled = false;
+}
+
+async function seleccionarOperario(idOperario) {
+  const opcion = operarioSelect.querySelector(`option[value="${idOperario}"]`);
+  if (!opcion) return;
+  operarioSelect.value = idOperario;
+  horarioOperarioTitulo.textContent = `Horario laboral de ${opcion.dataset.nombre}`;
+  gruposAreaTurno.querySelectorAll('[data-operario-id]').forEach((boton) => {
+    boton.classList.toggle('grupo-area-turno__operario--activo', boton.dataset.operarioId === String(idOperario));
+  });
+  await cargarHorario(idOperario);
 }
 
 async function agregarExcepcion() {
@@ -250,15 +325,18 @@ async function init() {
     const payload = await apiFetch('/dashboard/employees');
     const empleados = (payload.data || payload.employees || []).filter((e) => e.estado);
     operarioSelect.innerHTML = '<option value="">Seleccioná un operario...</option>'
-      + empleados.map((e) => `<option value="${e.id}">${e.apellido}, ${e.nombre} (${e.legajo})</option>`).join('');
+      + empleados.map((e) => `<option value="${e.id}" data-nombre="${escapeHtml(`${e.nombre} ${e.apellido}`.trim())}"></option>`).join('');
+    renderGrupos(empleados);
   } catch (error) {
     operarioSelect.innerHTML = '<option value="">No se pudieron cargar los operarios</option>';
+    gruposAreaTurno.innerHTML = '<p class="emp-header__count">No se pudieron cargar los grupos.</p>';
     console.error(error);
   }
 }
 
-operarioSelect.addEventListener('change', () => {
-  cargarHorario(operarioSelect.value).catch((e) => { console.error(e); alert(e.message); });
+gruposAreaTurno.addEventListener('click', (e) => {
+  const boton = e.target.closest('[data-operario-id]');
+  if (boton) seleccionarOperario(boton.dataset.operarioId).catch((error) => { console.error(error); alert(error.message); });
 });
 btnGuardar.addEventListener('click', guardar);
 

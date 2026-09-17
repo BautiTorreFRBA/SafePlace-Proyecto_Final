@@ -5,6 +5,7 @@ const TIMEZONE = 'America/Argentina/Buenos_Aires';
 // Con UTC, una alerta del 1/9 22:24 (Buenos Aires) — que en UTC ya es 2/9 01:24
 // — se contaba en el día de hoy y el operador no la encontraba en ningún lado.
 const SUMMARY_TIMEZONE = TIMEZONE;
+const AREAS_VALIDAS = ['Logística', 'Mantenimiento', 'Producción', 'Prueba'];
 
 const listarEmpresas = async () => {
   const res = await db.query(`
@@ -24,6 +25,7 @@ const listarEmpleados = async () => {
       o.nombre,
       o.apellido,
       o.area AS depto,
+      o.turno,
       o.mail AS email,
       'Operario' AS rol,
       o.estado AS estado,
@@ -49,13 +51,20 @@ const generarLegajoEmpleado = async (client) => {
   return `EMP-${String(siguiente).padStart(3, '0')}`;
 };
 
-const crearEmpleado = async ({ nombre, apellido, area, email, idEmpresa }) => {
+const crearEmpleado = async ({ nombre, apellido, area, email, turno, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
+  const turnoLimpio = String(turno || '').trim().toLowerCase();
 
-  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !turnoLimpio || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para crear el empleado.');
+  }
+  if (!AREAS_VALIDAS.includes(areaLimpia)) {
+    throw new Error('El área debe ser Logística, Mantenimiento, Producción o Prueba.');
+  }
+  if (!['mañana', 'tarde', 'noche'].includes(turnoLimpio)) {
+    throw new Error('El turno debe ser mañana, tarde o noche.');
   }
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
     throw new Error('El email del empleado no es válido.');
@@ -70,12 +79,12 @@ const crearEmpleado = async ({ nombre, apellido, area, email, idEmpresa }) => {
       client.release();
     }
     const query = `
-    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, mail, alta, estado)
-      VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NOW(), TRUE)
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, mail AS email, estado;
+    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, turno, mail, alta, estado)
+      VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NOW(), TRUE)
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, mail AS email, estado;
     `;
 
-    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);
+    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase()]);
     return res.rows[0];
   } catch (error) {
     if (error.code === '23505') {
@@ -96,13 +105,20 @@ const crearEmpleado = async ({ nombre, apellido, area, email, idEmpresa }) => {
   }
 };
 
-const actualizarEmpleado = async (id, { nombre, apellido, area, email, idEmpresa }) => {
+const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
+  const turnoLimpio = String(turno || '').trim().toLowerCase();
 
-  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !idEmpresa) {
+  if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !turnoLimpio || !idEmpresa) {
     throw new Error('Faltan campos obligatorios para actualizar el empleado.');
+  }
+  if (!AREAS_VALIDAS.includes(areaLimpia)) {
+    throw new Error('El área debe ser Logística, Mantenimiento, Producción o Prueba.');
+  }
+  if (!['mañana', 'tarde', 'noche'].includes(turnoLimpio)) {
+    throw new Error('El turno debe ser mañana, tarde o noche.');
   }
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
     throw new Error('El email del empleado no es válido.');
@@ -115,12 +131,13 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, idEmpresa
           nombre = $3,
           apellido = $4,
           area = $5,
-          mail = NULLIF($6, '')
+          turno = $6,
+          mail = NULLIF($7, '')
       WHERE id = $1
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, mail AS email;
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, mail AS email;
     `;
 
-    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, String(email || '').trim().toLowerCase()]);
+    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase()]);
     return res.rows[0] || null;
   } catch (error) {
     if (error.code === '23505') {

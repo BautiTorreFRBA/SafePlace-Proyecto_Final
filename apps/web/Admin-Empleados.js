@@ -14,6 +14,7 @@ const mNombre = document.getElementById('mNombre');
 const mApellido = document.getElementById('mApellido');
 const mEmail = document.getElementById('mEmail');
 const mDept = document.getElementById('mDept');
+const mTurno = document.getElementById('mTurno');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
 const sortButtons = Array.from(document.querySelectorAll('.emp-sort'));
@@ -69,6 +70,8 @@ function getSortValue(emp, key) {
       return normalizarTexto(emp.nombreCompleto || '');
     case 'depto':
       return normalizarTexto(emp.depto || '');
+    case 'turno':
+      return normalizarTexto(emp.turno || '');
     case 'rol':
       return normalizarTexto(emp.rol || '');
     case 'estado':
@@ -142,6 +145,7 @@ function normalizarEmpleado(emp) {
     nombreCompleto: nombreCompleto || 'Sin nombre',
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
+    turno: emp.turno || '',
     rol: emp.rol || 'Operario',
     estado: estaActivo ? 'activo' : 'inactivo',
     alta: emp.alta ? fmtARFecha(new Date(emp.alta)) : '--',
@@ -172,7 +176,7 @@ function renderTable() {
   empCount.textContent = `${ordenados.length} empleado${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
 
   tableBody.innerHTML = ordenados.length === 0
-    ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
+    ? '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
     : ordenados.map((emp) => rowHTML(emp)).join('');
 
   actualizarIndicadoresOrden();
@@ -188,6 +192,7 @@ function rowHTML(emp) {
       <td class="emp-id">${escapeHtml(emp.legajo)}</td>
       <td><div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(emp.iniciales)}</div><span class="emp-name__text">${escapeHtml(emp.nombreCompleto)}</span></div></td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.depto)}</td>
+      <td style="color:var(--text-secondary)">${escapeHtml(emp.turno ? emp.turno.charAt(0).toUpperCase() + emp.turno.slice(1) : '--')}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
       <td>${estadoBadge}</td>
       <td style="color:var(--text-primary); font-size:0.82rem">${escapeHtml(emp.alta)}</td>
@@ -205,12 +210,14 @@ function openModal(modo, id = null) {
     mApellido.value = emp.apellido || '';
     mEmail.value = emp.email || '';
     setSelectByText(mDept, emp.depto || emp.area || '');
+    mTurno.value = emp.turno || '';
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
     mApellido.value = '';
     mEmail.value = '';
     mDept.value = '';
+    mTurno.value = '';
   }
   modalOverlay.classList.add('modal-overlay--visible');
   mNombre.focus();
@@ -226,6 +233,7 @@ function limpiarCampos() {
   mApellido.value = '';
   mEmail.value = '';
   mDept.value = '';
+  mTurno.value = '';
 }
 
 async function guardarEmpleado() {
@@ -233,16 +241,17 @@ async function guardarEmpleado() {
   const apellido = mApellido.value.trim();
   const email = mEmail.value.trim();
   const area = mDept.value.trim();
+  const turno = mTurno.value;
 
-  if (!nombre || !apellido || !area || !email) {
-    alert('Completá nombre, apellido, departamento y email.');
+  if (!nombre || !apellido || !area || !email || !turno) {
+    alert('Completá nombre, apellido, departamento, turno y email.');
     return;
   }
 
   try {
     await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
-      body: JSON.stringify({ nombre, apellido, area, email }),
+      body: JSON.stringify({ nombre, apellido, area, email, turno }),
     });
     closeModal();
     limpiarCampos();
@@ -300,7 +309,7 @@ modalSave.addEventListener('click', guardarEmpleado);
     renderTable();
   });
 });
-[mNombre, mApellido, mEmail, mDept].forEach((campo) => campo.addEventListener('keydown', (e) => {
+[mNombre, mApellido, mEmail, mDept, mTurno].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
   }
@@ -311,5 +320,5 @@ cargarEmpleados().catch((err) => {
   empCount.textContent = err.status === 401 || err.status === 403
     ? 'Sesión sin permisos para consultar empleados'
     : 'Error cargando empleados';
-  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
 });

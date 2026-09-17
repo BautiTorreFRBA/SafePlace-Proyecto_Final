@@ -755,6 +755,57 @@ html, body {
   overflow-x: auto;
 }
 
+.grupos-area-turno {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  padding: 12px 24px 20px;
+}
+
+.grupo-area-turno {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.grupo-area-turno__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-card-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.grupo-area-turno__header h3 { margin: 0; font-size: 0.9rem; color: var(--text-primary); }
+.grupo-area-turno__header span { color: var(--text-muted); font-size: 0.76rem; white-space: nowrap; }
+
+.grupo-area-turno__operarios { display: flex; flex-direction: column; padding: 8px; gap: 5px; }
+
+.grupo-area-turno__operario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.grupo-area-turno__operario:hover,
+.grupo-area-turno__operario--activo { background: rgba(20, 184, 166, 0.12); color: var(--teal-500); }
+.grupo-area-turno__operario small { color: var(--text-muted); font-size: 0.72rem; }
+.grupo-area-turno__vacio { padding: 9px 10px; color: var(--text-muted); font-size: 0.82rem; }
+
 .emp-table {
   width: 100%;
   border-collapse: collapse;
