@@ -51,59 +51,6 @@
       <section class="grupos-area-turno" id="gruposAreaTurno" aria-live="polite">
         <p class="emp-header__count">Cargando grupos...</p>
       </section>
-
-      <div class="emp-header" style="margin-top:8px;">
-        <div>
-          <h2 class="emp-header__title" id="horarioOperarioTitulo" style="font-size:1.05rem;">Horario laboral</h2>
-          <p class="emp-header__count">La alerta de inactividad prolongada sólo se dispara si el wearable se desconecta dentro de este horario.</p>
-        </div>
-      </div>
-
-      <div class="emp-toolbar" style="justify-content:flex-end;">
-        <select id="operarioSelect" aria-label="Operario seleccionado" hidden><option value="">Seleccioná un operario...</option></select>
-        <button class="btn-nuevo" id="btnGuardar" style="align-self:flex-end;" disabled><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20 6 9 17l-5-5"/></svg> Guardar horario</button>
-      </div>
-
-      <div class="emp-table-wrap">
-        <table class="emp-table">
-          <thead><tr><th>DÍA</th><th>DESDE</th><th>HASTA</th><th>TRABAJO</th><th></th></tr></thead>
-          <tbody id="horarioBody"></tbody>
-        </table>
-      </div>
-
-      <div class="emp-header" style="margin-top:8px;">
-        <div>
-          <h2 class="emp-header__title" style="font-size:1.05rem;">Horarios puntuales por fecha</h2>
-          <p class="emp-header__count">Reemplazan al horario semanal sólo para esa fecha (ej. un franco puntual o un turno excepcional)</p>
-        </div>
-      </div>
-
-      <div class="emp-toolbar" style="flex-wrap:wrap; gap:12px;">
-        <div class="modal__field" style="min-width:150px;">
-          <label class="modal__label" for="excFecha">FECHA</label>
-          <input class="modal__input" id="excFecha" type="date" />
-        </div>
-        <div class="modal__field" style="min-width:130px;">
-          <label class="modal__label" for="excDesde">DESDE</label>
-          <input class="modal__input" id="excDesde" type="time" value="08:00" />
-        </div>
-        <div class="modal__field" style="min-width:130px;">
-          <label class="modal__label" for="excHasta">HASTA</label>
-          <input class="modal__input" id="excHasta" type="time" value="17:00" />
-        </div>
-        <div class="modal__field" style="min-width:180px;">
-          <label class="modal__label" for="excTrabajo">TRABAJO</label>
-          <select class="modal__input" id="excTrabajo"></select>
-        </div>
-        <button class="btn-nuevo" id="btnAgregarExcepcion" style="align-self:flex-end;" disabled>+ Agregar excepción</button>
-      </div>
-
-      <div class="emp-table-wrap">
-        <table class="emp-table">
-          <thead><tr><th>FECHA</th><th>DESDE</th><th>HASTA</th><th>TRABAJO</th><th></th></tr></thead>
-          <tbody id="excepcionesBody"></tbody>
-        </table>
-      </div>
     </main>
   </div>
 
