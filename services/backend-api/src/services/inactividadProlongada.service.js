@@ -45,8 +45,10 @@ const chequear = async () => {
   _bloqueado.valor = true;
   try {
     const umbralGlobal = await umbralRiesgoRepository.obtenerVigente();
-    const toleranciaGlobal = umbralGlobal && Number(umbralGlobal.minutos_desconexion_tolerada);
-    if (!toleranciaGlobal || Number.isNaN(toleranciaGlobal)) return 0;
+    // 0 es una tolerancia válida (alerta en el primer chequeo que ve la
+    // desconexión) — no puede tratarse como "ausente" solo por ser falsy.
+    const toleranciaGlobal = umbralGlobal ? Number(umbralGlobal.minutos_desconexion_tolerada) : null;
+    if (toleranciaGlobal == null || Number.isNaN(toleranciaGlobal)) return 0;
 
     // Todo dispositivo desconectado con asignación vigente y una conexión
     // real previa — sin filtrar por tolerancia acá: el "hace cuánto" real es
