@@ -37,8 +37,8 @@ const stream = (req, res) => {
 
 const listar = async (req, res, next) => {
   try {
-    const soloNoLeidas = req.query.leida === 'false';
-    const rows = await notificacionRepository.listar({ soloNoLeidas });
+    const leida = req.query.leida === 'true' ? true : req.query.leida === 'false' ? false : undefined;
+    const rows = await notificacionRepository.listar({ leida });
     res.json({ data: rows });
   } catch (error) {
     next(error);

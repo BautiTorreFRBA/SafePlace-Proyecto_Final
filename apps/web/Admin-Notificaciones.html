@@ -64,6 +64,11 @@
                 </div>
                 <button class="notif-btn-leer" id="btnLeerTodas"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"> <polyline points="20 6 9 17 4 12"/></svg> Marcar todas como leídas </button>
             </div>
+            <div class="notif-filters" role="group" aria-label="Filtrar notificaciones">
+                <button class="notif-filter is-active" type="button" data-filter="todas">Todas</button>
+                <button class="notif-filter" type="button" data-filter="no-leidas">No leídas (activas)</button>
+                <button class="notif-filter" type="button" data-filter="leidas">Leídas</button>
+            </div>
 
             <!-- Lista de notificaciones -->
             <div class="notif-list" id="notifList">

@@ -11,6 +11,8 @@ const notifCount = document.getElementById('notifCount');
 const btnLeerTodas = document.getElementById('btnLeerTodas');
 const btnActualizar = document.getElementById('btnActualizar');
 let notificaciones = [];
+let filtroActual = 'todas';
+let cantidadSinLeer = 0;
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -44,7 +46,12 @@ function mapearTipo(prioridad = '') {
 }
 
 async function cargarNotificaciones() {
-  const payload = await apiFetch('/notificaciones');
+  const filtroQuery = filtroActual === 'leidas' ? '?leida=true' : filtroActual === 'no-leidas' ? '?leida=false' : '';
+  const [payload, pendientesPayload] = await Promise.all([
+    apiFetch(`/notificaciones${filtroQuery}`),
+    apiFetch('/notificaciones?leida=false'),
+  ]);
+  cantidadSinLeer = (pendientesPayload.data || []).length;
   notificaciones = (payload.data || []).map((n) => ({
     id: n.id,
     tipo: mapearTipo(n.prioridad || ''),
@@ -58,7 +65,7 @@ async function cargarNotificaciones() {
 }
 
 function actualizarContador() {
-  const sinLeer = notificaciones.filter((n) => !n.leido).length;
+  const sinLeer = cantidadSinLeer;
   notifCount.textContent = sinLeer > 0 ? `${sinLeer} sin leer` : 'Todas leídas';
   const badge = document.getElementById('notifBadge');
   if (badge) {
@@ -69,9 +76,10 @@ function actualizarContador() {
 
 function renderNotificaciones() {
   if (!notifList) return;
-  notifList.innerHTML = notificaciones.length
-    ? notificaciones.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div></div>`).join('')
-    : '<div class="notif-card"><div class="notif-card__content"><div class="notif-card__title">Sin notificaciones</div><div class="notif-card__desc">No hay alertas para mostrar en este momento.</div></div></div>';
+  const visibles = notificaciones.filter((n) => filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido));
+  notifList.innerHTML = visibles.length
+    ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
+    : '<div class="notif-empty"><div class="notif-empty__title">No hay notificaciones en este filtro</div><div class="notif-empty__desc">Probá con otro filtro para ver más notificaciones.</div></div>';
 }
 
 window.marcarComoLeido = async (id) => {
@@ -81,6 +89,7 @@ window.marcarComoLeido = async (id) => {
   try {
     await apiFetch(`/notificaciones/${id}/leida`, { method: 'PATCH' });
     notif.leido = true;
+    cantidadSinLeer = Math.max(0, cantidadSinLeer - 1);
     actualizarContador();
     renderNotificaciones();
   } catch (error) {
@@ -88,11 +97,20 @@ window.marcarComoLeido = async (id) => {
   }
 };
 
+document.querySelectorAll('.notif-filter').forEach((button) => {
+  button.addEventListener('click', () => {
+    filtroActual = button.dataset.filter;
+    document.querySelectorAll('.notif-filter').forEach((item) => item.classList.toggle('is-active', item === button));
+    cargarNotificaciones().catch((error) => alert(error.message));
+  });
+});
+
 btnLeerTodas?.addEventListener('click', async () => {
   const pendientes = notificaciones.filter((n) => !n.leido);
   try {
     await Promise.all(pendientes.map((n) => apiFetch(`/notificaciones/${n.id}/leida`, { method: 'PATCH' })));
     pendientes.forEach((n) => { n.leido = true; });
+    cantidadSinLeer = 0;
     actualizarContador();
     renderNotificaciones();
   } catch (error) {

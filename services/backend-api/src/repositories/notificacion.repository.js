@@ -12,7 +12,7 @@ const crear = async ({ idAlerta }) => {
 
 // H0015: panel operativo del supervisor, con el detalle de la condición
 // (tipo de alerta + trabajador) resuelto igual que la bandeja de H0013.
-const listar = async ({ soloNoLeidas = false } = {}) => {
+const listar = async ({ leida } = {}) => {
   const query = `
     SELECT
       n.id,
@@ -31,10 +31,10 @@ const listar = async ({ soloNoLeidas = false } = {}) => {
     LEFT JOIN medicion m ON m.id = a.id_medicion
     LEFT JOIN operario_seudonimo os ON os.id = COALESCE(m.id_seudonimo, a.id_seudonimo)
     LEFT JOIN operario o ON o.id = os.id_operario
-    WHERE ($1::boolean IS FALSE OR n.leida = FALSE)
+    WHERE ($1::boolean IS NULL OR n.leida = $1)
     ORDER BY n.fecha_hora DESC, n.id DESC;
   `;
-  const res = await db.query(query, [soloNoLeidas]);
+  const res = await db.query(query, [leida]);
   return res.rows;
 };
 

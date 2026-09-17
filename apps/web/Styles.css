@@ -2582,6 +2582,31 @@ select.cfg-input {
   color: var(--teal-400);
 }
 
+.notif-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 28px 16px;
+}
+
+.notif-filter {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 500 0.82rem var(--font);
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.notif-filter:hover,
+.notif-filter.is-active {
+  border-color: var(--teal-500);
+  color: var(--teal-400);
+  background: var(--bg-card-alt);
+}
+
+
 /* ── LISTA DE NOTIFICACIONES ────────────────────────────────── */
 
 .notif-list {
