@@ -1,6 +1,18 @@
 const db = require('../config/database');
 
-const listarTrabajadoresActivos = async () => {
+const turnoActual = () => {
+  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  if (hora >= 8 && hora < 12) return 'mañana';
+  if (hora >= 12 && hora < 16) return 'tarde';
+  if (hora >= 16 && hora < 20) return 'noche';
+  return '__sin_turno_activo__';
+};
+
+const listarTrabajadoresActivos = async (usuario = {}) => {
+  const esSupervisor = usuario.role === 'supervisor';
+  const area = esSupervisor ? usuario.areaSupervisada || '__sin_alcance__' : null;
+  const turnos = esSupervisor ? usuario.turnosSupervisados || [] : null;
+  const turnoSeguridad = usuario.role === 'seguridad' ? turnoActual() : null;
   const query = `
     WITH ultima_asignacion AS (
       SELECT DISTINCT ON (ad.id_trabajador)
@@ -111,10 +123,12 @@ const listarTrabajadoresActivos = async () => {
     LEFT JOIN dispositivo d ON d.id = ua.id_dispositivo
     LEFT JOIN umbral u ON true
     WHERE o.estado IS TRUE
+      AND ($1::text IS NULL OR (o.area = $1 AND o.turno = ANY($2::varchar[])))
+      AND ($3::text IS NULL OR o.turno = $3)
     ORDER BY o.apellido, o.nombre, o.id;
   `;
 
-  const res = await db.query(query);
+  const res = await db.query(query, [area, turnos, turnoSeguridad]);
   return res.rows;
 };
 

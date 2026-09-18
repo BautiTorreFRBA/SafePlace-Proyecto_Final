@@ -155,7 +155,10 @@
         <!-- Estado de Trabajadores -->
         <div class="card">
           <div class="card__header">
-            <span class="card__title">Última lectura por operario</span>
+            <div>
+              <span class="card__title" id="workerListTitle">Operarios del turno actual</span>
+              <span class="card__subtitle" id="turnoActualInfo"></span>
+            </div>
           </div>
           <div class="card__body card__body--flush">
             <ul class="worker-list" id="workerList"></ul>
@@ -169,6 +172,6 @@
 
   <script src="session-ui.js"></script>
   <script src="api-config.js"></script>
-  <script src="Supervisor-Home.js"></script>
+  <script src="Admin-Home.js"></script>
 </body>
 </html>

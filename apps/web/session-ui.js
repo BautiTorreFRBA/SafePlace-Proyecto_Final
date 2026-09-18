@@ -58,6 +58,11 @@ function getRoleLabel(role) {
     seguridad: 'Resp. Seguridad e Higiene',
   };
 
+  if (normalizedRole === 'supervisor') {
+    const area = sessionStorage.getItem('userSupervisorArea') || '';
+    return area ? `Supervisor del área ${area}` : labels.supervisor;
+  }
+
   return labels[normalizedRole] || 'Usuario';
 }
 

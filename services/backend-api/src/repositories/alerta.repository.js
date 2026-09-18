@@ -71,7 +71,11 @@ const actualizarEstado = async (id, estado) => {
 
 // Bandeja de alertas activas (H0013), con la identidad ya reidentificada
 // (H0020) para mostrar nombre/apellido.
-const listarActivas = async () => {
+const listarActivas = async (usuario = {}) => {
+  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  const turnoSeguridad = usuario.role === 'seguridad'
+    ? (hora >= 8 && hora < 12 ? 'mañana' : hora >= 12 && hora < 16 ? 'tarde' : hora >= 16 && hora < 20 ? 'noche' : '__sin_turno_activo__')
+    : null;
   const query = `
     SELECT
       a.id,
@@ -88,9 +92,10 @@ const listarActivas = async () => {
     JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     ${JOIN_IDENTIDAD}
     WHERE a.estado = 'Activa'
+      AND ($1::text IS NULL OR o.turno = $1)
     ORDER BY a.fecha_hora DESC, a.id DESC;
   `;
-  const res = await db.query(query);
+  const res = await db.query(query, [turnoSeguridad]);
   return res.rows;
 };
 

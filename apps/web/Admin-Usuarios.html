@@ -141,6 +141,25 @@
         </select>
       </div>
 
+      <div id="supervisorScopeFields" hidden>
+        <div class="usr-form-group">
+          <label class="usr-form-label">ÁREA A SUPERVISAR</label>
+          <select class="usr-form-select" id="usrSupervisorArea">
+            <option value="">Selecciona un área...</option>
+            <option value="Logística">Logística</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Producción">Producción</option>
+            <option value="Prueba">Prueba</option>
+          </select>
+        </div>
+        <fieldset class="usr-form-group usr-turnos" id="usrSupervisorTurnos">
+          <legend class="usr-form-label">TURNOS A SUPERVISAR</legend>
+          <label><input type="checkbox" value="mañana" /> Mañana (08:00–12:00)</label>
+          <label><input type="checkbox" value="tarde" /> Tarde (12:00–16:00)</label>
+          <label><input type="checkbox" value="noche" /> Noche (16:00–20:00)</label>
+        </fieldset>
+      </div>
+
     </div>
 
     <div class="usr-modal__footer">

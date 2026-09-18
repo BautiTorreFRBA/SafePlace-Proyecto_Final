@@ -26,6 +26,8 @@ function notifApiFetch(path, options = {}) {
         sessionStorage.removeItem('userIdEmpresa');
         sessionStorage.removeItem('userEmail');
         sessionStorage.removeItem('userName');
+        sessionStorage.removeItem('userSupervisorArea');
+        sessionStorage.removeItem('userSupervisorTurnos');
         window.location.href = 'InicioSesion.html';
         return null;
       }

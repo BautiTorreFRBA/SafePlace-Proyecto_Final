@@ -1,10 +1,21 @@
 const db = require('../config/database');
 
+const turnoSeguridadActual = (usuario = {}) => {
+  if (usuario.role !== 'seguridad') return null;
+  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  if (hora >= 8 && hora < 12) return 'mañana';
+  if (hora >= 12 && hora < 16) return 'tarde';
+  if (hora >= 16 && hora < 20) return 'noche';
+  return '__sin_turno_activo__';
+};
+
 const listarHistorialAlertas = async ({
   desde = null,
   tipo = null,
   empleado = null,
+  usuario = {},
 } = {}) => {
+  const turnoSeguridad = turnoSeguridadActual(usuario);
   const query = `
     SELECT
       a.id,
@@ -14,6 +25,7 @@ const listarHistorialAlertas = async ({
       a.id_medicion,
       a.fecha_hora,
       a.estado,
+      o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido
     FROM alerta a
@@ -30,10 +42,11 @@ const listarHistorialAlertas = async ({
         $3::text IS NULL
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
       )
+      AND ($4::text IS NULL OR o.turno = $4)
     ORDER BY a.fecha_hora DESC, a.id DESC;
   `;
 
-  const res = await db.query(query, [desde, tipo, empleado]);
+  const res = await db.query(query, [desde, tipo, empleado, turnoSeguridad]);
   return res.rows;
 };
 

@@ -38,7 +38,7 @@ const stream = (req, res) => {
 const listar = async (req, res, next) => {
   try {
     const leida = req.query.leida === 'true' ? true : req.query.leida === 'false' ? false : undefined;
-    const rows = await notificacionRepository.listar({ leida });
+    const rows = await notificacionRepository.listar({ leida, usuario: req.user });
     res.json({ data: rows });
   } catch (error) {
     next(error);
@@ -48,7 +48,7 @@ const listar = async (req, res, next) => {
 const marcarLeida = async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const actualizada = await notificacionRepository.marcarLeida(id);
+    const actualizada = await notificacionRepository.marcarLeida(id, req.user);
 
     if (!actualizada) {
       return res.status(404).json({ error: 'La notificación no existe.', motivo: 'NOTIFICACION_NO_ENCONTRADA' });

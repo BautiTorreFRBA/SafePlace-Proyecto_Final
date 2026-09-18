@@ -64,6 +64,40 @@ function formatearHora(value) {
   return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Los turnos se interpretan siempre con la hora de la planta (Argentina),
+// independientemente de la zona horaria configurada en la computadora.
+function turnoActual() {
+  const hora = Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date()));
+
+  if (hora >= 8 && hora < 12) return 'mañana';
+  if (hora >= 12 && hora < 16) return 'tarde';
+  if (hora >= 16 && hora < 20) return 'noche';
+  return null;
+}
+
+function filtrarPorTurno(items, idsDelTurno, campoId) {
+  return items.filter((item) => idsDelTurno.has(Number(item[campoId])));
+}
+
+function actualizarEtiquetaTurno(turno) {
+  const titulo = document.getElementById('workerListTitle');
+  const detalle = document.getElementById('turnoActualInfo');
+  if (!titulo || !detalle) return;
+
+  if (!turno) {
+    titulo.textContent = 'Operarios del turno actual';
+    detalle.textContent = 'No hay un turno operativo activo (08–20 h).';
+    return;
+  }
+
+  titulo.textContent = `Última lectura · turno ${turno}`;
+  detalle.textContent = `Mostrando únicamente operarios del turno ${turno}.`;
+}
+
 // Mismo criterio de "estado actual" que ya usa Supervisor (estado.repository
 // en el backend): normal/advertencia/crítico por FC + alerta activa, o
 // desactualizado/sin_datos si la última lectura es vieja o no existe. Antes
@@ -248,22 +282,30 @@ async function cargarHome() {
   inicioHoy.setHours(0, 0, 0, 0);
   const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [medicionesResult, alertasResult, historicoResult, hoyResult, dispositivosResult, medicionesHoyResult] = await Promise.allSettled([
+  const [medicionesResult, alertasResult, historicoResult, hoyResult, dispositivosResult, medicionesHoyResult, empleadosResult] = await Promise.allSettled([
     apiFetch('/estado/trabajadores-activos'),
     apiFetch('/alertas/activas'),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(hace7dias.toISOString())}`),
     apiFetch(`/alertas/historico?desde=${encodeURIComponent(inicioHoy.toISOString())}`),
     apiFetch('/dashboard/devices'),
     apiFetch(`/dashboard/measurements?desde=${encodeURIComponent(inicioHoy.toISOString())}&limit=1000`),
+    apiFetch('/dashboard/employees'),
   ]);
 
-  const trabajadores = medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [];
-  const alertasActivas = alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [];
-  const historico = historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [];
-  const alertasHoy = hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [];
-  const dispositivos = dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [];
-  const medicionesHoy = medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [];
+  const turno = turnoActual();
+  const empleados = empleadosResult.status === 'fulfilled' ? (empleadosResult.value?.data || []) : [];
+  const idsDelTurno = new Set(empleados
+    .filter((empleado) => empleado.estado && turno && String(empleado.turno || '').toLowerCase() === turno)
+    .map((empleado) => Number(empleado.id)));
 
+  const trabajadores = filtrarPorTurno(medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+  const alertasActivas = filtrarPorTurno(alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+  const historico = filtrarPorTurno(historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+  const alertasHoy = filtrarPorTurno(hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+  const dispositivos = filtrarPorTurno(dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [], idsDelTurno, 'operario_id');
+  const medicionesHoy = filtrarPorTurno(medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+
+  actualizarEtiquetaTurno(turno);
   renderKpis({ trabajadores, alertas: alertasActivas, riesgosHoy: alertasHoy, dispositivos });
   renderAlertList(alertasActivas);
   renderWorkerList(trabajadores);
@@ -277,6 +319,7 @@ async function cargarHome() {
     hoyResult,
     dispositivosResult,
     medicionesHoyResult,
+    empleadosResult,
   ].forEach((result) => {
     if (result.status === 'rejected') {
       console.error(result.reason);

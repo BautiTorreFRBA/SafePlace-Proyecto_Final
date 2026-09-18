@@ -11,6 +11,8 @@ const buscarPorEmailParaLogin = async (email) => {
       u.email,
       u.password_hash,
       u.activo,
+      u.area_supervisada,
+      u.turnos_supervisados,
       COALESCE(
         jsonb_agg(to_jsonb(r) ORDER BY ur.id_rol) FILTER (WHERE r.id IS NOT NULL),
         '[]'::jsonb
@@ -26,7 +28,9 @@ const buscarPorEmailParaLogin = async (email) => {
       u.apellido,
       u.email,
       u.password_hash,
-      u.activo
+      u.activo,
+      u.area_supervisada,
+      u.turnos_supervisados
     LIMIT 1;
   `;
 
@@ -34,7 +38,7 @@ const buscarPorEmailParaLogin = async (email) => {
   return result.rows[0] || null;
 };
 
-const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol, activo = true }) => {
+const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol, area_supervisada = null, turnos_supervisados = null, activo = true }) => {
   const client = await db.getPool().connect();
 
   try {
@@ -44,11 +48,11 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
 
     const usuarioInsert = await client.query(
       `
-        INSERT INTO usuario (nombre, apellido, email, password_hash, id_empresa, activo)
-        VALUES ($1, $2, lower($3), $4, $5, $6)
-        RETURNING id, nombre, apellido, email, id_empresa, activo;
+        INSERT INTO usuario (nombre, apellido, email, password_hash, id_empresa, area_supervisada, turnos_supervisados, activo)
+        VALUES ($1, $2, lower($3), $4, $5, $6, $7, $8)
+        RETURNING id, nombre, apellido, email, id_empresa, area_supervisada, turnos_supervisados, activo;
       `,
-      [nombre, apellido, email, passwordHash, id_empresa, activo],
+      [nombre, apellido, email, passwordHash, id_empresa, area_supervisada, turnos_supervisados, activo],
     );
 
     const usuario = usuarioInsert.rows[0];
@@ -89,7 +93,7 @@ const crearUsuario = async ({ nombre, apellido, email, password, id_empresa, rol
   }
 };
 
-const actualizarUsuario = async (id, { nombre, apellido, email, password, id_empresa, rol, activo }) => {
+const actualizarUsuario = async (id, { nombre, apellido, email, password, id_empresa, rol, area_supervisada, turnos_supervisados, activo }) => {
   const client = await db.getPool().connect();
 
   try {
@@ -97,7 +101,7 @@ const actualizarUsuario = async (id, { nombre, apellido, email, password, id_emp
 
     const usuarioActual = await client.query(
       `
-        SELECT id, nombre, apellido, email, id_empresa, activo
+        SELECT id, nombre, apellido, email, id_empresa, area_supervisada, turnos_supervisados, activo
         FROM usuario
         WHERE id = $1
         LIMIT 1;
@@ -116,8 +120,10 @@ const actualizarUsuario = async (id, { nombre, apellido, email, password, id_emp
     const emailFinal = email ? String(email).trim().toLowerCase() : base.email;
     const empresaFinal = id_empresa ?? base.id_empresa;
     const activoFinal = typeof activo === 'boolean' ? activo : base.activo;
+    const areaSupervisadaFinal = area_supervisada === undefined ? base.area_supervisada : area_supervisada;
+    const turnosSupervisadosFinal = turnos_supervisados === undefined ? base.turnos_supervisados : turnos_supervisados;
 
-    const params = [id, nombreFinal, apellidoFinal, emailFinal, empresaFinal, activoFinal];
+    const params = [id, nombreFinal, apellidoFinal, emailFinal, empresaFinal, areaSupervisadaFinal, turnosSupervisadosFinal, activoFinal];
     const query = password
       ? `
         UPDATE usuario
@@ -125,10 +131,12 @@ const actualizarUsuario = async (id, { nombre, apellido, email, password, id_emp
             apellido = $3,
             email = lower($4),
             id_empresa = $5,
-            activo = $6,
-            password_hash = $7
+            area_supervisada = $6,
+            turnos_supervisados = $7,
+            activo = $8,
+            password_hash = $9
         WHERE id = $1
-        RETURNING id, nombre, apellido, email, id_empresa, activo;
+        RETURNING id, nombre, apellido, email, id_empresa, area_supervisada, turnos_supervisados, activo;
       `
       : `
         UPDATE usuario
@@ -136,9 +144,11 @@ const actualizarUsuario = async (id, { nombre, apellido, email, password, id_emp
             apellido = $3,
             email = lower($4),
             id_empresa = $5,
-            activo = $6
+            area_supervisada = $6,
+            turnos_supervisados = $7,
+            activo = $8
         WHERE id = $1
-        RETURNING id, nombre, apellido, email, id_empresa, activo;
+        RETURNING id, nombre, apellido, email, id_empresa, area_supervisada, turnos_supervisados, activo;
       `;
 
     if (password) {

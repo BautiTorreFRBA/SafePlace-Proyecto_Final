@@ -14,13 +14,20 @@ const INTERVALO_REPORTE_SEGUNDOS = 5;
 // Fase 2 / S2: resoluciones de downsampling para la serie temporal del detalle.
 const BUCKETS_VALIDOS = { '10s': 10, '1m': 60, '5m': 300 };
 
+const alcanceSupervisor = (usuario = {}) => ({
+  area: usuario.role === 'supervisor' ? usuario.areaSupervisada || '__sin_alcance__' : null,
+  turnos: usuario.role === 'supervisor' ? usuario.turnosSupervisados || [] : null,
+});
+
 const listarHistorialMediciones = async ({
   desde = null,
   hasta = null,
   empleado = null,
   limit = 200,
   offset = 0,
+  usuario = {},
 } = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   // H0020: reidentificación vía operario_seudonimo (tabla protegida); esta
   // consulta ya está detrás de auth + authorize(['supervisor']).
   const query = `
@@ -44,11 +51,12 @@ const listarHistorialMediciones = async ({
         $3::text IS NULL
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
       )
+      AND ($6::text IS NULL OR (o.area = $6 AND o.turno = ANY($7::varchar[])))
     ORDER BY m.fecha_hora DESC, m.id DESC
     LIMIT $4 OFFSET $5;
   `;
 
-  const res = await db.query(query, [desde, hasta, empleado, limit, offset]);
+  const res = await db.query(query, [desde, hasta, empleado, limit, offset, alcance.area, alcance.turnos]);
   return res.rows;
 };
 
@@ -141,7 +149,8 @@ const resumenValidacion = async ({ desde = null, hasta = null } = {}) => {
 //   "sin datos"). El filtro por nombre, si viene, manda sobre esa regla.
 // - Alertas del período ancladas por seudónimo (vía medición o directo, como
 //   alerta.repository) y agregadas por tipo.
-const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null } = {}) => {
+const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null, usuario = {} } = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   const query = `
     WITH agg AS (
       SELECT
@@ -221,10 +230,11 @@ const resumenPorEmpleado = async ({ desde = null, hasta = null, empleado = null 
         $3::text IS NULL
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
       )
+      AND ($4::text IS NULL OR (o.area = $4 AND o.turno = ANY($5::varchar[])))
     ORDER BY o.apellido, o.nombre, o.id;
   `;
 
-  const res = await db.query(query, [desde, hasta, empleado]);
+  const res = await db.query(query, [desde, hasta, empleado, alcance.area, alcance.turnos]);
 
   const lecturasPorMinuto = 60 / INTERVALO_REPORTE_SEGUNDOS;
 
@@ -276,7 +286,9 @@ const listarSerieMediciones = async ({
   hasta = null,
   empleado = null,
   bucketSegundos = 60,
+  usuario = {},
 } = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   const query = `
     SELECT
       to_timestamp(floor(extract(epoch FROM m.fecha_hora) / $4) * $4) AS bucket_ts,
@@ -290,12 +302,13 @@ const listarSerieMediciones = async ({
     WHERE ($1::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date >= $1::date)
       AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       AND ($3::text IS NULL OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%')
+      AND ($5::text IS NULL OR (o.area = $5 AND o.turno = ANY($6::varchar[])))
       AND m.frecuencia_cardiaca IS NOT NULL
     GROUP BY 1
     ORDER BY 1;
   `;
 
-  const res = await db.query(query, [desde, hasta, empleado, bucketSegundos]);
+  const res = await db.query(query, [desde, hasta, empleado, bucketSegundos, alcance.area, alcance.turnos]);
   return res.rows.map((r) => ({
     ts: r.bucket_ts,
     fcPromedio: Number(r.fc_promedio),

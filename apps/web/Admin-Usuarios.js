@@ -18,6 +18,9 @@ const inputNombre = document.getElementById('usrNombre');
 const inputApellido = document.getElementById('usrApellido');
 const inputEmail = document.getElementById('usrEmail');
 const inputPassword = document.getElementById('usrPassword');
+const supervisorScopeFields = document.getElementById('supervisorScopeFields');
+const selectSupervisorArea = document.getElementById('usrSupervisorArea');
+const supervisorTurnos = document.getElementById('usrSupervisorTurnos');
 
 let usuarios = [];
 let empresas = [];
@@ -53,7 +56,7 @@ function getRolValue(usuario) {
 function getRolDisplay(usuario) {
   const value = getRolValue(usuario);
   if (value === 'admin') return 'Administrador';
-  if (value === 'supervisor') return 'Supervisor Operativo';
+  if (value === 'supervisor') return usuario.area_supervisada ? `Supervisor del área ${usuario.area_supervisada}` : 'Supervisor Operativo';
   if (value === 'seguridad') return 'Resp. Seguridad e Higiene';
   return getRolLabel(usuario);
 }
@@ -207,6 +210,17 @@ function limpiarFormulario() {
   inputPassword.value = '';
   selectEmpresa.value = '';
   selectRol.value = 'supervisor';
+  selectSupervisorArea.value = '';
+  supervisorTurnos.querySelectorAll('input').forEach((input) => { input.checked = false; });
+  actualizarCamposSupervisor();
+}
+
+function actualizarCamposSupervisor() {
+  supervisorScopeFields.hidden = selectRol.value !== 'supervisor';
+}
+
+function turnosSeleccionados() {
+  return [...supervisorTurnos.querySelectorAll('input:checked')].map((input) => input.value);
 }
 
 async function guardarUsuario() {
@@ -216,6 +230,8 @@ async function guardarUsuario() {
   const password = inputPassword.value;
   const id_empresa = selectEmpresa.value;
   const rol = selectRol.value;
+  const area_supervisada = selectSupervisorArea.value;
+  const turnos_supervisados = turnosSeleccionados();
 
   if (!nombre || !apellido || !email || !id_empresa || !rol) {
     alert('Por favor completa todos los campos');
@@ -224,6 +240,11 @@ async function guardarUsuario() {
 
   if (!editandoId && !password) {
     alert('La contraseña es obligatoria para crear un usuario.');
+    return;
+  }
+
+  if (rol === 'supervisor' && (!area_supervisada || turnos_supervisados.length === 0)) {
+    alert('Para crear un supervisor selecciona un área y al menos un turno.');
     return;
   }
 
@@ -242,6 +263,8 @@ async function guardarUsuario() {
         ...(password ? { password } : {}),
         id_empresa: Number(id_empresa),
         rol,
+        area_supervisada: rol === 'supervisor' ? area_supervisada : null,
+        turnos_supervisados: rol === 'supervisor' ? turnos_supervisados : null,
       }),
     });
 
@@ -273,6 +296,10 @@ function editarUsuario(id) {
   inputPassword.value = '';
   selectEmpresa.value = String(usuario.id_empresa ?? usuario.idEmpresa ?? '');
   selectRol.value = getRolValue(usuario) || 'supervisor';
+  selectSupervisorArea.value = usuario.area_supervisada || '';
+  const turnos = Array.isArray(usuario.turnos_supervisados) ? usuario.turnos_supervisados : [];
+  supervisorTurnos.querySelectorAll('input').forEach((input) => { input.checked = turnos.includes(input.value); });
+  actualizarCamposSupervisor();
   modalOverlay.classList.add('usr-modal-overlay--visible');
 }
 
@@ -309,6 +336,7 @@ modalClose.addEventListener('click', cerrarModal);
 modalCancel.addEventListener('click', cerrarModal);
 modalCreate.addEventListener('click', guardarUsuario);
 usrSearch.addEventListener('input', () => renderTabla());
+selectRol.addEventListener('change', actualizarCamposSupervisor);
 
 modalOverlay.addEventListener('click', (e) => {
   if (e.target === modalOverlay) {

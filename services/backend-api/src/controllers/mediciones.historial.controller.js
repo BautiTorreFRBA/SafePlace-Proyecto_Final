@@ -39,6 +39,7 @@ const getHistorialMediciones = async (req, res, next) => {
         hasta,
         empleado,
         bucketSegundos,
+        usuario: req.user,
       });
       return res.json({ data: serie, bucket });
     }
@@ -50,6 +51,7 @@ const getHistorialMediciones = async (req, res, next) => {
       empleado,
       limit: req.query.limit ? Number(req.query.limit) : 200,
       offset: req.query.offset ? Number(req.query.offset) : 0,
+      usuario: req.user,
     });
 
     res.json({ data: rows });
@@ -77,6 +79,7 @@ const getResumenMediciones = async (req, res, next) => {
         desde,
         hasta,
         empleado: normalizarFiltro(req.query.empleado),
+        usuario: req.user,
       }),
       medicionesHistorialRepository.resumenValidacion({ desde, hasta }),
     ]);

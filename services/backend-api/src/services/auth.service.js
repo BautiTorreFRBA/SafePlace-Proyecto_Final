@@ -72,6 +72,8 @@ const login = async ({ email, password }) => {
     email: usuario.email,
     role: primaryRole,
     roles: roles.map(extractRoleName).filter(Boolean),
+    areaSupervisada: usuario.area_supervisada || null,
+    turnosSupervisados: usuario.turnos_supervisados || [],
   };
 
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -89,15 +91,26 @@ const login = async ({ email, password }) => {
       email: usuario.email,
       activo: usuario.activo,
       roles: payload.roles,
+      areaSupervisada: payload.areaSupervisada,
+      turnosSupervisados: payload.turnosSupervisados,
     },
   };
 };
 
 const crearUsuario = async (payload) => {
-  const { nombre, apellido, email, password, id_empresa, rol, activo } = payload || {};
+  const { nombre, apellido, email, password, id_empresa, rol, area_supervisada, turnos_supervisados, activo } = payload || {};
 
   if (!nombre || !apellido || !email || !password || !id_empresa || !rol) {
     throw createHttpError(400, 'Faltan campos obligatorios.', 'VALIDACION_DATOS');
+  }
+
+  const rolNormalizado = normalizeRoleName(rol);
+  const turnos = Array.isArray(turnos_supervisados) ? [...new Set(turnos_supervisados.map((turno) => String(turno).trim().toLowerCase()))] : [];
+  if (rolNormalizado === 'supervisor' && (!String(area_supervisada || '').trim() || turnos.length === 0)) {
+    throw createHttpError(400, 'Para un supervisor se deben indicar el área y al menos un turno.', 'ALCANCE_SUPERVISOR_REQUERIDO');
+  }
+  if (turnos.some((turno) => !['mañana', 'tarde', 'noche'].includes(turno))) {
+    throw createHttpError(400, 'Los turnos del supervisor no son válidos.', 'TURNOS_SUPERVISOR_INVALIDOS');
   }
 
   const usuarioExistente = await usuarioRepository.buscarPorEmailParaLogin(email);
@@ -112,6 +125,8 @@ const crearUsuario = async (payload) => {
     password,
     id_empresa,
     rol,
+    area_supervisada: rolNormalizado === 'supervisor' ? String(area_supervisada).trim() : null,
+    turnos_supervisados: rolNormalizado === 'supervisor' ? turnos : null,
     activo: activo !== false,
   });
 

@@ -29,6 +29,7 @@ const getHistorialAlertas = async (req, res, next) => {
       desde,
       tipo: normalizarFiltro(req.query.tipo),
       empleado: normalizarFiltro(req.query.empleado),
+      usuario: req.user,
     });
 
     res.json({ data: rows });
@@ -39,7 +40,7 @@ const getHistorialAlertas = async (req, res, next) => {
 
 const getAlertasActivas = async (req, res, next) => {
   try {
-    const rows = await alertaRepository.listarActivas();
+    const rows = await alertaRepository.listarActivas(req.user);
     res.json({ data: rows });
   } catch (error) {
     next(error);

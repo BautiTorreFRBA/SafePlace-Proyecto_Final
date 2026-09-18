@@ -182,6 +182,8 @@ const listarUsuarios = async () => {
       u.apellido,
       u.email,
       u.id_empresa,
+      u.area_supervisada,
+      u.turnos_supervisados,
       e.nombre AS empresa_nombre,
       u.activo,
       COALESCE(
@@ -198,6 +200,8 @@ const listarUsuarios = async () => {
       u.apellido,
       u.email,
       u.id_empresa,
+      u.area_supervisada,
+      u.turnos_supervisados,
       e.nombre,
       u.activo
     ORDER BY u.apellido, u.nombre, u.id;
@@ -206,7 +210,20 @@ const listarUsuarios = async () => {
   return res.rows;
 };
 
-const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}) => {
+const alcanceSupervisor = (usuario = {}) => ({
+  area: usuario.role === 'supervisor' ? usuario.areaSupervisada || '__sin_alcance__' : null,
+  turnos: usuario.role === 'supervisor' ? usuario.turnosSupervisados || [] : null,
+  turnoSeguridad: usuario.role === 'seguridad' ? (() => {
+    const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TIMEZONE, hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+    if (hora >= 8 && hora < 12) return 'mañana';
+    if (hora >= 12 && hora < 16) return 'tarde';
+    if (hora >= 16 && hora < 20) return 'noche';
+    return '__sin_turno_activo__';
+  })() : null,
+});
+
+const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}, usuario = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   // H0020: medicion sólo guarda id_seudonimo; la identidad se recupera acá
   // vía operario_seudonimo (tabla protegida) porque esta consulta ya está
   // detrás de auth + authorize (usuario autorizado, criterio 3/4 de H0020).
@@ -228,10 +245,12 @@ const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offse
     LEFT JOIN operario o ON o.id = os.id_operario
     WHERE ($1::timestamptz IS NULL OR m.fecha_hora >= $1)
       AND ($2::timestamptz IS NULL OR m.fecha_hora <= $2)
+      AND ($5::text IS NULL OR (o.area = $5 AND o.turno = ANY($6::varchar[])))
+      AND ($7::text IS NULL OR o.turno = $7)
     ORDER BY m.fecha_hora DESC
     LIMIT $3 OFFSET $4;
   `;
-  const res = await db.query(query, [desde, hasta, limit, offset]);
+  const res = await db.query(query, [desde, hasta, limit, offset, alcance.area, alcance.turnos, alcance.turnoSeguridad]);
   return res.rows;
 };
 
@@ -239,7 +258,8 @@ const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offse
 // No sirve recortar una página de listarMediciones: si un operario concentra
 // casi todas las lecturas, tapa al resto. Acá se resuelve en la DB con
 // DISTINCT ON. Mismo criterio de reidentificación que listarMediciones.
-const listarUltimaMedicionPorTrabajador = async () => {
+const listarUltimaMedicionPorTrabajador = async (usuario = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   const query = `
     SELECT DISTINCT ON (o.id)
       m.id,
@@ -258,13 +278,16 @@ const listarUltimaMedicionPorTrabajador = async () => {
     JOIN operario_seudonimo os ON os.id = m.id_seudonimo
     JOIN operario o ON o.id = os.id_operario
     LEFT JOIN dispositivo d ON d.id = m.id_dispositivo
+    WHERE ($1::text IS NULL OR (o.area = $1 AND o.turno = ANY($2::varchar[])))
+      AND ($3::text IS NULL OR o.turno = $3)
     ORDER BY o.id, m.fecha_hora DESC, m.id DESC;
   `;
-  const res = await db.query(query);
+  const res = await db.query(query, [alcance.area, alcance.turnos, alcance.turnoSeguridad]);
   return res.rows;
 };
 
-const listarDispositivos = async () => {
+const listarDispositivos = async (usuario = {}) => {
+  const alcance = alcanceSupervisor(usuario);
   const query = `
     SELECT
       d.id,
@@ -296,9 +319,11 @@ const listarDispositivos = async () => {
       ORDER BY hed.fecha_hora DESC, hed.id DESC
       LIMIT 1
     ) hed ON true
+    WHERE ($1::text IS NULL OR (o.area = $1 AND o.turno = ANY($2::varchar[])))
+      AND ($3::text IS NULL OR o.turno = $3)
     ORDER BY d.id;
   `;
-  const res = await db.query(query);
+  const res = await db.query(query, [alcance.area, alcance.turnos, alcance.turnoSeguridad]);
   return res.rows;
 };
 

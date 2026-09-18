@@ -93,6 +93,8 @@ async function handleLogin() {
     sessionStorage.setItem('userId', String(data.user?.id ?? ''));
     sessionStorage.setItem('userIdEmpresa', String(data.user?.idEmpresa ?? ''));
     sessionStorage.setItem('userEmail', data.user?.email ?? email);
+    sessionStorage.setItem('userSupervisorArea', data.user?.areaSupervisada ?? '');
+    sessionStorage.setItem('userSupervisorTurnos', JSON.stringify(data.user?.turnosSupervisados ?? []));
     sessionStorage.setItem(
       'userName',
       `${data.user?.nombre ?? ''} ${data.user?.apellido ?? ''}`.trim() || email,

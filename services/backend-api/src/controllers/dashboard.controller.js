@@ -1,6 +1,18 @@
 const dashboardRepository = require('../repositories/dashboard.repository');
 const usuarioRepository = require('../repositories/usuario.repository');
 
+const validarAlcanceSupervisor = (datos) => {
+  if (String(datos.rol || '').trim().toLowerCase() !== 'supervisor') return null;
+  const turnos = Array.isArray(datos.turnos_supervisados) ? datos.turnos_supervisados : [];
+  if (!String(datos.area_supervisada || '').trim() || turnos.length === 0) {
+    return 'Para un supervisor se deben indicar el área y al menos un turno.';
+  }
+  if (turnos.some((turno) => !['mañana', 'tarde', 'noche'].includes(String(turno).toLowerCase()))) {
+    return 'Los turnos del supervisor no son válidos.';
+  }
+  return null;
+};
+
 const getEmpresas = async (req, res, next) => {
   try {
     const rows = await dashboardRepository.listarEmpresas();
@@ -93,6 +105,8 @@ const getUsuarios = async (req, res, next) => {
 
 const actualizarUsuario = async (req, res, next) => {
   try {
+    const errorAlcance = validarAlcanceSupervisor(req.body);
+    if (errorAlcance) return res.status(400).json({ error: errorAlcance });
     const usuario = await usuarioRepository.actualizarUsuario(req.params.id, req.body);
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
@@ -125,7 +139,7 @@ const desactivarUsuario = async (req, res, next) => {
 
 const getMediciones = async (req, res, next) => {
   try {
-    const rows = await dashboardRepository.listarMediciones(req.query);
+    const rows = await dashboardRepository.listarMediciones(req.query, req.user);
     res.json({ data: rows });
   } catch (error) {
     next(error);
@@ -135,7 +149,7 @@ const getMediciones = async (req, res, next) => {
 
 const getUltimaMedicionPorTrabajador = async (req, res, next) => {
   try {
-    const rows = await dashboardRepository.listarUltimaMedicionPorTrabajador();
+    const rows = await dashboardRepository.listarUltimaMedicionPorTrabajador(req.user);
     res.json({ data: rows });
   } catch (error) {
     next(error);
@@ -152,7 +166,7 @@ const getResumenSupervisor = async (req, res, next) => {
 };
 const getDispositivos = async (req, res, next) => {
   try {
-    const rows = await dashboardRepository.listarDispositivos();
+    const rows = await dashboardRepository.listarDispositivos(req.user);
     res.json({ data: rows });
   } catch (error) {
     next(error);
