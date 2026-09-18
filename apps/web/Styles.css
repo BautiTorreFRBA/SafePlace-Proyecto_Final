@@ -152,6 +152,15 @@ html, body {
   cursor: pointer;
 }
 
+/* Orden uniforme del menú lateral del Supervisor en todas sus pantallas. */
+.sidebar__nav .nav-item[href="Supervisor-Home.html"] { order: 1; }
+.sidebar__nav .nav-item[href="Supervisor-Monitoreo.html"] { order: 2; }
+.sidebar__nav .nav-item[href="Supervisor-Empleados.html"] { order: 3; }
+.sidebar__nav .nav-item[href="Supervisor-Mediciones.html"] { order: 4; }
+.sidebar__nav .nav-item[href="Supervisor-Wearables.html"] { order: 5; }
+.sidebar__nav .nav-item[href="Supervisor-Procesamiento.html"] { order: 6; }
+.sidebar__nav .nav-item[href="Supervisor-Notificaciones.html"] { order: 7; }
+
 .nav-item svg {
   width: 16px;
   height: 16px;
@@ -635,6 +644,39 @@ html, body {
   .welcome { padding: 16px 16px 4px; }
   .topbar { padding: 14px 16px; }
 }
+
+/* ============================================================
+   SUPERVISOR HOME - PRIORIZACION OPERATIVA
+   ============================================================ */
+.supervisor-welcome { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:24px 28px 18px; }
+.supervisor-welcome__title { margin:0; color:var(--text-primary); font-size:1.55rem; font-weight:800; letter-spacing:-.02em; }
+.supervisor-welcome__subtitle { margin:6px 0 0; color:var(--text-secondary); font-size:.9rem; }
+.supervisor-welcome__status { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:.8rem; white-space:nowrap; }
+.live-dot,.status-indicator { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--teal-400); box-shadow:0 0 0 4px rgba(45,212,191,.12); }
+.supervisor-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:0 28px 22px; }
+.supervisor-summary__item { display:flex; flex-direction:column; gap:4px; padding:14px 16px; border:1px solid var(--border); border-left:3px solid var(--teal-400); border-radius:12px; background:var(--bg-card); color:var(--text-secondary); font-size:.76rem; }
+.supervisor-summary__item--warning { border-left-color:var(--orange); }.supervisor-summary__item--critical { border-left-color:var(--red); }
+.summary-value { color:var(--text-primary); font-size:1.45rem; font-weight:800; }
+.supervisor-panel { margin:0 28px 20px; overflow:hidden; border:1px solid var(--border); border-radius:14px; background:var(--bg-card); }
+.supervisor-panel__header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:18px 20px; border-bottom:1px solid var(--border-soft); }
+.supervisor-panel__header h3 { margin:0; color:var(--text-primary); font-size:1rem; }.supervisor-panel__header p { margin:4px 0 0; color:var(--text-secondary); font-size:.78rem; }
+.supervisor-search { display:flex; align-items:center; gap:7px; min-width:210px; padding:8px 11px; border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); background:rgba(255,255,255,.025); }
+.supervisor-search input { width:100%; border:0; outline:0; color:var(--text-primary); background:transparent; font:inherit; font-size:.82rem; }.supervisor-search:focus-within { border-color:var(--teal-500); }
+.supervisor-filters { display:flex; flex-wrap:wrap; gap:8px; padding:14px 20px; border-bottom:1px solid var(--border-soft); }
+.supervisor-filter { border:1px solid var(--border); border-radius:8px; padding:7px 11px; color:var(--text-secondary); background:transparent; font:600 .76rem var(--font); cursor:pointer; }.supervisor-filter span { margin-left:4px; color:var(--text-muted); }.supervisor-filter:hover,.supervisor-filter.is-active { border-color:var(--teal-500); color:var(--teal-400); background:var(--teal-dim); }
+.worker-cards { display:flex; flex-direction:column; gap:10px; padding:16px 20px 20px; }
+.worker-card { display:grid; grid-template-columns:1.25fr 1.4fr 1.6fr 1.1fr; align-items:center; gap:18px; padding:15px 16px; border:1px solid var(--border); border-left:4px solid var(--teal-400); border-radius:11px; background:linear-gradient(100deg,rgba(255,255,255,.025),rgba(255,255,255,.01)); transition:transform .15s,border-color .15s; }.worker-card:hover { transform:translateY(-1px); border-color:rgba(45,212,191,.35); }
+.worker-card--warning { border-left-color:var(--orange); }.worker-card--critical { border-left-color:var(--red); background:linear-gradient(100deg,rgba(239,68,68,.09),rgba(255,255,255,.015)); }.worker-card--attention { animation: supervisor-attention 2s ease-in-out infinite; }.worker-card--offline { border-left-color:#64748b; opacity:.86; }
+@keyframes supervisor-attention { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,0); } 50% { box-shadow:0 0 0 3px rgba(239,68,68,.18); } }
+.worker-card__identity,.worker-card__status,.worker-card__footer { display:flex; align-items:center; gap:10px; min-width:0; }.worker-avatar { display:flex; align-items:center; justify-content:center; flex:0 0 40px; width:40px; height:40px; border-radius:50%; color:var(--teal-300); background:rgba(45,212,191,.14); font-size:.78rem; font-weight:800; }.worker-avatar--small { width:32px; height:32px; flex-basis:32px; font-size:.68rem; }
+.worker-card h4 { overflow:hidden; margin:0; color:var(--text-primary); font-size:.91rem; text-overflow:ellipsis; white-space:nowrap; }.worker-card p { margin:4px 0 0; color:var(--text-secondary); font-size:.75rem; }.worker-card__status { flex-wrap:wrap; color:var(--text-secondary); font-size:.75rem; }.worker-card__status strong { flex-basis:100%; margin-left:19px; color:var(--text-primary); font-size:.76rem; font-weight:500; }.worker-card--critical .status-indicator { background:var(--red); box-shadow:0 0 0 4px rgba(239,68,68,.13); }.worker-card--warning .status-indicator { background:var(--orange); box-shadow:0 0 0 4px rgba(251,146,60,.13); }.worker-card--offline .status-indicator { background:#94a3b8; box-shadow:none; }
+.worker-card__metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }.worker-card__metrics div { min-width:0; }.worker-card__metrics span { display:block; margin-bottom:4px; color:var(--text-secondary); font-size:.67rem; }.worker-card__metrics strong { color:var(--text-primary); font-size:.92rem; }.worker-card__metrics small { color:var(--text-secondary); font-size:.64rem; font-weight:500; }.worker-card__bpm { color:var(--teal-300)!important; }.worker-card--warning .worker-card__bpm { color:var(--orange)!important; }.worker-card--critical .worker-card__bpm { color:#f87171!important; }
+.worker-card__footer { flex-direction:column; align-items:flex-start; color:var(--text-secondary); font-size:.7rem; }.worker-card__footer strong { color:var(--text-primary); font-weight:600; }.worker-card__reading { display:flex; align-items:center; gap:6px; }.worker-card__reading span { width:7px; height:7px; border-radius:50%; background:#94a3b8; }.worker-card__reading.is-connected span { background:var(--green); }.worker-card__reading.is-disconnected span { background:var(--orange); }
+.supervisor-bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }.supervisor-bottom-grid .supervisor-panel { margin-bottom:28px; }.supervisor-panel--compact { min-width:0; }.supervisor-alert-list,.supervisor-connectivity-list { padding:8px 20px 14px; }.supervisor-alert-item,.supervisor-connectivity-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--border-soft); }.supervisor-alert-item:last-child,.supervisor-connectivity-item:last-child { border-bottom:0; }.supervisor-alert-item > div,.supervisor-connectivity-item > div:last-child { display:flex; flex:1; flex-direction:column; min-width:0; gap:3px; }.supervisor-alert-item strong,.supervisor-connectivity-item strong { color:var(--text-primary); font-size:.8rem; }.supervisor-alert-item span:not(.status-indicator),.supervisor-connectivity-item span { overflow:hidden; color:var(--text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }.supervisor-alert-item time { color:var(--text-secondary); font-size:.7rem; }.supervisor-alert-item--critico .status-indicator { background:var(--red); box-shadow:0 0 0 4px rgba(239,68,68,.12); }.supervisor-alert-item--advertencia .status-indicator { background:var(--orange); box-shadow:0 0 0 4px rgba(251,146,60,.12); }
+.supervisor-empty { padding:28px 12px; color:var(--text-secondary); text-align:center; font-size:.82rem; }.supervisor-empty--small { padding:20px 0; }.supervisor-empty--error { color:#fca5a5; }
+@media (max-width:1050px) { .worker-card { grid-template-columns:1fr 1fr; }.worker-card__metrics { grid-column:1 / -1; }.worker-card__footer { align-items:flex-end; } }
+@media (max-width:760px) { .supervisor-welcome { align-items:flex-start; flex-direction:column; padding:18px 16px; }.supervisor-summary { grid-template-columns:repeat(2,1fr); padding:0 16px 18px; }.supervisor-panel { margin-right:16px; margin-left:16px; }.supervisor-panel__header { align-items:flex-start; flex-direction:column; }.supervisor-search { width:100%; min-width:0; }.worker-card { grid-template-columns:1fr; gap:12px; }.worker-card__metrics { grid-column:auto; }.worker-card__footer { align-items:flex-start; }.supervisor-bottom-grid { display:block; }.supervisor-bottom-grid .supervisor-panel { margin-bottom:16px; } }
+@media (prefers-reduced-motion:reduce) { .worker-card--attention { animation:none; } }
 
 /* ============================================================
    GESTIÓN DE EMPLEADOS

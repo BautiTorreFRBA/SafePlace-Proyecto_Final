@@ -413,7 +413,7 @@ async function cargarTablaDetalle(idx) {
 
     tablaEl.innerHTML = `
       <table class="med-detalle__inner">
-        <thead><tr><th>FECHA/HORA</th><th>FC</th><th>ACTIVIDAD</th><th>TEMP.</th><th>SPO₂</th></tr></thead>
+        <thead><tr><th>FECHA/HORA</th><th>FC</th><th>ACTIVIDAD</th></tr></thead>
         <tbody>
           ${rows.map((m) => {
             const d = new Date(m.fecha_hora);
@@ -427,10 +427,8 @@ async function cargarTablaDetalle(idx) {
               <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(fh)}</td>
               <td>${m.frecuencia_cardiaca ?? '--'}</td>
               <td style="color:var(--text-secondary)">${escapeHtml(act)}</td>
-              <td style="color:var(--text-secondary)">${m.temperatura_corporal ?? '--'}</td>
-              <td style="color:var(--text-secondary)">${m.spo2 ?? '--'}</td>
             </tr>`;
-          }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:12px">Sin lecturas en esta página</td></tr>'}
+          }).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:12px">Sin lecturas en esta página</td></tr>'}
         </tbody>
       </table>`;
 

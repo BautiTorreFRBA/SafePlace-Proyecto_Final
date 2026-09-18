@@ -1,89 +1,19 @@
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const POLL_INTERVAL_MS = 15000;
-
-const workerList = document.getElementById('workerList');
-const alertList = document.getElementById('alertList');
-const kpiTrabajadores = document.getElementById('kpiTrabajadores');
-const kpiAlertas = document.getElementById('kpiAlertas');
-const kpiCritico = document.getElementById('kpiCritico');
-const kpiDispositivos = document.getElementById('kpiDispositivos');
-const currentDate = document.getElementById('currentDate');
-const alertsChartCanvas = document.getElementById('alertsChart');
-const heartChartCanvas = document.getElementById('heartChart');
-
-const COLORS = {
-  teal: '#2dd4bf',
-  tealFill: 'rgba(45, 212, 191, 0.12)',
-  red: '#ef4444',
-  orange: '#fb923c',
-  green: '#4ade80',
-  celeste: '#38bdf8',
-  violet: '#a78bfa',
-  grid: 'rgba(255,255,255,0.06)',
-  tickColor: '#9ca3af',
-  tooltip: '#111827',
+const ESTADOS = {
+  critico: { label: 'Crítico', badge: 'badge--critical', tone: 'critical', rank: 0 },
+  advertencia: { label: 'Advertencia', badge: 'badge--warning', tone: 'warning', rank: 1 },
+  normal: { label: 'Normal', badge: 'badge--normal', tone: 'normal', rank: 2 },
+  desactualizado: { label: 'Desactualizado', badge: 'badge--warning', tone: 'offline', rank: 3 },
+  sin_datos: { label: 'Sin datos', badge: 'badge--neutral', tone: 'offline', rank: 4 },
 };
 
-const ESTADO_CONFIG = {
-  normal: { label: 'Normal', badge: 'badge--normal', dot: 'dot--green' },
-  advertencia: { label: 'Media', badge: 'badge--warning', dot: 'dot--orange' },
-  critico: { label: 'Crítica', badge: 'badge--critical', dot: 'dot--red' },
-  desactualizado: { label: 'Desactualizado', badge: 'badge--warning', dot: 'dot--orange' },
-  sin_datos: { label: 'Sin datos', badge: 'badge--neutral', dot: 'dot--orange' },
-};
-
-const ALERTA_CONFIG = {
-  FATIGA: { label: 'Fatiga', color: COLORS.green },
-  SOBREESFUERZO: { label: 'Sobreesfuerzo', color: COLORS.violet },
-  INACTIVIDAD_PROLONGADA: { label: 'Inactividad prolongada', color: COLORS.celeste },
-};
-
-// 96 baldes de 15 minutos (minutos desde medianoche). La etiqueta sólo se
-// muestra en la hora en punto para no saturar el eje.
-const HORAS_FRECUENCIA = Array.from({ length: 96 }, (_, i) => {
-  const minuto = i * 15;
-  const hh = String(Math.floor(minuto / 60)).padStart(2, '0');
-  return {
-    minuto,
-    label: minuto % 60 === 0 ? `${hh}:00` : '',
-  };
-});
-
-let alertsChart = null;
-let heartChart = null;
-
-async function apiFetch(path, options = {}) {
-  const token = sessionStorage.getItem('authToken');
-  if (!token) {
-    window.location.href = 'InicioSesion.html';
-    return null;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operacion.');
-  }
-
-  return payload;
-}
+let trabajadores = [];
+let filtroActual = 'todos';
+let busquedaActual = '';
 
 function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
 
 function nombreCompleto(item) {
@@ -92,368 +22,100 @@ function nombreCompleto(item) {
 
 function iniciales(nombre) {
   const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return 'SP';
-  return partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
+  return partes.length ? partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase() : 'SP';
 }
 
-function formatearFechaHora(value) {
-  if (!value) return null;
+function fechaHora(value) {
+  if (!value) return 'Sin lectura';
   const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return null;
-  return fmtAR(fecha, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  return Number.isNaN(fecha.getTime()) ? 'Sin lectura' : fecha.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatearHora(value) {
-  if (!value) return '';
+function hora(value) {
+  if (!value) return '--:--';
   const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return '';
-  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(fecha.getTime()) ? '--:--' : fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatearNumero(value, sufijo = '') {
-  if (value === null || value === undefined || value === '') return null;
-  return `${value}${sufijo}`;
+function estadoDe(item) { return ESTADOS[item.estado_actual] ? item.estado_actual : 'sin_datos'; }
+
+function descripcionEstado(item, estado) {
+  if (item.estado_descripcion) return item.estado_descripcion;
+  if (estado === 'critico') return 'Requiere atención inmediata';
+  if (estado === 'advertencia') return 'Controlar evolución';
+  if (estado === 'desactualizado') return 'No se recibió una lectura reciente';
+  if (estado === 'sin_datos') return 'Sin datos biométricos disponibles';
+  return 'Lecturas dentro de los parámetros';
 }
 
-function actualizarFechaActualizacion() {
-  if (!currentDate) return;
-  const now = new Date();
-  currentDate.textContent = `Estado del sistema al ${fmtAR(now, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })}`;
+async function apiFetch(path) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) { window.location.href = 'InicioSesion.html'; throw new Error('Sesión expirada'); }
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || payload.message || 'No se pudo cargar el panel.');
+  return payload;
 }
 
-function renderKPIs(trabajadores) {
-  const total = trabajadores.length;
-  const alertas = trabajadores.filter((item) => item.estado_actual === 'advertencia' || item.estado_actual === 'critico').length;
-  const criticos = trabajadores.filter((item) => item.estado_actual === 'critico').length;
-  const conDispositivo = trabajadores.filter((item) => item.id_dispositivo !== null && item.id_dispositivo !== undefined).length;
-
-  kpiTrabajadores.textContent = String(total);
-  kpiAlertas.textContent = String(alertas);
-  kpiCritico.textContent = String(criticos);
-  kpiDispositivos.textContent = `${conDispositivo}/${total || 0}`;
+function createHomeLayout() {
+  const main = document.querySelector('.main');
+  const topbar = main.querySelector('.topbar');
+  main.querySelectorAll(':scope > *:not(.topbar)').forEach((node) => node.remove());
+  topbar.insertAdjacentHTML('afterend', `
+    <div class="supervisor-welcome"><div><h2 class="supervisor-welcome__title">Estado de la planta</h2><p class="supervisor-welcome__subtitle">Priorización de operarios según sus últimas mediciones</p></div><div class="supervisor-welcome__status"><span class="live-dot"></span><span id="currentDate">Actualizando...</span></div></div>
+    <section class="supervisor-summary" aria-label="Resumen operativo">
+      <div class="supervisor-summary__item"><span class="summary-value" id="kpiTrabajadores">--</span><span>monitoreados</span></div><div class="supervisor-summary__item supervisor-summary__item--warning"><span class="summary-value" id="kpiAlertas">--</span><span>requieren atención</span></div><div class="supervisor-summary__item supervisor-summary__item--critical"><span class="summary-value" id="kpiCritico">--</span><span>en estado crítico</span></div><div class="supervisor-summary__item"><span class="summary-value" id="kpiDispositivos">--</span><span>dispositivos asignados</span></div>
+    </section>
+    <section class="supervisor-panel"><div class="supervisor-panel__header"><div><h3>Operarios monitoreados</h3><p>Los casos prioritarios aparecen primero</p></div><label class="supervisor-search"><span aria-hidden="true">⌕</span><input id="workerSearch" type="search" placeholder="Buscar operario..." autocomplete="off" /></label></div>
+      <div class="supervisor-filters" role="group" aria-label="Filtrar operarios"><button class="supervisor-filter is-active" type="button" data-filter="todos">Todos <span id="filterTodos">0</span></button><button class="supervisor-filter" type="button" data-filter="critico">Críticos <span id="filterCritico">0</span></button><button class="supervisor-filter" type="button" data-filter="advertencia">Advertencia <span id="filterAdvertencia">0</span></button><button class="supervisor-filter" type="button" data-filter="normal">Normales <span id="filterNormal">0</span></button><button class="supervisor-filter" type="button" data-filter="sin_datos">Sin datos <span id="filterSinDatos">0</span></button></div>
+      <div class="worker-cards" id="workerCards" aria-live="polite"></div>
+    </section>
+    <section class="supervisor-bottom-grid"><div class="supervisor-panel supervisor-panel--compact"><div class="supervisor-panel__header"><div><h3>Alertas activas</h3><p>Situaciones que requieren seguimiento</p></div><span class="badge badge--neutral">Tiempo real</span></div><div class="supervisor-alert-list" id="alertList"></div></div><div class="supervisor-panel supervisor-panel--compact"><div class="supervisor-panel__header"><div><h3>Conectividad</h3><p>Operarios sin lectura reciente</p></div><span class="badge badge--neutral" id="offlineCount">0</span></div><div class="supervisor-connectivity-list" id="connectivityList"></div></div></section>`);
 }
 
-function renderAlertas(trabajadores) {
-  const alertas = trabajadores.filter((item) => item.estado_actual === 'advertencia' || item.estado_actual === 'critico');
-
-  if (alertas.length === 0) {
-    alertList.innerHTML = '<li class="alert-item"><div class="alert-item__info"><strong>No hay alertas activas</strong><span>Todo el panel se encuentra en estado normal</span></div></li>';
-    return;
-  }
-
-  alertList.innerHTML = alertas.map((item) => {
-    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
-    const descripcion = item.estado_descripcion || config.label;
-    return `
-      <li class="alert-item">
-        <span class="dot ${config.dot}"></span>
-        <div class="alert-item__info">
-          <strong>${escapeHtml(nombreCompleto(item))}</strong>
-          <span>${escapeHtml(descripcion)}</span>
-        </div>
-        <span class="alert-item__time">${escapeHtml(formatearHora(item.alerta_fecha_hora))}</span>
-        <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
-      </li>
-    `;
-  }).join('');
+function renderSummary() {
+  const counts = trabajadores.reduce((result, item) => { const estado = estadoDe(item); result[estado] = (result[estado] || 0) + 1; return result; }, {});
+  const conAtencion = (counts.critico || 0) + (counts.advertencia || 0);
+  const asignados = trabajadores.filter((item) => item.id_dispositivo !== null && item.id_dispositivo !== undefined).length;
+  document.getElementById('kpiTrabajadores').textContent = trabajadores.length;
+  document.getElementById('kpiAlertas').textContent = conAtencion;
+  document.getElementById('kpiCritico').textContent = counts.critico || 0;
+  document.getElementById('kpiDispositivos').textContent = `${asignados}/${trabajadores.length}`;
+  [['Todos', trabajadores.length], ['Critico', counts.critico || 0], ['Advertencia', counts.advertencia || 0], ['Normal', counts.normal || 0], ['SinDatos', (counts.sin_datos || 0) + (counts.desactualizado || 0)]].forEach(([key, value]) => { document.getElementById(`filter${key}`).textContent = value; });
 }
 
-function renderTrabajadores(trabajadores) {
-  if (trabajadores.length === 0) {
-    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><strong>Sin trabajadores monitoreados</strong><span>No hay datos biométricos disponibles</span></div></li>';
-    return;
-  }
-
-  workerList.innerHTML = trabajadores.map((item) => {
-    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
-    const nombre = nombreCompleto(item);
-    const lectura = [
-      formatearNumero(item.frecuencia_cardiaca, ' BPM'),
-    ].filter(Boolean).join(' · ');
-    const detalle = [item.area ? `Area ${item.area}` : null, lectura || null, formatearFechaHora(item.fecha_hora)]
-      .filter(Boolean)
-      .join(' · ');
-
-    return `
-      <li class="worker-item">
-        <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
-        <div class="worker-item__info">
-          <strong>${escapeHtml(nombre)}${item.legajo ? ` - ${escapeHtml(item.legajo)}` : ''}</strong>
-          <span>${escapeHtml(detalle)}</span>
-        </div>
-        <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
-      </li>
-    `;
-  }).join('');
+function renderWorkerCard(item) {
+  const estado = estadoDe(item); const config = ESTADOS[estado]; const nombre = nombreCompleto(item); const dispositivo = item.id_dispositivo !== null && item.id_dispositivo !== undefined;
+  const bpm = item.frecuencia_cardiaca ?? '--'; const fatiga = item.fc_fatiga ?? item.umbral_fatiga ?? '--'; const sobreesfuerzo = item.fc_sobreesfuerzo ?? item.umbral_sobreesfuerzo ?? '--';
+  return `<article class="worker-card worker-card--${config.tone} ${estado === 'critico' ? 'worker-card--attention' : ''}"><div class="worker-card__identity"><div class="worker-avatar">${escapeHtml(iniciales(nombre))}</div><div><h4>${escapeHtml(nombre)}</h4><p>${escapeHtml(item.legajo ? `Legajo ${item.legajo}` : 'Operario')}${item.area ? ` · ${escapeHtml(item.area)}` : ''}</p></div></div><div class="worker-card__status"><span class="status-indicator"></span><span>${escapeHtml(config.label)}</span><strong>${escapeHtml(descripcionEstado(item, estado))}</strong></div><div class="worker-card__metrics"><div><span>Frecuencia actual</span><strong class="worker-card__bpm">${escapeHtml(bpm)} <small>BPM</small></strong></div><div><span>Umbral fatiga</span><strong>${escapeHtml(fatiga)} <small>BPM</small></strong></div><div><span>Umbral sobreesfuerzo</span><strong>${escapeHtml(sobreesfuerzo)} <small>BPM</small></strong></div></div><div class="worker-card__footer"><span class="worker-card__reading ${dispositivo ? 'is-connected' : 'is-disconnected'}"><span></span>${dispositivo ? 'Wearable asignado' : 'Sin wearable'}</span><span>Última lectura: <strong>${escapeHtml(fechaHora(item.fecha_hora))}</strong></span></div></article>`;
 }
 
-function normalizarFechaLocal(date) {
-  const yyyy = String(date.getFullYear()).padStart(4, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+function renderWorkers() {
+  const container = document.getElementById('workerCards');
+  const filtered = trabajadores.filter((item) => { const estado = estadoDe(item); const matchesFilter = filtroActual === 'todos' || (filtroActual === 'sin_datos' ? ['sin_datos', 'desactualizado'].includes(estado) : estado === filtroActual); return matchesFilter && nombreCompleto(item).toLocaleLowerCase().includes(busquedaActual.toLocaleLowerCase()); }).sort((a, b) => ESTADOS[estadoDe(a)].rank - ESTADOS[estadoDe(b)].rank || (Number(b.frecuencia_cardiaca) || 0) - (Number(a.frecuencia_cardiaca) || 0));
+  container.innerHTML = filtered.length ? filtered.map(renderWorkerCard).join('') : '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
 }
 
-function obtenerUltimosSieteDias() {
-  const hoy = new Date();
-  hoy.setHours(12, 0, 0, 0);
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const dia = new Date(hoy);
-    dia.setDate(hoy.getDate() - (6 - index));
-    return normalizarFechaLocal(dia);
-  });
+function renderAlerts() {
+  const alertas = trabajadores.filter((item) => ['critico', 'advertencia'].includes(estadoDe(item))).sort((a, b) => ESTADOS[estadoDe(a)].rank - ESTADOS[estadoDe(b)].rank);
+  document.getElementById('alertList').innerHTML = alertas.length ? alertas.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${estadoDe(item)}"><span class="status-indicator"></span><div><strong>${escapeHtml(nombreCompleto(item))}</strong><span>${escapeHtml(descripcionEstado(item, estadoDe(item)))}</span></div><time>${escapeHtml(hora(item.alerta_fecha_hora || item.fecha_hora))}</time></div>`).join('') : '<div class="supervisor-empty supervisor-empty--small">No hay alertas activas.</div>';
 }
 
-function formatearEtiquetaDia(isoDate) {
-  const [yyyy, mm, dd] = isoDate.split('-').map((value) => Number(value));
-  const fecha = new Date(Date.UTC(yyyy, mm - 1, dd, 12, 0, 0));
-  return fecha.toLocaleDateString('es-AR', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'UTC',
-  });
+function renderConnectivity() {
+  const offline = trabajadores.filter((item) => ['desactualizado', 'sin_datos'].includes(estadoDe(item)));
+  document.getElementById('offlineCount').textContent = offline.length;
+  document.getElementById('connectivityList').innerHTML = offline.length ? offline.map((item) => `<div class="supervisor-connectivity-item"><div class="worker-avatar worker-avatar--small">${escapeHtml(iniciales(nombreCompleto(item)))}</div><div><strong>${escapeHtml(nombreCompleto(item))}</strong><span>${escapeHtml(descripcionEstado(item, estadoDe(item)))}</span></div></div>`).join('') : '<div class="supervisor-empty supervisor-empty--small">Todos los dispositivos están reportando.</div>';
 }
 
-function destruirGraficos() {
-  if (alertsChart && typeof alertsChart.destroy === 'function') {
-    alertsChart.destroy();
-  }
-  alertsChart = null;
-
-  if (heartChart && typeof heartChart.destroy === 'function') {
-    heartChart.destroy();
-  }
-  heartChart = null;
-}
-
-function renderGraficoAlertas(alertasPorDia) {
-  if (!alertsChartCanvas || !window.Chart) return;
-
-  const dias = obtenerUltimosSieteDias();
-  const valores = new Map();
-
-  (Array.isArray(alertasPorDia) ? alertasPorDia : []).forEach((row) => {
-    const dia = String(row.dia);
-    const tipo = String(row.tipo_alerta || '').trim().toUpperCase();
-    const total = Number(row.total) || 0;
-
-    if (!valores.has(dia)) {
-      valores.set(dia, {});
-    }
-
-    valores.get(dia)[tipo] = total;
-  });
-
-  const labels = dias.map(formatearEtiquetaDia);
-  const datasets = Object.entries(ALERTA_CONFIG).map(([tipo, config]) => ({
-    label: config.label,
-    data: dias.map((dia) => valores.get(dia)?.[tipo] || 0),
-    backgroundColor: config.color,
-    borderRadius: 4,
-    borderSkipped: false,
-  }));
-
-  const ctx = alertsChartCanvas.getContext('2d');
-  alertsChart = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            usePointStyle: true,
-            pointStyle: 'circle',
-            padding: 16,
-            color: COLORS.tickColor,
-          },
-        },
-        tooltip: {
-          backgroundColor: COLORS.tooltip,
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
-        },
-      },
-      scales: {
-        x: {
-          stacked: false,
-          grid: {
-            color: COLORS.grid,
-            drawBorder: false,
-          },
-          border: { display: false },
-          ticks: { color: COLORS.tickColor },
-        },
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1,
-            precision: 0,
-            color: COLORS.tickColor,
-          },
-          grid: {
-            color: COLORS.grid,
-            drawBorder: false,
-          },
-          border: { display: false },
-        },
-      },
-    },
-  });
-}
-
-function renderGraficoFrecuencia(frecuenciaPromedioHoy) {
-  if (!heartChartCanvas || !window.Chart) return;
-
-  const valores = new Map(
-    (Array.isArray(frecuenciaPromedioHoy) ? frecuenciaPromedioHoy : []).map((row) => [
-      Number(row.minuto_inicio),
-      row.promedio === null || row.promedio === undefined ? null : Number(row.promedio),
-    ]),
-  );
-
-  const labels = HORAS_FRECUENCIA.map((slot) => slot.label);
-  const data = HORAS_FRECUENCIA.map((slot) => valores.get(slot.minuto) ?? null);
-
-  const ctx = heartChartCanvas.getContext('2d');
-  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-  gradient.addColorStop(0, 'rgba(45, 212, 191, 0.22)');
-  gradient.addColorStop(1, 'rgba(45, 212, 191, 0)');
-
-  heartChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'BPM promedio',
-        data,
-        borderColor: COLORS.teal,
-        backgroundColor: gradient,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        pointBackgroundColor: COLORS.teal,
-        tension: 0.35,
-        fill: true,
-        spanGaps: false,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: COLORS.tooltip,
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
-          callbacks: {
-            label: (ctx) => ` ${ctx.parsed.y ?? '--'} BPM`,
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: {
-            color: COLORS.grid,
-            drawBorder: false,
-          },
-          border: { display: false },
-          ticks: {
-            color: COLORS.tickColor,
-            autoSkip: false,
-            maxRotation: 0,
-            callback(value) {
-              // `this.getLabelForValue` devuelve '' salvo en la hora en punto.
-              return this.getLabelForValue(value) || null;
-            },
-          },
-        },
-        y: {
-          min: 50,
-          max: 150,
-          ticks: {
-            stepSize: 25,
-            color: COLORS.tickColor,
-          },
-          grid: {
-            color: COLORS.grid,
-            drawBorder: false,
-          },
-          border: { display: false },
-        },
-      },
-    },
-  });
-}
-
-function renderGraficos(resumen) {
-  destruirGraficos();
-  renderGraficoAlertas(resumen.alertasPorDia || []);
-  renderGraficoFrecuencia(resumen.frecuenciaPromedioHoy || []);
-}
+function renderAll() { renderSummary(); renderWorkers(); renderAlerts(); renderConnectivity(); document.getElementById('currentDate').textContent = `Actualizado ${new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`; }
 
 async function cargarHome() {
-  const [estadoResult, resumenResult] = await Promise.allSettled([
-    apiFetch('/estado/trabajadores-activos'),
-    apiFetch('/dashboard/summary'),
-  ]);
-
-  if (estadoResult.status === 'fulfilled') {
-    const trabajadores = estadoResult.value?.data || [];
-    renderKPIs(trabajadores);
-    renderAlertas(trabajadores);
-    renderTrabajadores(trabajadores);
-  } else {
-    console.error(estadoResult.reason);
-    workerList.innerHTML = `<li class="worker-item"><div class="worker-item__info"><strong>Error</strong><span>${escapeHtml(estadoResult.reason?.message || 'No se pudo cargar el panel')}</span></div></li>`;
-    alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><strong>No se pudo cargar el panel</strong><span>${escapeHtml(estadoResult.reason?.message || 'No se pudo cargar el panel')}</span></div></li>`;
-  }
-
-  if (resumenResult.status === 'fulfilled') {
-    const resumen = resumenResult.value?.data || {};
-    renderGraficos(resumen);
-  } else {
-    console.error(resumenResult.reason);
-    destruirGraficos();
-  }
-
-  actualizarFechaActualizacion();
+  try { const payload = await apiFetch('/estado/trabajadores-activos'); trabajadores = Array.isArray(payload?.data) ? payload.data : []; renderAll(); }
+  catch (error) { console.error(error); document.getElementById('workerCards').innerHTML = `<div class="supervisor-empty supervisor-empty--error">${escapeHtml(error.message)}</div>`; }
 }
 
-async function inicializar() {
-  actualizarFechaActualizacion();
-  await cargarHome();
-  setInterval(() => {
-    cargarHome().catch((error) => {
-      console.error(error);
-    });
-  }, POLL_INTERVAL_MS);
-}
-
-inicializar().catch((error) => {
-  console.error(error);
-  workerList.innerHTML = `<li class="worker-item"><div class="worker-item__info"><strong>Error</strong><span>${escapeHtml(error.message)}</span></div></li>`;
-  alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><strong>No se pudo cargar el panel</strong><span>${escapeHtml(error.message)}</span></div></li>`;
-});
+createHomeLayout();
+document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEventListener('click', () => { filtroActual = button.dataset.filter; document.querySelectorAll('.supervisor-filter').forEach((item) => item.classList.toggle('is-active', item === button)); renderWorkers(); }));
+document.getElementById('workerSearch').addEventListener('input', (event) => { busquedaActual = event.target.value.trim(); renderWorkers(); });
+cargarHome();
+setInterval(cargarHome, POLL_INTERVAL_MS);
