@@ -61,16 +61,13 @@ const login = async ({ email, password }) => {
 
   const roles = Array.isArray(usuario.roles) ? usuario.roles : [];
   const primaryRole = extractRoleName(roles[0]);
-
-  if (!primaryRole) {
-    throw createHttpError(403, 'La cuenta no tiene un rol asignado.', 'ROL_NO_ASIGNADO');
-  }
+  const role = primaryRole || 'sin_rol';
 
   const payload = {
     sub: usuario.id,
     idEmpresa: usuario.id_empresa,
     email: usuario.email,
-    role: primaryRole,
+    role,
     roles: roles.map(extractRoleName).filter(Boolean),
     areaSupervisada: usuario.area_supervisada || null,
     turnosSupervisados: usuario.turnos_supervisados || [],
@@ -82,7 +79,7 @@ const login = async ({ email, password }) => {
 
   return {
     token,
-    role: primaryRole,
+    role,
     user: {
       id: usuario.id,
       idEmpresa: usuario.id_empresa,

@@ -56,6 +56,7 @@ function getRoleLabel(role) {
     admin: 'Administrador',
     supervisor: 'Supervisor Operativo',
     seguridad: 'Resp. Seguridad e Higiene',
+    sin_rol: 'Consulta general',
   };
 
   if (normalizedRole === 'supervisor') {

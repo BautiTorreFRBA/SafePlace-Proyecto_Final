@@ -4,7 +4,7 @@ const trabajadoresController = require('../controllers/trabajadores.controller')
 const horarioOperarioController = require('../controllers/horarioOperario.controller');
 const { auth, authorize } = require('../middlewares/auth');
 
-router.get('/', auth, authorize(['admin', 'supervisor', 'seguridad']), trabajadoresController.listar);
+router.get('/', auth, authorize(['admin', 'supervisor', 'seguridad', 'sin_rol']), trabajadoresController.listar);
 
 // CP-E2E-04 / H0012: horario laboral del operario (ventana en la que se
 // espera el wearable conectado). Lectura para supervisión; escritura para

@@ -4,6 +4,7 @@ const ROLE_ROUTES = {
   admin: 'Admin-Home.html',
   supervisor: 'Supervisor-Home.html',
   seguridad: 'Seguridad-Home.html',
+  sin_rol: 'Supervisor-Home.html',
 };
 
 const usernameInput = document.getElementById('username');
