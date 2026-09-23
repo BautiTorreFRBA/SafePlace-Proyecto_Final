@@ -85,22 +85,26 @@ const listar = async ({ limit = 100, offset = 0 } = {}) => {
 // Motor de Reglas (H0010/H0012): mediciones del mismo seudónimo en los
 // últimos `minutos`, de más antigua a más nueva — la ventana que evalúan
 // las reglas de condición sostenida (fatiga, inactividad prolongada).
+// `minutos` admite fracciones (ej. 0.33 ≈ 20 segundos).
 //
-// El límite real es `minutos + 1`, no `minutos`: la regla necesita
-// comprobar que la medición más antigua de la ventana tiene *al menos*
-// `minutos` de antigüedad (para saber que la condición se sostuvo todo ese
-// tiempo). Si el corte SQL fuera exactamente `minutos`, ninguna fila
-// devuelta podría tener esa antigüedad completa — el propio filtro la habría
-// excluido. El minuto extra de margen es lo que le da al motor de reglas una
-// fila real contra la cual verificarlo.
+// El límite real es `minutos` + un margen fijo, no `minutos` exacto: la
+// regla necesita comprobar que la medición más antigua de la ventana tiene
+// *al menos* `minutos` de antigüedad (para saber que la condición se sostuvo
+// todo ese tiempo). Si el corte SQL fuera exactamente `minutos`, ninguna
+// fila devuelta podría tener esa antigüedad completa — el propio filtro la
+// habría excluido. El margen es fijo en segundos (no un minuto entero más,
+// que para ventanas cortas configuradas en segundos sería un múltiplo
+// enorme del valor real) — solo lo suficiente para absorber el intervalo de
+// reporte del gateway y el jitter de red.
+const MARGEN_VENTANA_SEGUNDOS = 30;
 const listarVentanaReciente = async (idSeudonimo, minutos) => {
   const query = `
     SELECT * FROM medicion
     WHERE id_seudonimo = $1
-      AND fecha_hora >= now() - (($2 + 1) || ' minutes')::interval
+      AND fecha_hora >= now() - (($2 * 60 + $3) || ' seconds')::interval
     ORDER BY fecha_hora ASC;
   `;
-  const res = await db.query(query, [idSeudonimo, minutos]);
+  const res = await db.query(query, [idSeudonimo, minutos, MARGEN_VENTANA_SEGUNDOS]);
   return res.rows;
 };
 
