@@ -79,7 +79,12 @@ function turnoActual() {
   return null;
 }
 
-function filtrarPorTurno(items, idsDelTurno, campoId) {
+// Fuera de 08:00-20:00 no hay ningún turno reconocido por turnoActual() —
+// eso NO significa que no haya nada que mostrar (ej. operarios en horario
+// nocturno cargado a mano en horario_operario), así que sin turno activo se
+// muestra todo sin filtrar en vez de vaciar el dashboard entero.
+function filtrarPorTurno(items, idsDelTurno, campoId, turno) {
+  if (!turno) return items;
   return items.filter((item) => idsDelTurno.has(Number(item[campoId])));
 }
 
@@ -89,8 +94,8 @@ function actualizarEtiquetaTurno(turno) {
   if (!titulo || !detalle) return;
 
   if (!turno) {
-    titulo.textContent = 'Operarios del turno actual';
-    detalle.textContent = 'No hay un turno operativo activo (08–20 h).';
+    titulo.textContent = 'Operarios (todos los turnos)';
+    detalle.textContent = 'Fuera de 08:00–20:00 no hay un turno mañana/tarde/noche reconocido — mostrando todos los operarios.';
     return;
   }
 
@@ -298,12 +303,12 @@ async function cargarHome() {
     .filter((empleado) => empleado.estado && turno && String(empleado.turno || '').toLowerCase() === turno)
     .map((empleado) => Number(empleado.id)));
 
-  const trabajadores = filtrarPorTurno(medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
-  const alertasActivas = filtrarPorTurno(alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
-  const historico = filtrarPorTurno(historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
-  const alertasHoy = filtrarPorTurno(hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
-  const dispositivos = filtrarPorTurno(dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [], idsDelTurno, 'operario_id');
-  const medicionesHoy = filtrarPorTurno(medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador');
+  const trabajadores = filtrarPorTurno(medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
+  const alertasActivas = filtrarPorTurno(alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
+  const historico = filtrarPorTurno(historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
+  const alertasHoy = filtrarPorTurno(hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
+  const dispositivos = filtrarPorTurno(dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [], idsDelTurno, 'operario_id', turno);
+  const medicionesHoy = filtrarPorTurno(medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
 
   actualizarEtiquetaTurno(turno);
   renderKpis({ trabajadores, alertas: alertasActivas, riesgosHoy: alertasHoy, dispositivos });
