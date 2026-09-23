@@ -3,6 +3,7 @@ const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.r
 const validacionDatosService = require('./validacion/validacion-datos.service');
 const logAuditoriaRepository = require('../repositories/logAuditoria.repository');
 const motorReglasService = require('./reglas/motorReglas.service');
+const inactividadProlongadaService = require('./inactividadProlongada.service');
 const { ErrorValidacion, MOTIVOS } = require('./validacion/errores');
 
 /**
@@ -79,6 +80,17 @@ const registrarMedicion = async (paquete, contexto = {}) => {
     }
 
     await auditarPersistencia({ medicion: creada, ipOrigen: contexto.ipOrigen });
+
+    // H0012 (evidencia directa): una medición real persistida prueba que el
+    // wearable está conectado y transmitiendo, más allá de lo que diga el
+    // último reporte de estado de conexión (que puede llegar fuera de orden
+    // desde el gateway y dejar una alerta de inactividad prolongada abierta
+    // por error mientras el pulso llega normalmente). Best-effort.
+    await inactividadProlongadaService
+      .resolverPorMedicionReal(creada.id_seudonimo, creada.id_dispositivo)
+      .catch((err) => {
+        console.error('[mediciones.service] cierre por medición real:', err.message);
+      });
 
     // H0010/H0011/H0012/H0013: el Motor de Reglas evalúa la medición ya
     // persistida contra los umbrales vigentes (H0023). Best-effort: un fallo

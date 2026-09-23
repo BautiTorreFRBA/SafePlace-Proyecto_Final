@@ -91,26 +91,42 @@ const chequear = async () => {
   }
 };
 
+// Cierre por seudónimo ya resuelto — compartido entre el camino de
+// reconexión (H0007) y el de medición real (ver resolverPorMedicionReal).
+const cerrarActivasPorSeudonimo = async (idSeudonimo, idDispositivo = null) => {
+  if (idDispositivo != null) {
+    await inactividadCandidatoRepository.limpiar(idDispositivo);
+  }
+  if (!idSeudonimo) return [];
+
+  const tipo = await tipoAlertaRepository.obtenerPorNombre(TIPO);
+  if (!tipo) return [];
+
+  return alertaRepository.cerrarActivasPorSeudonimoYTipo(idSeudonimo, tipo.id);
+};
+
 // Cierre de la alerta cuando el wearable se reconecta. Llamado desde el
 // registro de estado CONECTADO. Limpia también el candidato de inactividad
 // del dispositivo: el próximo corte tiene que arrancar el reloj de cero, no
 // seguir contando desde la desconexión anterior.
 const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
-  if (idDispositivo != null) {
-    await inactividadCandidatoRepository.limpiar(idDispositivo);
-  }
-
   const seudonimo = await operarioSeudonimoRepository.obtenerPorOperario(idOperario);
-  if (!seudonimo) return [];
+  return cerrarActivasPorSeudonimo(seudonimo?.id, idDispositivo);
+};
 
-  const tipo = await tipoAlertaRepository.obtenerPorNombre(TIPO);
-  if (!tipo) return [];
-
-  return alertaRepository.cerrarActivasPorSeudonimoYTipo(seudonimo.id, tipo.id);
+// Cierre por evidencia directa (no por el reporte de conexión, que puede
+// llegar fuera de orden — ver sesión-qa-hub-ble): si el gateway logró
+// persistir una medición real del wearable, es prueba objetiva de que está
+// conectado y transmitiendo, sin importar qué diga el último reporte de
+// estado. Enganchado best-effort desde mediciones.service.registrarMedicion,
+// nunca debe romper el 201 al gateway.
+const resolverPorMedicionReal = async (idSeudonimo, idDispositivo = null) => {
+  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo);
 };
 
 module.exports = {
   chequear,
   resolverPorReconexion,
+  resolverPorMedicionReal,
   TIPO,
 };
