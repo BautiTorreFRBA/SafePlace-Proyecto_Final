@@ -101,7 +101,7 @@ const listarVentanaReciente = async (idSeudonimo, minutos) => {
   const query = `
     SELECT * FROM medicion
     WHERE id_seudonimo = $1
-      AND fecha_hora >= now() - (($2 * 60 + $3) || ' seconds')::interval
+      AND fecha_hora >= now() - (($2::numeric * 60 + $3) || ' seconds')::interval
     ORDER BY fecha_hora ASC;
   `;
   const res = await db.query(query, [idSeudonimo, minutos, MARGEN_VENTANA_SEGUNDOS]);
