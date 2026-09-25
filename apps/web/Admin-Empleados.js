@@ -4,6 +4,7 @@ const empGrupos = document.getElementById('empGrupos');
 const empCount = document.getElementById('empCount');
 const searchInput = document.getElementById('searchInput');
 const filterStatus = document.getElementById('filterStatus');
+const filterArea = document.getElementById('filterArea');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalTitle = document.getElementById('modalTitle');
 const modalClose = document.getElementById('modalClose');
@@ -24,7 +25,9 @@ const COLUMNAS = [
   ['legajo', 'LEGAJO'],
   ['nombreCompleto', 'NOMBRE'],
   ['rol', 'ROL'],
-  ['fc', 'FC FATIGA / SOBREESF.', 'FC de fatiga / FC de sobreesfuerzo que se le aplican'],
+  ['fcFatiga', 'FC FATIGA', 'FC de fatiga que se le aplica', 'center'],
+  ['fcSobreesfuerzo', 'FC SOBREESFUERZO', 'FC de sobreesfuerzo que se le aplica', 'center'],
+  ['fcOrigen', 'CONFIGURACIÓN', 'General (Configuración Operativa) o Particular', 'center'],
   ['estado', 'ESTADO'],
   ['alta', 'ALTA'],
 ];
@@ -92,9 +95,13 @@ function getSortValue(emp, key) {
       return emp.estado === 'activo' ? 1 : 0;
     case 'alta':
       return emp.alta ? new Date(emp.alta).getTime() : 0;
-    case 'fc': {
+    case 'fcFatiga':
+      return fcDeEmpleado(emp)?.fatiga ?? Number.MAX_SAFE_INTEGER;
+    case 'fcSobreesfuerzo':
+      return fcDeEmpleado(emp)?.sobreesfuerzo ?? Number.MAX_SAFE_INTEGER;
+    case 'fcOrigen': {
       const fc = fcDeEmpleado(emp);
-      return fc ? fc.fatiga * 1000 + fc.sobreesfuerzo : Number.MAX_SAFE_INTEGER;
+      return fc ? (fc.particular ? 0 : 1) : 2;
     }
     default:
       return normalizarTexto(String(emp[key] ?? ''));
@@ -194,12 +201,14 @@ async function cargarUmbrales() {
 async function cargarEmpleados() {
   const [json] = await Promise.all([apiFetch(EMPLOYEES_ENDPOINT), cargarUmbrales()]);
   empleados = (json.data || []).map(normalizarEmpleado);
+  poblarFiltroArea();
   renderTable();
 }
 
 function renderTable() {
   const query = searchInput.value.trim().toLowerCase();
   const estado = filterStatus.value;
+  const area = filterArea.value;
 
   const filtrados = empleados.filter((emp) => {
     const matchBusqueda = !query
@@ -207,7 +216,8 @@ function renderTable() {
       || emp.legajo.toLowerCase().includes(query)
       || String(emp.id).toLowerCase().includes(query);
     const matchEstado = estado === 'todos' || emp.estado === estado;
-    return matchBusqueda && matchEstado;
+    const matchArea = area === 'todas' || emp.depto === area;
+    return matchBusqueda && matchEstado && matchArea;
   });
 
   const ordenados = ordenarEmpleados(filtrados);
@@ -219,6 +229,17 @@ function renderTable() {
     : agruparPorAreaYTurno(ordenados).map(grupoAreaHTML).join('');
 
   actualizarIndicadoresOrden();
+}
+
+// Opciones del filtro según las áreas que existen en los empleados cargados;
+// se conserva la elegida si sigue existiendo después de recargar.
+function poblarFiltroArea() {
+  const actual = filterArea.value;
+  const areas = [...new Set(empleados.map((emp) => emp.depto))]
+    .sort((a, b) => (a === 'Sin asignar') - (b === 'Sin asignar') || a.localeCompare(b, 'es'));
+  filterArea.innerHTML = '<option value="todas">Todas las áreas</option>'
+    + areas.map((area) => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('');
+  filterArea.value = areas.includes(actual) ? actual : 'todas';
 }
 
 function mensajeHTML(texto) {
@@ -257,7 +278,7 @@ function grupoAreaHTML({ area, total, turnos }) {
           </header>
           <div class="emp-grupos__tabla">
             <table class="emp-table">
-              <thead><tr>${COLUMNAS.map(([key, label, title]) => `<th><button class="emp-sort" type="button" data-sort="${key}"${title ? ` title="${escapeHtml(title)}"` : ''}>${label}</button></th>`).join('')}<th></th></tr></thead>
+              <thead><tr>${COLUMNAS.map(([key, label, title, align]) => `<th${align === 'center' ? ' class="emp-col--center"' : ''}><button class="emp-sort" type="button" data-sort="${key}"${title ? ` title="${escapeHtml(title)}"` : ''}>${label}</button></th>`).join('')}<th></th></tr></thead>
               <tbody>${lista.map(rowHTML).join('')}</tbody>
             </table>
           </div>
@@ -266,13 +287,16 @@ function grupoAreaHTML({ area, total, turnos }) {
     </section>`;
 }
 
-function fcHTML(emp) {
+// Una celda por dato: FC de fatiga, FC de sobreesfuerzo y de dónde salen.
+function fcCeldasHTML(emp) {
   const fc = fcDeEmpleado(emp);
-  if (!fc) return '<span style="color:var(--text-muted)">--</span>';
+  const vacio = '<td class="emp-col--center"><span style="color:var(--text-muted)">--</span></td>';
+  if (!fc) return vacio.repeat(3);
+  const valor = (bpm) => `<td class="emp-col--center"><span class="emp-fc__valor"><strong>${escapeHtml(bpm)}</strong> <small>BPM</small></span></td>`;
   const origen = fc.particular
     ? '<span class="emp-fc__origen emp-fc__origen--particular" title="Configuración particular">Particular</span>'
     : '<span class="emp-fc__origen" title="Umbral general de Configuración Operativa">General</span>';
-  return `<div class="emp-fc"><span class="emp-fc__valores"><strong>${escapeHtml(fc.fatiga)}</strong> / <strong>${escapeHtml(fc.sobreesfuerzo)}</strong> <small>BPM</small></span>${origen}</div>`;
+  return `${valor(fc.fatiga)}${valor(fc.sobreesfuerzo)}<td class="emp-col--center">${origen}</td>`;
 }
 
 function rowHTML(emp) {
@@ -285,7 +309,7 @@ function rowHTML(emp) {
       <td class="emp-id">${escapeHtml(emp.legajo)}</td>
       <td><div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(emp.iniciales)}</div><span class="emp-name__text">${escapeHtml(emp.nombreCompleto)}</span></div></td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
-      <td>${fcHTML(emp)}</td>
+      ${fcCeldasHTML(emp)}
       <td>${estadoBadge}</td>
       <td style="color:var(--text-primary); font-size:0.82rem">${escapeHtml(emp.alta)}</td>
       <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${emp.id}">Editar</button><button class="emp-actions__deactivate" data-id="${emp.id}" ${esActivo ? '' : 'disabled'}>Desactivar</button></div></td>
@@ -397,6 +421,7 @@ empGrupos.addEventListener('click', (e) => {
 
 searchInput.addEventListener('input', renderTable);
 filterStatus.addEventListener('change', renderTable);
+filterArea.addEventListener('change', renderTable);
 btnNuevo.addEventListener('click', () => openModal('crear'));
 modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);

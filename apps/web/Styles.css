@@ -4427,9 +4427,10 @@ select.cfg-input {
 .cfg-particular__hint { margin: 0; color: var(--text-muted); font-size: 0.78rem; }
 
 /* Empleados (admin) — columna de FC de fatiga / sobreesfuerzo */
-.emp-fc { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
-.emp-fc__valores { color: var(--text-primary); font-size: 0.82rem; white-space: nowrap; }
-.emp-fc__valores small { color: var(--text-muted); font-size: 0.68rem; }
+.emp-table th.emp-col--center, .emp-table td.emp-col--center { text-align: center; }
+.emp-table th.emp-col--center .emp-sort { justify-content: center; }
+.emp-fc__valor { color: var(--text-primary); font-size: 0.82rem; white-space: nowrap; }
+.emp-fc__valor small { color: var(--text-muted); font-size: 0.68rem; }
 .emp-fc__origen { padding: 1px 7px; border-radius: 999px; color: var(--text-secondary); background: var(--bg-card-alt); font-size: 0.66rem; }
 .emp-fc__origen--particular { color: var(--teal-400); background: var(--teal-dim); }
 
@@ -4440,3 +4441,6 @@ select.cfg-input {
 .emp-grupos__tabla { overflow-x: auto; }
 .emp-grupos__tabla .emp-table { border: 0; border-radius: 0; }
 .emp-grupos__mensaje { padding: 32px; color: var(--text-muted); font-size: 0.875rem; text-align: center; }
+
+/* Gestión de Empleados: con el filtro de área son tres controles; que bajen de línea en pantallas angostas */
+.emp-toolbar { flex-wrap: wrap; }
