@@ -156,12 +156,18 @@ async function obtenerUmbrales(idTrabajador) {
         sobreesfuerzo: Number(u.fc_sobreesfuerzo) || UMBRALES_POR_DEFECTO.sobreesfuerzo,
       },
       particulares: new Map(particulares.status === 'fulfilled'
-        ? (particulares.value?.data || []).map((p) => [String(p.id_operario), { fatiga: Number(p.fc_fatiga), sobreesfuerzo: Number(p.fc_sobreesfuerzo) }])
+        ? (particulares.value?.data || []).map((p) => [String(p.id_operario), p])
         : []),
     };
     [global, particulares].filter((r) => r.status === 'rejected').forEach((r) => console.error(r.reason));
   }
-  return umbralesCache.particulares.get(String(idTrabajador)) || umbralesCache.general;
+  const { general } = umbralesCache;
+  const particular = umbralesCache.particulares.get(String(idTrabajador));
+  if (!particular) return general;
+  return {
+    fatiga: particular.fc_fatiga != null ? Number(particular.fc_fatiga) : general.fatiga,
+    sobreesfuerzo: particular.fc_sobreesfuerzo != null ? Number(particular.fc_sobreesfuerzo) : general.sobreesfuerzo,
+  };
 }
 
 function renderStatsFc(puntos) {

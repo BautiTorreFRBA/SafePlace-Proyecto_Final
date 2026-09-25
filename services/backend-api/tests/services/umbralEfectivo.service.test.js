@@ -1,7 +1,7 @@
 /**
  * Tests unitarios de la resolución del umbral efectivo: global para todos,
  * salvo la FC de fatiga/sobreesfuerzo de los operarios con Configuración
- * particular (umbral_operario). Repositorios mockeados.
+ * particular (operario."FC_Fatiga" / "FC_Sobreesfuerzo"). Repositorios mockeados.
  */
 
 jest.mock('../../src/repositories/operarioSeudonimo.repository');
@@ -44,6 +44,15 @@ describe('umbralEfectivo.service', () => {
       ...GLOBAL,
       fc_fatiga: 120,
       fc_sobreesfuerzo: 150,
+    });
+  });
+
+  it('una FC particular en NULL cae a la global', async () => {
+    umbralOperarioRepository.obtenerPorOperario.mockResolvedValue({ id_operario: 5, fc_fatiga: 120, fc_sobreesfuerzo: null });
+
+    await expect(umbralEfectivoService.resolverPorSeudonimo(7)).resolves.toEqual({
+      ...GLOBAL,
+      fc_fatiga: 120,
     });
   });
 

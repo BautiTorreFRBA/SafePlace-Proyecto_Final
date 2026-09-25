@@ -5,7 +5,7 @@ const umbralRiesgoRepository = require('../repositories/umbralRiesgo.repository'
 /**
  * Resuelve qué umbral de riesgo aplica a un operario: el umbral_riesgo global
  * vigente (Configuración Operativa) para todos, salvo los operarios con
- * "Configuración particular" (umbral_operario), a los que se les reemplazan
+ * "Configuración particular" (operario."FC_Fatiga" / "FC_Sobreesfuerzo"), a los que se les reemplazan
  * sólo la FC de fatiga y la de sobreesfuerzo. Minutos sostenidos, actividad
  * mínima e inactividad siguen siendo los globales.
  *
@@ -26,8 +26,8 @@ const resolverPorOperario = async (idOperario, ts = new Date()) => { // eslint-d
   if (!global || !particular) return global;
   return {
     ...global,
-    fc_fatiga: particular.fc_fatiga,
-    fc_sobreesfuerzo: particular.fc_sobreesfuerzo,
+    fc_fatiga: particular.fc_fatiga ?? global.fc_fatiga,
+    fc_sobreesfuerzo: particular.fc_sobreesfuerzo ?? global.fc_sobreesfuerzo,
   };
 };
 

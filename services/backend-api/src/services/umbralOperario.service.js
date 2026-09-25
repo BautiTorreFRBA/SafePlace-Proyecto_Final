@@ -2,7 +2,7 @@ const umbralOperarioRepository = require('../repositories/umbralOperario.reposit
 const logAuditoriaRepository = require('../repositories/logAuditoria.repository');
 const operarioRepository = require('../repositories/operario.repository');
 
-const TABLA_AFECTADA = 'umbral_operario';
+const TABLA_AFECTADA = 'operario';
 
 function createHttpError(status, message, motivo) {
   const error = new Error(message);
@@ -39,17 +39,6 @@ const validar = async ({ idOperario, fcFatiga, fcSobreesfuerzo }) => {
   }
 };
 
-const asegurarUnicoPorOperario = async (idOperario, idPropio = null) => {
-  const existente = await umbralOperarioRepository.obtenerPorOperario(idOperario);
-  if (existente && existente.id !== idPropio) {
-    throw createHttpError(
-      409,
-      'Ese operario ya tiene una configuración particular. Editala desde la tabla.',
-      'UMBRAL_OPERARIO_DUPLICADO',
-    );
-  }
-};
-
 const auditar = (actor, registro, operacion, detalle) => logAuditoriaRepository
   .registrar({
     idUsuario: actor?.id,
@@ -61,52 +50,59 @@ const auditar = (actor, registro, operacion, detalle) => logAuditoriaRepository
   })
   .catch(() => {});
 
+const noEncontrada = () => createHttpError(
+  404,
+  'El operario no tiene configuración particular.',
+  'UMBRAL_OPERARIO_NO_ENCONTRADO',
+);
+
 const listar = async () => umbralOperarioRepository.listar();
 
 const crear = async (datos, actor) => {
   await validar(datos);
-  await asegurarUnicoPorOperario(datos.idOperario);
-
-  const registro = await umbralOperarioRepository.crear({ ...datos, idUsuario: actor?.id });
-  await auditar(
-    actor,
-    registro,
-    'CREATE',
-    `Configuración particular creada para el operario ${registro.id_operario} `
-      + `(fatiga=${registro.fc_fatiga}bpm, sobreesfuerzo=${registro.fc_sobreesfuerzo}bpm).`,
-  );
-  return registro;
-};
-
-const actualizar = async (id, datos, actor) => {
-  const existente = await umbralOperarioRepository.obtenerPorId(id);
-  if (!existente) {
-    throw createHttpError(404, 'La configuración particular no existe.', 'UMBRAL_OPERARIO_NO_ENCONTRADO');
+  if (await umbralOperarioRepository.obtenerPorOperario(datos.idOperario)) {
+    throw createHttpError(
+      409,
+      'Ese operario ya tiene una configuración particular. Editala desde la tabla.',
+      'UMBRAL_OPERARIO_DUPLICADO',
+    );
   }
-  await validar(datos);
-  await asegurarUnicoPorOperario(datos.idOperario, existente.id);
 
-  const registro = await umbralOperarioRepository.actualizar(id, { ...datos, idUsuario: actor?.id });
+  const registro = await umbralOperarioRepository.guardar(datos.idOperario, datos);
   await auditar(
     actor,
     registro,
     'UPDATE',
-    `Configuración particular del operario ${registro.id_operario} actualizada `
+    `Configuración particular creada para el operario ${registro.id} `
       + `(fatiga=${registro.fc_fatiga}bpm, sobreesfuerzo=${registro.fc_sobreesfuerzo}bpm).`,
   );
   return registro;
 };
 
-const eliminar = async (id, actor) => {
-  const registro = await umbralOperarioRepository.eliminar(id);
-  if (!registro) {
-    throw createHttpError(404, 'La configuración particular no existe.', 'UMBRAL_OPERARIO_NO_ENCONTRADO');
-  }
+// La configuración particular se identifica por el id del operario.
+const actualizar = async (idOperario, datos, actor) => {
+  if (!(await umbralOperarioRepository.obtenerPorOperario(idOperario))) throw noEncontrada();
+  await validar({ ...datos, idOperario });
+
+  const registro = await umbralOperarioRepository.guardar(idOperario, datos);
   await auditar(
     actor,
     registro,
-    'DELETE',
-    `Configuración particular del operario ${registro.id_operario} eliminada (vuelve al umbral global).`,
+    'UPDATE',
+    `Configuración particular del operario ${registro.id} actualizada `
+      + `(fatiga=${registro.fc_fatiga}bpm, sobreesfuerzo=${registro.fc_sobreesfuerzo}bpm).`,
+  );
+  return registro;
+};
+
+const eliminar = async (idOperario, actor) => {
+  const registro = await umbralOperarioRepository.eliminar(idOperario);
+  if (!registro) throw noEncontrada();
+  await auditar(
+    actor,
+    registro,
+    'UPDATE',
+    `Configuración particular del operario ${registro.id} eliminada (vuelve al umbral global).`,
   );
   return registro;
 };

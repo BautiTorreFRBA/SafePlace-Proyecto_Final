@@ -77,6 +77,7 @@ document.querySelectorAll('.cfg-spinner__btn').forEach((btn) => {
 btnGuardar.addEventListener('click', guardarConfiguracion);
 
 // ---- Configuración particular (/umbrales-operario): FC propias por operario ----
+// Se guardan en operario."FC_Fatiga" / "FC_Sobreesfuerzo"; el id de cada fila es el del operario.
 
 const particularTableBody = document.getElementById('particularTableBody');
 const btnNuevaParticular = document.getElementById('btnNuevaParticular');
@@ -114,9 +115,9 @@ function renderParticulares() {
       <tr>
         <td>${escapeHtml(nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }))}</td>
         <td class="emp-id">${escapeHtml(p.operario_legajo || '--')}</td>
-        <td><strong>${escapeHtml(p.fc_fatiga)}</strong> <span style="color:var(--text-muted)">BPM</span></td>
-        <td><strong>${escapeHtml(p.fc_sobreesfuerzo)}</strong> <span style="color:var(--text-muted)">BPM</span></td>
-        <td style="color:var(--text-secondary); font-size:0.82rem">${p.actualizado_en ? escapeHtml(fmtAR(new Date(p.actualizado_en))) : '--'}</td>
+        <td>${p.fc_fatiga != null ? `<strong>${escapeHtml(p.fc_fatiga)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
+        <td>${p.fc_sobreesfuerzo != null ? `<strong>${escapeHtml(p.fc_sobreesfuerzo)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
+        <td style="color:var(--text-secondary); font-size:0.82rem">${escapeHtml(p.operario_area || '--')} · ${escapeHtml(p.operario_turno ? p.operario_turno.charAt(0).toUpperCase() + p.operario_turno.slice(1) : '--')}</td>
         <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${p.id}">Editar</button><button class="emp-actions__deactivate" data-id="${p.id}">Quitar</button></div></td>
       </tr>
     `).join('');
@@ -146,8 +147,8 @@ async function abrirModalParticular(id = null) {
   particularModalTitle.textContent = p ? 'Editar configuración particular' : 'Nueva configuración particular';
   poblarOperarios(p?.id_operario);
   // Una nueva configuración arranca con los valores globales actuales, como referencia.
-  input('pFcFatiga').value = p ? p.fc_fatiga : input('fcFatiga').value;
-  input('pFcSobreesfuerzo').value = p ? p.fc_sobreesfuerzo : input('fcSobreesfuerzo').value;
+  input('pFcFatiga').value = p?.fc_fatiga ?? input('fcFatiga').value;
+  input('pFcSobreesfuerzo').value = p?.fc_sobreesfuerzo ?? input('fcSobreesfuerzo').value;
   pHint.textContent = `Umbral general: fatiga ${input('fcFatiga').value} BPM · sobreesfuerzo ${input('fcSobreesfuerzo').value} BPM.`;
 
   particularModalOverlay.classList.add('modal-overlay--visible');

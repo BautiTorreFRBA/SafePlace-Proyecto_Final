@@ -1,6 +1,6 @@
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
-const tableBody = document.getElementById('empTableBody');
+const empGrupos = document.getElementById('empGrupos');
 const empCount = document.getElementById('empCount');
 const searchInput = document.getElementById('searchInput');
 const filterStatus = document.getElementById('filterStatus');
@@ -17,7 +17,17 @@ const mDept = document.getElementById('mDept');
 const mTurno = document.getElementById('mTurno');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
-const sortButtons = Array.from(document.querySelectorAll('.emp-sort'));
+const TURNOS = ['mañana', 'tarde', 'noche'];
+const etiquetaTurno = (turno) => (turno ? turno.charAt(0).toUpperCase() + turno.slice(1) : 'Sin turno');
+// Columnas de cada tabla de grupo. Área y turno no se repiten: ya los da el grupo.
+const COLUMNAS = [
+  ['legajo', 'LEGAJO'],
+  ['nombreCompleto', 'NOMBRE'],
+  ['rol', 'ROL'],
+  ['fc', 'FC FATIGA / SOBREESF.', 'FC de fatiga / FC de sobreesfuerzo que se le aplican'],
+  ['estado', 'ESTADO'],
+  ['alta', 'ALTA'],
+];
 
 let empleados = [];
 // Umbrales de FC: el global (Configuración Operativa) y las excepciones por
@@ -106,7 +116,7 @@ function ordenarEmpleados(lista) {
 }
 
 function actualizarIndicadoresOrden() {
-  sortButtons.forEach((btn) => {
+  empGrupos.querySelectorAll('.emp-sort').forEach((btn) => {
     const activo = btn.dataset.sort === sortState.key;
     btn.classList.toggle('emp-sort--active', activo);
     btn.classList.toggle('emp-sort--desc', activo && sortState.direction === 'desc');
@@ -163,9 +173,11 @@ function normalizarEmpleado(emp) {
 // FC que el Motor de Reglas le aplica al operario: la particular si tiene, o la global.
 function fcDeEmpleado(emp) {
   const particular = umbralesParticulares.get(String(emp.id));
-  if (particular) return { fatiga: particular.fc_fatiga, sobreesfuerzo: particular.fc_sobreesfuerzo, particular: true };
-  if (umbralGlobal) return { fatiga: umbralGlobal.fc_fatiga, sobreesfuerzo: umbralGlobal.fc_sobreesfuerzo, particular: false };
-  return null;
+  if (!particular && !umbralGlobal) return null;
+  const fatiga = particular?.fc_fatiga ?? umbralGlobal?.fc_fatiga;
+  const sobreesfuerzo = particular?.fc_sobreesfuerzo ?? umbralGlobal?.fc_sobreesfuerzo;
+  if (fatiga == null || sobreesfuerzo == null) return null;
+  return { fatiga: Number(fatiga), sobreesfuerzo: Number(sobreesfuerzo), particular: Boolean(particular) };
 }
 
 // Si los umbrales no se pueden leer la tabla de empleados se muestra igual,
@@ -202,11 +214,56 @@ function renderTable() {
 
   empCount.textContent = `${ordenados.length} empleado${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
 
-  tableBody.innerHTML = ordenados.length === 0
-    ? '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
-    : ordenados.map((emp) => rowHTML(emp)).join('');
+  empGrupos.innerHTML = ordenados.length === 0
+    ? mensajeHTML('No se encontraron empleados')
+    : agruparPorAreaYTurno(ordenados).map(grupoAreaHTML).join('');
 
   actualizarIndicadoresOrden();
+}
+
+function mensajeHTML(texto) {
+  return `<p class="emp-grupos__mensaje">${escapeHtml(texto)}</p>`;
+}
+
+// Área → turno, en el orden de Horarios Laborales (áreas alfabéticas, turnos
+// mañana/tarde/noche). Dentro de cada grupo se respeta el orden elegido.
+function agruparPorAreaYTurno(lista) {
+  const areas = new Map();
+  lista.forEach((emp) => {
+    const area = emp.depto || 'Sin asignar';
+    const turno = String(emp.turno || '').toLowerCase();
+    if (!areas.has(area)) areas.set(area, new Map());
+    if (!areas.get(area).has(turno)) areas.get(area).set(turno, []);
+    areas.get(area).get(turno).push(emp);
+  });
+  const ordenTurno = (t) => (TURNOS.includes(t) ? TURNOS.indexOf(t) : TURNOS.length);
+  return [...areas.entries()]
+    .sort(([a], [b]) => (a === 'Sin asignar') - (b === 'Sin asignar') || a.localeCompare(b, 'es'))
+    .map(([area, turnos]) => ({
+      area,
+      total: [...turnos.values()].reduce((acc, l) => acc + l.length, 0),
+      turnos: [...turnos.entries()].sort(([a], [b]) => ordenTurno(a) - ordenTurno(b)),
+    }));
+}
+
+function grupoAreaHTML({ area, total, turnos }) {
+  return `<section class="area-turno-seccion">
+      <h3 class="area-turno-seccion__titulo">${escapeHtml(area)} <small>${total} empleado${total !== 1 ? 's' : ''}</small></h3>
+      <div class="emp-grupos__turnos">
+        ${turnos.map(([turno, lista]) => `<article class="grupo-area-turno">
+          <header class="grupo-area-turno__header">
+            <h4>${escapeHtml(etiquetaTurno(turno))}</h4>
+            <span>${lista.length} empleado${lista.length !== 1 ? 's' : ''}</span>
+          </header>
+          <div class="emp-grupos__tabla">
+            <table class="emp-table">
+              <thead><tr>${COLUMNAS.map(([key, label, title]) => `<th><button class="emp-sort" type="button" data-sort="${key}"${title ? ` title="${escapeHtml(title)}"` : ''}>${label}</button></th>`).join('')}<th></th></tr></thead>
+              <tbody>${lista.map(rowHTML).join('')}</tbody>
+            </table>
+          </div>
+        </article>`).join('')}
+      </div>
+    </section>`;
 }
 
 function fcHTML(emp) {
@@ -227,8 +284,6 @@ function rowHTML(emp) {
   return `<tr>
       <td class="emp-id">${escapeHtml(emp.legajo)}</td>
       <td><div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(emp.iniciales)}</div><span class="emp-name__text">${escapeHtml(emp.nombreCompleto)}</span></div></td>
-      <td style="color:var(--text-secondary)">${escapeHtml(emp.depto)}</td>
-      <td style="color:var(--text-secondary)">${escapeHtml(emp.turno ? emp.turno.charAt(0).toUpperCase() + emp.turno.slice(1) : '--')}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
       <td>${fcHTML(emp)}</td>
       <td>${estadoBadge}</td>
@@ -315,7 +370,20 @@ async function desactivarEmpleado(id) {
   }
 }
 
-tableBody.addEventListener('click', (e) => {
+empGrupos.addEventListener('click', (e) => {
+  const sortBtn = e.target.closest('.emp-sort');
+  if (sortBtn) {
+    const key = sortBtn.dataset.sort;
+    if (sortState.key === key) {
+      sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.direction = 'asc';
+    }
+    renderTable();
+    return undefined;
+  }
+
   const editBtn = e.target.closest('.emp-actions__edit');
   if (editBtn) {
     return openModal('editar', editBtn.dataset.id);
@@ -334,18 +402,6 @@ modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 modalSave.addEventListener('click', guardarEmpleado);
-[...sortButtons].forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const key = btn.dataset.sort;
-    if (sortState.key === key) {
-      sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortState.key = key;
-      sortState.direction = 'asc';
-    }
-    renderTable();
-  });
-});
 [mNombre, mApellido, mEmail, mDept, mTurno].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
@@ -357,5 +413,5 @@ cargarEmpleados().catch((err) => {
   empCount.textContent = err.status === 401 || err.status === 403
     ? 'Sesión sin permisos para consultar empleados'
     : 'Error cargando empleados';
-  tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
+  empGrupos.innerHTML = mensajeHTML(err.message || 'No se pudieron cargar los empleados');
 });

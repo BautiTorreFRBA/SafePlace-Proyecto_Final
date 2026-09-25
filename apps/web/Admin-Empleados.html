@@ -68,24 +68,11 @@
         </select>
       </div>
 
-      <div class="emp-table-wrap">
-        <table class="emp-table">
-          <thead>
-            <tr>
-              <th><button class="emp-sort" type="button" data-sort="legajo">LEGAJO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="nombreCompleto">NOMBRE</button></th>
-              <th><button class="emp-sort" type="button" data-sort="depto">DEPARTAMENTO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="turno">TURNO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="rol">ROL</button></th>
-              <th><button class="emp-sort" type="button" data-sort="fc" title="FC de fatiga / FC de sobreesfuerzo que se le aplican">FC FATIGA / SOBREESF.</button></th>
-              <th><button class="emp-sort" type="button" data-sort="estado">ESTADO</button></th>
-              <th><button class="emp-sort" type="button" data-sort="alta">ALTA</button></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="empTableBody"></tbody>
-        </table>
-      </div>
+      <!-- Empleados agrupados por área y turno, igual que Horarios Laborales.
+           Cada grupo es una tabla; se rellena desde Admin-Empleados.js. -->
+      <section class="grupos-area-turno emp-grupos" id="empGrupos" aria-live="polite">
+        <p class="emp-header__count">Cargando empleados...</p>
+      </section>
 
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal">

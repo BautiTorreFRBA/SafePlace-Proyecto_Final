@@ -4432,3 +4432,11 @@ select.cfg-input {
 .emp-fc__valores small { color: var(--text-muted); font-size: 0.68rem; }
 .emp-fc__origen { padding: 1px 7px; border-radius: 999px; color: var(--text-secondary); background: var(--bg-card-alt); font-size: 0.66rem; }
 .emp-fc__origen--particular { color: var(--teal-400); background: var(--teal-dim); }
+
+/* Empleados (admin) agrupados por área y turno, como Horarios Laborales */
+.emp-grupos { padding: 0 28px 28px; }
+.emp-grupos .area-turno-seccion__titulo small { margin-left: 6px; color: var(--text-muted); font-size: 0.74rem; font-weight: 500; }
+.emp-grupos__turnos { display: flex; flex-direction: column; gap: 14px; }
+.emp-grupos__tabla { overflow-x: auto; }
+.emp-grupos__tabla .emp-table { border: 0; border-radius: 0; }
+.emp-grupos__mensaje { padding: 32px; color: var(--text-muted); font-size: 0.875rem; text-align: center; }
