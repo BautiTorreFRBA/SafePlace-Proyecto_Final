@@ -4381,3 +4381,32 @@ select.cfg-input {
 .med-detalle__inner { width: 100%; border-collapse: collapse; }
 .med-detalle__inner th { text-align: left; font-size: 0.72rem; letter-spacing: 0.04em; color: var(--text-muted); padding: 6px 10px; border-bottom: 1px solid var(--border, rgba(148,163,184,0.15)); }
 .med-detalle__inner td { padding: 5px 10px; border-bottom: 1px solid var(--border, rgba(148,163,184,0.08)); }
+
+
+/* Alertas Activas — modal "Revisar" con la FC del día del empleado */
+.fc-modal { max-width: 860px; max-height: calc(100vh - 32px); }
+.fc-modal__subtitle { margin-top: 4px; color: var(--text-secondary); font-size: 0.78rem; }
+.fc-modal__body { overflow-y: auto; }
+.fc-modal__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.fc-modal__stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg-main); }
+.fc-modal__stat span { display: block; margin-bottom: 4px; color: var(--text-secondary); font-size: 0.68rem; }
+.fc-modal__stat strong { color: var(--text-primary); font-size: 1.12rem; }
+.fc-modal__stat small { color: var(--text-secondary); font-size: 0.65rem; }
+.fc-modal__chart { border: 1px solid var(--border); border-radius: 13px; background: var(--bg-main); }
+.fc-modal__empty { padding: 48px 16px; color: var(--text-secondary); text-align: center; font-size: 0.85rem; }
+.fc-chart { display: block; width: 100%; height: auto; padding: 12px 15px 6px; box-sizing: border-box; }
+.fc-chart text { fill: var(--text-secondary); font: 10px var(--font); }
+.fc-chart__grid { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
+.fc-chart__threshold { stroke: #f59e0b; stroke-dasharray: 5 4; }
+.fc-chart__threshold--critical { stroke: var(--red); }
+.fc-chart__line { fill: none; stroke: var(--teal-400); stroke-width: 2; stroke-linejoin: round; }
+.fc-chart__point { fill: var(--teal-400); cursor: pointer; transition: r 0.15s; }
+.fc-chart__point:hover { r: 5; }
+.fc-chart__alert { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.fc-chart text.fc-chart__hour { fill: var(--text-primary); }
+.fc-chart text.fc-chart__label--fatigue { fill: #f59e0b; font-size: 9px; }
+.fc-chart text.fc-chart__label--critical { fill: var(--red); font-size: 9px; }
+.fc-chart text.fc-chart__label--alert { fill: var(--orange); font-size: 9px; }
+@media (max-width: 640px) {
+  .fc-modal__stats { grid-template-columns: repeat(2, 1fr); }
+}

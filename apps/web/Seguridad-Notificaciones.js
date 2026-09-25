@@ -72,6 +72,7 @@ function actualizarContador() {
     badge.textContent = sinLeer;
     badge.style.display = sinLeer > 0 ? 'flex' : 'none';
   }
+  window.refrescarNotificaciones?.();
 }
 
 function renderNotificaciones() {

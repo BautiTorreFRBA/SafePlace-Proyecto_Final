@@ -38,6 +38,8 @@ function normalizarAlerta(a) {
     tipo: etiquetaTipo(a.tipo_alerta),
     claseTipo: claseTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
+    idTrabajador: a.id_trabajador ?? null,
+    fechaHora: a.fecha_hora,
     ...separarFechaHora(a.fecha_hora),
     estado,
     estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
@@ -125,8 +127,148 @@ async function cambiarEstado(id, estado) {
   }
 }
 
-window.revisarAlerta = (id) => cambiarEstado(id, 'Atendida');
 window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
+
+// ── Modal "Revisar": FC del día del empleado ──────────────────────────────
+// Mismo gráfico que el "Historial del empleado" del supervisor, acotado al día
+// de la alerta, con el momento de la alerta marcado.
+const UMBRALES_POR_DEFECTO = { fatiga: 130, sobreesfuerzo: 160 };
+const fcModal = document.getElementById('fcModal');
+const fcModalSubtitle = document.getElementById('fcModalSubtitle');
+const fcModalStats = document.getElementById('fcModalStats');
+const fcModalChart = document.getElementById('fcModalChart');
+const fcModalAtender = document.getElementById('fcModalAtender');
+let umbralesCache = null;
+let fcModalAlertaId = null;
+
+// YYYY-MM-DD del día de la alerta en hora argentina (el backend filtra por ese calendario).
+const diaAR = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE_AR }).format(date);
+
+async function obtenerUmbrales() {
+  if (umbralesCache) return umbralesCache;
+  try {
+    const payload = await apiFetch('/umbrales');
+    const u = payload?.data || {};
+    umbralesCache = {
+      fatiga: Number(u.fc_fatiga) || UMBRALES_POR_DEFECTO.fatiga,
+      sobreesfuerzo: Number(u.fc_sobreesfuerzo) || UMBRALES_POR_DEFECTO.sobreesfuerzo,
+    };
+  } catch (error) {
+    console.error(error);
+    umbralesCache = { ...UMBRALES_POR_DEFECTO };
+  }
+  return umbralesCache;
+}
+
+function renderStatsFc(puntos) {
+  const lecturas = puntos.reduce((acc, p) => acc + p.lecturas, 0);
+  const promedio = lecturas
+    ? Math.round(puntos.reduce((acc, p) => acc + p.fcPromedio * p.lecturas, 0) / lecturas)
+    : null;
+  const min = puntos.length ? Math.min(...puntos.map((p) => p.fcMin)) : null;
+  const max = puntos.length ? Math.max(...puntos.map((p) => p.fcMax)) : null;
+  const stat = (label, valor, unidad = 'BPM') => `<div class="fc-modal__stat"><span>${label}</span><strong>${valor ?? '--'}${unidad && valor != null ? ` <small>${unidad}</small>` : ''}</strong></div>`;
+  fcModalStats.innerHTML = stat('Promedio FC', promedio) + stat('Mínimo', min) + stat('Máximo', max) + stat('Lecturas', lecturas, '');
+}
+
+function renderGraficoFc(puntos, umbrales, momentoAlerta) {
+  if (!puntos.length) {
+    fcModalChart.innerHTML = '<div class="fc-modal__empty">No hay mediciones de frecuencia cardíaca para este empleado en el día.</div>';
+    return;
+  }
+  const { fatiga, sobreesfuerzo } = umbrales;
+  const valores = puntos.map((p) => p.fcPromedio);
+  const min = Math.max(30, Math.floor(Math.min(...valores, fatiga) / 10) * 10 - 10);
+  const max = Math.min(220, Math.ceil(Math.max(...valores, sobreesfuerzo) / 10) * 10 + 10);
+  const width = 800; const height = 280; const left = 40; const right = 18; const top = 18; const bottom = 36;
+
+  // Eje X por tiempo real (no por índice): los cortes de señal quedan como huecos visibles.
+  const t0 = new Date(puntos[0].ts).getTime();
+  const t1 = Math.max(new Date(puntos[puntos.length - 1].ts).getTime(), t0 + 60_000);
+  const x = (t) => left + ((t - t0) / (t1 - t0)) * (width - left - right);
+  const y = (v) => height - bottom - ((v - min) / Math.max(max - min, 1)) * (height - top - bottom);
+
+  // Se corta la línea cuando hay más de 5 minutos sin lecturas.
+  let linea = '';
+  puntos.forEach((p, i) => {
+    const t = new Date(p.ts).getTime();
+    const salto = i === 0 || t - new Date(puntos[i - 1].ts).getTime() > 5 * 60_000;
+    linea += `${salto ? 'M' : 'L'} ${x(t).toFixed(1)} ${y(p.fcPromedio).toFixed(1)} `;
+  });
+
+  const ticksY = Array.from({ length: 5 }, (_, i) => Math.round(min + ((max - min) * i) / 4));
+  const ticksX = Array.from({ length: 6 }, (_, i) => t0 + ((t1 - t0) * i) / 5);
+  const hora = (t) => fmtARHora(new Date(t), { hour: '2-digit', minute: '2-digit' });
+
+  const tAlerta = momentoAlerta ? new Date(momentoAlerta).getTime() : NaN;
+  const marcaAlerta = tAlerta >= t0 && tAlerta <= t1
+    ? `<line class="fc-chart__alert" x1="${x(tAlerta)}" x2="${x(tAlerta)}" y1="${top}" y2="${height - bottom}" /><text class="fc-chart__label--alert" x="${x(tAlerta) + 4}" y="${top + 9}">Alerta ${hora(tAlerta)}</text>`
+    : '';
+
+  fcModalChart.innerHTML = `<svg class="fc-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Frecuencia cardíaca del día">
+    ${ticksY.map((v) => `<line class="fc-chart__grid" x1="${left}" x2="${width - right}" y1="${y(v)}" y2="${y(v)}" /><text x="4" y="${y(v) + 4}">${v}</text>`).join('')}
+    <line class="fc-chart__threshold" x1="${left}" x2="${width - right}" y1="${y(fatiga)}" y2="${y(fatiga)}" />
+    <line class="fc-chart__threshold fc-chart__threshold--critical" x1="${left}" x2="${width - right}" y1="${y(sobreesfuerzo)}" y2="${y(sobreesfuerzo)}" />
+    ${marcaAlerta}
+    <path class="fc-chart__line" d="${linea}" />
+    ${puntos.map((p) => `<circle class="fc-chart__point" cx="${x(new Date(p.ts).getTime())}" cy="${y(p.fcPromedio)}" r="2.5"><title>${p.fcPromedio} BPM · ${hora(p.ts)} · ${p.lecturas} lectura(s)</title></circle>`).join('')}
+    ${ticksX.map((t) => `<text class="fc-chart__hour" x="${x(t)}" y="${height - 12}" text-anchor="middle">${hora(t)}</text>`).join('')}
+    <text class="fc-chart__label--fatigue" x="${left + 5}" y="${y(fatiga) - 5}">Fatiga ${fatiga}</text>
+    <text class="fc-chart__label--critical" x="${left + 5}" y="${y(sobreesfuerzo) - 5}">Sobreesfuerzo ${sobreesfuerzo}</text>
+  </svg>`;
+}
+
+function cerrarModalFc() {
+  fcModal.classList.remove('modal-overlay--visible');
+  fcModal.setAttribute('aria-hidden', 'true');
+  fcModalAlertaId = null;
+}
+
+window.revisarAlerta = async (id) => {
+  const alerta = alertas.find((a) => a.id === id);
+  if (!alerta) return;
+
+  fcModalAlertaId = id;
+  fcModalSubtitle.textContent = `${alerta.empleado} · ${alerta.tipo} · ${alerta.fecha} ${alerta.hora}`;
+  fcModalStats.innerHTML = '';
+  fcModalChart.innerHTML = '<div class="fc-modal__empty">Cargando mediciones del día...</div>';
+  fcModal.classList.add('modal-overlay--visible');
+  fcModal.setAttribute('aria-hidden', 'false');
+
+  if (alerta.idTrabajador == null) {
+    fcModalChart.innerHTML = '<div class="fc-modal__empty">La alerta no tiene un empleado asociado.</div>';
+    return;
+  }
+
+  const fechaAlerta = new Date(alerta.fechaHora);
+  const dia = diaAR(Number.isNaN(fechaAlerta.getTime()) ? new Date() : fechaAlerta);
+  try {
+    const [serie, umbrales] = await Promise.all([
+      apiFetch(`/mediciones?desde=${dia}&hasta=${dia}&id_trabajador=${alerta.idTrabajador}&bucket=1m`),
+      obtenerUmbrales(),
+    ]);
+    if (fcModalAlertaId !== id) return; // se cerró o se abrió otra alerta mientras cargaba
+    const puntos = serie?.data || [];
+    renderStatsFc(puntos);
+    renderGraficoFc(puntos, umbrales, alerta.fechaHora);
+  } catch (error) {
+    if (fcModalAlertaId !== id) return;
+    fcModalChart.innerHTML = `<div class="fc-modal__empty">${escapeHtml(error.message)}</div>`;
+  }
+};
+
+fcModal.addEventListener('click', (event) => {
+  if (event.target === fcModal || event.target.closest('[data-fc-close]')) cerrarModalFc();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && fcModal.classList.contains('modal-overlay--visible')) cerrarModalFc();
+});
+fcModalAtender.addEventListener('click', async () => {
+  const id = fcModalAlertaId;
+  if (id == null) return;
+  cerrarModalFc();
+  await cambiarEstado(id, 'Atendida');
+});
 
 document.querySelectorAll('.alert-severity-filter').forEach((button) => {
   button.addEventListener('click', () => {

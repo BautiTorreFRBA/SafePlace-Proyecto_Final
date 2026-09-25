@@ -23,6 +23,15 @@ const getHistorialMediciones = async (req, res, next) => {
 
     const empleado = normalizarFiltro(req.query.empleado);
     const bucket = normalizarFiltro(req.query.bucket);
+    const idTrabajadorRaw = normalizarFiltro(req.query.id_trabajador);
+    const idTrabajador = idTrabajadorRaw === null ? null : Number(idTrabajadorRaw);
+
+    if (idTrabajador !== null && (!Number.isInteger(idTrabajador) || idTrabajador <= 0)) {
+      return res.status(400).json({
+        error: 'El parámetro "id_trabajador" debe ser un entero positivo.',
+        motivo: 'ID_TRABAJADOR_INVALIDO',
+      });
+    }
 
     // Fase 2 / S2: detalle de un empleado como serie temporal submuestreada.
     if (bucket) {
@@ -38,6 +47,7 @@ const getHistorialMediciones = async (req, res, next) => {
         desde,
         hasta,
         empleado,
+        idTrabajador,
         bucketSegundos,
         usuario: req.user,
       });
@@ -49,6 +59,7 @@ const getHistorialMediciones = async (req, res, next) => {
       desde,
       hasta,
       empleado,
+      idTrabajador,
       limit: req.query.limit ? Number(req.query.limit) : 200,
       offset: req.query.offset ? Number(req.query.offset) : 0,
       usuario: req.user,

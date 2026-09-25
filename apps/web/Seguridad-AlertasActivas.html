@@ -43,7 +43,7 @@
       <header class="topbar">
         <div class="topbar__title">Alertas activas</div>
         <div class="topbar__right">
-          <div class="notif-bell"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/> <path d="M13.73 21a2 2 0 0 1-3.46 0"/> </svg> <span class="notif-badge" id="notifBadge"><!--PONER la cantidad de notificaciones realies que tengo--></span> </div>
+          <button class="notif-bell" type="button" aria-label="Ver notificaciones"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/> <path d="M13.73 21a2 2 0 0 1-3.46 0"/> </svg> <span class="notif-badge" id="notifBadge" style="display:none"></span> </button>
           <div class="avatar"> <!--PONER EL avatar--> </div> 
         </div>
       </header>
@@ -92,7 +92,30 @@
   </main>
 </div>
 
+  <!-- Modal "Revisar": frecuencia cardíaca del día del empleado -->
+  <div class="modal-overlay" id="fcModal" aria-hidden="true">
+    <div class="modal fc-modal" role="dialog" aria-modal="true" aria-labelledby="fcModalTitle">
+      <div class="modal__header">
+        <div>
+          <div class="modal__title" id="fcModalTitle">Frecuencia cardíaca del día</div>
+          <div class="fc-modal__subtitle" id="fcModalSubtitle"></div>
+        </div>
+        <button class="modal__close" type="button" data-fc-close aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal__body fc-modal__body">
+        <div class="fc-modal__stats" id="fcModalStats"></div>
+        <div class="fc-modal__chart" id="fcModalChart"></div>
+      </div>
+      <div class="modal__footer">
+        <button class="modal__btn modal__btn--cancel" type="button" data-fc-close>Cerrar</button>
+        <button class="modal__btn modal__btn--save" type="button" id="fcModalAtender">Marcar como atendida</button>
+      </div>
+    </div>
+  </div>
+
   <script src="session-ui.js"></script>
+  <script src="api-config.js"></script>
+  <script src="notificacion-ui.js"></script>
   <script src="Seguridad-AlertasActivas.js"></script>
 </body>
 </html>

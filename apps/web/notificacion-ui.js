@@ -1,3 +1,4 @@
+(() => {
 const NOTIF_API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const NOTIF_POLL_INTERVAL_MS = 20000;
 
@@ -156,4 +157,7 @@ function initHomeNotifications() {
   setInterval(() => loadHomeNotifications().catch((error) => console.error(error)), NOTIF_POLL_INTERVAL_MS);
 }
 
+window.refrescarNotificaciones = () => loadHomeNotifications().catch((error) => console.error(error));
+
 initHomeNotifications();
+})();

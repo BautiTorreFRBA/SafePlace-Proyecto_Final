@@ -11,7 +11,9 @@ router.post('/', deviceAuth, medicionesController.crearMedicion);
 // Historial para aplicaciones frontend (Supervisor)
 // Fase 2 / S2: vista maestro — una fila por empleado con agregados del período.
 router.get('/resumen', auth, authorize(['supervisor']), medicionesHistorialController.getResumenMediciones);
-router.get('/', auth, authorize(['supervisor']), medicionesHistorialController.getHistorialMediciones);
-router.get('/historico', auth, authorize(['supervisor']), medicionesHistorialController.getHistorialMediciones);
+// Seguridad e Higiene también lo lee: el botón "Revisar" de Alertas Activas
+// muestra la FC del día del operario involucrado.
+router.get('/', auth, authorize(['supervisor', 'seguridad']), medicionesHistorialController.getHistorialMediciones);
+router.get('/historico', auth, authorize(['supervisor', 'seguridad']), medicionesHistorialController.getHistorialMediciones);
 
 module.exports = router;

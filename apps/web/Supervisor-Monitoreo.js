@@ -143,7 +143,6 @@ function actualizarKPIs(trabajadores) {
   document.getElementById('kpiAlertas').textContent = conAlerta;
   document.getElementById('kpiCritico').textContent = criticos;
   document.getElementById('kpiDispositivos').textContent = `${reportando}/${conWearable}`;
-  document.getElementById('notifBadge').textContent = conAlerta;
 }
 
 document.getElementById('btnActualizar').addEventListener('click', () => cargarDatos().catch((error) => alert(error.message)));

@@ -23,13 +23,14 @@ const listarHistorialMediciones = async ({
   desde = null,
   hasta = null,
   empleado = null,
+  idTrabajador = null,
   limit = 200,
   offset = 0,
   usuario = {},
 } = {}) => {
   const alcance = alcanceSupervisor(usuario);
   // H0020: reidentificación vía operario_seudonimo (tabla protegida); esta
-  // consulta ya está detrás de auth + authorize(['supervisor']).
+  // consulta ya está detrás de auth + authorize(['supervisor', 'seguridad']).
   const query = `
     SELECT
       m.id,
@@ -52,11 +53,12 @@ const listarHistorialMediciones = async ({
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
       )
       AND ($6::text IS NULL OR (o.area = $6 AND o.turno = ANY($7::varchar[])))
+      AND ($8::int IS NULL OR o.id = $8)
     ORDER BY m.fecha_hora DESC, m.id DESC
     LIMIT $4 OFFSET $5;
   `;
 
-  const res = await db.query(query, [desde, hasta, empleado, limit, offset, alcance.area, alcance.turnos]);
+  const res = await db.query(query, [desde, hasta, empleado, limit, offset, alcance.area, alcance.turnos, idTrabajador]);
   return res.rows;
 };
 
@@ -285,6 +287,7 @@ const listarSerieMediciones = async ({
   desde = null,
   hasta = null,
   empleado = null,
+  idTrabajador = null,
   bucketSegundos = 60,
   usuario = {},
 } = {}) => {
@@ -303,12 +306,13 @@ const listarSerieMediciones = async ({
       AND ($2::date IS NULL OR (m.fecha_hora AT TIME ZONE '${TIMEZONE}')::date <= $2::date)
       AND ($3::text IS NULL OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%')
       AND ($5::text IS NULL OR (o.area = $5 AND o.turno = ANY($6::varchar[])))
+      AND ($7::int IS NULL OR o.id = $7)
       AND m.frecuencia_cardiaca IS NOT NULL
     GROUP BY 1
     ORDER BY 1;
   `;
 
-  const res = await db.query(query, [desde, hasta, empleado, bucketSegundos, alcance.area, alcance.turnos]);
+  const res = await db.query(query, [desde, hasta, empleado, bucketSegundos, alcance.area, alcance.turnos, idTrabajador]);
   return res.rows.map((r) => ({
     ts: r.bucket_ts,
     fcPromedio: Number(r.fc_promedio),
