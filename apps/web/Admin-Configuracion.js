@@ -76,105 +76,138 @@ document.querySelectorAll('.cfg-spinner__btn').forEach((btn) => {
 });
 btnGuardar.addEventListener('click', guardarConfiguracion);
 
-// ---- Trabajos (/trabajos): umbrales por tipo de tarea ----
+// ---- Configuración particular (/umbrales-operario): FC propias por operario ----
 
-const trabajoTableBody = document.getElementById('trabajoTableBody');
-const btnNuevoTrabajo = document.getElementById('btnNuevoTrabajo');
-const trabajoModalOverlay = document.getElementById('trabajoModalOverlay');
-const trabajoModalTitle = document.getElementById('trabajoModalTitle');
-const trabajoModalClose = document.getElementById('trabajoModalClose');
-const trabajoModalCancel = document.getElementById('trabajoModalCancel');
-const trabajoModalSave = document.getElementById('trabajoModalSave');
-const tActivoField = document.getElementById('tActivoField');
+const particularTableBody = document.getElementById('particularTableBody');
+const btnNuevaParticular = document.getElementById('btnNuevaParticular');
+const particularModalOverlay = document.getElementById('particularModalOverlay');
+const particularModalTitle = document.getElementById('particularModalTitle');
+const particularModalClose = document.getElementById('particularModalClose');
+const particularModalCancel = document.getElementById('particularModalCancel');
+const particularModalSave = document.getElementById('particularModalSave');
+const pOperario = document.getElementById('pOperario');
+const pHint = document.getElementById('pHint');
 
-const T_CAMPOS = [
-  ['tFcFatiga', 'fcFatiga'], ['tMinutosFatiga', 'minutosFatiga'],
-  ['tFcSobreesfuerzo', 'fcSobreesfuerzo'], ['tActividadSobreesfuerzo', 'actividadSobreesfuerzo'],
-  ['tMinutosInactividad', 'minutosInactividad'], ['tMinutosDesconexionTolerada', 'minutosDesconexionTolerada'],
-];
+let particulares = [];
+let operarios = [];
+let editandoParticularId = null;
 
-let trabajos = [];
-let editandoTrabajoId = null;
+const nombreOperario = (o) => `${o.apellido || ''}, ${o.nombre || ''}`.replace(/^, |, $/g, '').trim() || `Operario ${o.id}`;
 
-async function cargarTrabajos() {
-  const payload = await apiFetch('/trabajos');
-  trabajos = payload.data || [];
-  renderTrabajos();
+async function cargarParticulares() {
+  const payload = await apiFetch('/umbrales-operario');
+  particulares = payload.data || [];
+  renderParticulares();
 }
 
-function renderTrabajos() {
-  trabajoTableBody.innerHTML = trabajos.length === 0
-    ? '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">Sin trabajos configurados — todas las ventanas usan el umbral global</td></tr>'
-    : trabajos.map((t) => `
+async function cargarOperarios() {
+  const payload = await apiFetch('/trabajadores');
+  operarios = (payload.data || [])
+    .filter((o) => o.estado !== false)
+    .sort((a, b) => nombreOperario(a).localeCompare(nombreOperario(b), 'es'));
+}
+
+function renderParticulares() {
+  particularTableBody.innerHTML = particulares.length === 0
+    ? '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">Sin configuraciones particulares — todos los operarios usan los umbrales de arriba</td></tr>'
+    : particulares.map((p) => `
       <tr>
-        <td>${escapeHtml(t.nombre)}</td>
-        <td style="color:var(--text-secondary)">${escapeHtml(t.descripcion || '--')}</td>
-        <td>${t.activo ? '<span class="badge badge--normal">Activo</span>' : '<span class="badge badge--neutral">Inactivo</span>'}</td>
-        <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${t.id}">Editar</button></div></td>
+        <td>${escapeHtml(nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }))}</td>
+        <td class="emp-id">${escapeHtml(p.operario_legajo || '--')}</td>
+        <td><strong>${escapeHtml(p.fc_fatiga)}</strong> <span style="color:var(--text-muted)">BPM</span></td>
+        <td><strong>${escapeHtml(p.fc_sobreesfuerzo)}</strong> <span style="color:var(--text-muted)">BPM</span></td>
+        <td style="color:var(--text-secondary); font-size:0.82rem">${p.actualizado_en ? escapeHtml(fmtAR(new Date(p.actualizado_en))) : '--'}</td>
+        <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${p.id}">Editar</button><button class="emp-actions__deactivate" data-id="${p.id}">Quitar</button></div></td>
       </tr>
     `).join('');
 }
 
-function abrirModalTrabajo(id = null) {
-  editandoTrabajoId = id;
-  const t = id ? trabajos.find((x) => String(x.id) === String(id)) : null;
-
-  trabajoModalTitle.textContent = t ? 'Editar Trabajo' : 'Nuevo Trabajo';
-  input('tNombre').value = t?.nombre || '';
-  input('tDescripcion').value = t?.descripcion || '';
-  T_CAMPOS.forEach(([campoId, prop]) => {
-    input(campoId).value = t ? t[prop.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)] : input(campoId).defaultValue;
-  });
-  tActivoField.style.display = t ? '' : 'none';
-  input('tActivo').checked = t ? Boolean(t.activo) : true;
-
-  trabajoModalOverlay.classList.add('modal-overlay--visible');
+// Al crear se ofrecen sólo los operarios que todavía no tienen configuración
+// particular; al editar, el operario queda fijo (para cambiarlo, se quita y se crea otra).
+function poblarOperarios(idSeleccionado = null) {
+  const ocupados = new Set(particulares.map((p) => String(p.id_operario)));
+  const opciones = idSeleccionado
+    ? operarios.filter((o) => String(o.id) === String(idSeleccionado))
+    : operarios.filter((o) => !ocupados.has(String(o.id)));
+  pOperario.innerHTML = `<option value="">${opciones.length ? 'Escribí el nombre o legajo del operario...' : 'No hay operarios disponibles'}</option>`
+    + opciones.map((o) => `<option value="${o.id}">${escapeHtml(nombreOperario(o))} - ${escapeHtml(o.legajo || `ID-${o.id}`)}</option>`).join('');
+  pOperario.value = idSeleccionado ? String(idSeleccionado) : '';
+  pOperario.disabled = Boolean(idSeleccionado);
+  pOperario.dispatchEvent(new Event('change'));
 }
 
-function cerrarModalTrabajo() {
-  trabajoModalOverlay.classList.remove('modal-overlay--visible');
-  editandoTrabajoId = null;
+async function abrirModalParticular(id = null) {
+  if (!operarios.length) {
+    try { await cargarOperarios(); } catch (error) { alert(`No se pudieron cargar los operarios: ${error.message}`); return; }
+  }
+  editandoParticularId = id;
+  const p = id ? particulares.find((x) => String(x.id) === String(id)) : null;
+
+  particularModalTitle.textContent = p ? 'Editar configuración particular' : 'Nueva configuración particular';
+  poblarOperarios(p?.id_operario);
+  // Una nueva configuración arranca con los valores globales actuales, como referencia.
+  input('pFcFatiga').value = p ? p.fc_fatiga : input('fcFatiga').value;
+  input('pFcSobreesfuerzo').value = p ? p.fc_sobreesfuerzo : input('fcSobreesfuerzo').value;
+  pHint.textContent = `Umbral general: fatiga ${input('fcFatiga').value} BPM · sobreesfuerzo ${input('fcSobreesfuerzo').value} BPM.`;
+
+  particularModalOverlay.classList.add('modal-overlay--visible');
+  setTimeout(() => (document.getElementById('pOperarioAutocomplete') && !p ? document.getElementById('pOperarioAutocomplete') : input('pFcFatiga')).focus(), 50);
 }
 
-async function guardarTrabajo() {
-  const nombre = input('tNombre').value.trim();
-  if (!nombre) { alert('El nombre del trabajo es obligatorio.'); return; }
+function cerrarModalParticular() {
+  particularModalOverlay.classList.remove('modal-overlay--visible');
+  editandoParticularId = null;
+}
 
-  const datos = {
-    nombre,
-    descripcion: input('tDescripcion').value.trim(),
-    activo: input('tActivo').checked,
-  };
-  T_CAMPOS.forEach(([campoId, prop]) => { datos[prop] = Number(input(campoId).value); });
+async function guardarParticular() {
+  const idOperario = Number(pOperario.value);
+  const fcFatiga = Number(input('pFcFatiga').value);
+  const fcSobreesfuerzo = Number(input('pFcSobreesfuerzo').value);
 
-  if (Object.values(datos).filter((v) => typeof v === 'number').some((v) => !Number.isFinite(v) || v <= 0)) {
-    alert('Los umbrales deben ser números positivos.'); return;
+  if (!idOperario) { alert('Elegí un operario de la lista.'); return; }
+  if (![fcFatiga, fcSobreesfuerzo].every((v) => Number.isInteger(v) && v >= 30 && v <= 250)) {
+    alert('Las frecuencias deben ser números enteros entre 30 y 250 BPM.'); return;
   }
 
   try {
-    trabajoModalSave.disabled = true;
-    await apiFetch(editandoTrabajoId ? `/trabajos/${editandoTrabajoId}` : '/trabajos', {
-      method: editandoTrabajoId ? 'PUT' : 'POST',
-      body: JSON.stringify(datos),
+    particularModalSave.disabled = true;
+    await apiFetch(editandoParticularId ? `/umbrales-operario/${editandoParticularId}` : '/umbrales-operario', {
+      method: editandoParticularId ? 'PUT' : 'POST',
+      body: JSON.stringify({ idOperario, fcFatiga, fcSobreesfuerzo }),
     });
-    cerrarModalTrabajo();
-    await cargarTrabajos();
+    cerrarModalParticular();
+    await cargarParticulares();
   } catch (error) {
     alert(error.message);
   } finally {
-    trabajoModalSave.disabled = false;
+    particularModalSave.disabled = false;
   }
 }
 
-trabajoTableBody.addEventListener('click', (e) => {
+async function quitarParticular(id) {
+  const p = particulares.find((x) => String(x.id) === String(id));
+  const nombre = p ? nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }) : 'este operario';
+  if (!window.confirm(`¿Quitar la configuración particular de ${nombre}? Va a volver a usar los umbrales generales.`)) return;
+  try {
+    await apiFetch(`/umbrales-operario/${id}`, { method: 'DELETE' });
+    await cargarParticulares();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+particularTableBody.addEventListener('click', (e) => {
   const editBtn = e.target.closest('.emp-actions__edit');
-  if (editBtn) abrirModalTrabajo(editBtn.dataset.id);
+  if (editBtn) { abrirModalParticular(editBtn.dataset.id); return; }
+  const quitarBtn = e.target.closest('.emp-actions__deactivate');
+  if (quitarBtn) quitarParticular(quitarBtn.dataset.id);
 });
-btnNuevoTrabajo.addEventListener('click', () => abrirModalTrabajo());
-trabajoModalClose.addEventListener('click', cerrarModalTrabajo);
-trabajoModalCancel.addEventListener('click', cerrarModalTrabajo);
-trabajoModalOverlay.addEventListener('click', (e) => { if (e.target === trabajoModalOverlay) cerrarModalTrabajo(); });
-trabajoModalSave.addEventListener('click', guardarTrabajo);
+btnNuevaParticular.addEventListener('click', () => abrirModalParticular());
+particularModalClose.addEventListener('click', cerrarModalParticular);
+particularModalCancel.addEventListener('click', cerrarModalParticular);
+particularModalOverlay.addEventListener('click', (e) => { if (e.target === particularModalOverlay) cerrarModalParticular(); });
+particularModalSave.addEventListener('click', guardarParticular);
 
 cargarConfiguracion().catch((error) => alert(`No se pudo cargar la configuración: ${error.message}`));
-cargarTrabajos().catch((error) => alert(`No se pudieron cargar los trabajos: ${error.message}`));
+cargarParticulares().catch((error) => alert(`No se pudieron cargar las configuraciones particulares: ${error.message}`));
+cargarOperarios().catch((error) => console.error(error));

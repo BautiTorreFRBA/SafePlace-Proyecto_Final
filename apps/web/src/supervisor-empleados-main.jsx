@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './supervisor-empleados.css';
 
@@ -64,6 +64,8 @@ function Layout({ children, selected, onBack }) {
   return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar"></div></div></header>{selected && <button className="empleado-back" onClick={onBack}><span>←</span> Volver a empleados</button>}{children}</main></div>;
 }
 
+const turnoLabel = (turno) => turno.charAt(0).toUpperCase() + turno.slice(1);
+
 function EmployeeCard({ employee, onClick }) {
   const noData = !employee.lecturas;
   const risk = (employee.alertasTotal || 0) > 0 || (employee.fcMax || 0) >= 160;
@@ -81,34 +83,153 @@ function ListView({ employees, loading, error, filters, setFilters, onSearch, on
     const matchesSearch = fullName(item).toLocaleLowerCase().includes(filters.search.toLocaleLowerCase()) || String(item.legajo || '').toLocaleLowerCase().includes(filters.search.toLocaleLowerCase());
     return matchesSearch && (!filters.area || item.area === filters.area) && (!filters.turno || item.turno === filters.turno);
   }).sort((a, b) => (b.alertasTotal || 0) - (a.alertasTotal || 0) || (b.fcMax || 0) - (a.fcMax || 0) || fullName(a).localeCompare(fullName(b))), [employees, filters]);
-  return <Layout><div className="empleados-content"><div className="empleados-heading"><div><h1>Historial de empleados</h1><p>Consultá la evolución de las mediciones de todos los operarios.</p></div><div className="empleados-live"><span></span>Datos del período seleccionado</div></div><div className="empleados-toolbar"><div className="empleados-field"><label>Buscar operario</label><input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre o legajo..." /></div><div className="empleados-field empleados-field--small"><label>Área</label><select value={filters.area} onChange={(event) => setFilters({ ...filters, area: event.target.value })}><option value="">Todas</option>{areas.map((area) => <option key={area} value={area}>{area}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Turno</label><select value={filters.turno} onChange={(event) => setFilters({ ...filters, turno: event.target.value })}><option value="">Todos</option>{turnos.map((turno) => <option key={turno} value={turno}>{turno}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Desde</label><input type="date" value={filters.desde} onChange={(event) => setFilters({ ...filters, desde: event.target.value })} /></div><div className="empleados-field empleados-field--small"><label>Hasta</label><input type="date" value={filters.hasta} onChange={(event) => setFilters({ ...filters, hasta: event.target.value })} /></div><button className="btn-export" onClick={onSearch}>Actualizar</button></div>{loading && <div className="empleado-empty">Cargando empleados y mediciones...</div>}{error && <div className="empleado-error">{error}</div>}{!loading && !error && <><p className="empleados-count">{filtered.length} de {employees.length} empleados activos</p><div className="empleados-grid">{filtered.map((employee) => <EmployeeCard key={employee.id} employee={employee} onClick={() => onSelect(employee)} />)}</div>{filtered.length === 0 && <div className="empleado-empty">No hay empleados que coincidan con los filtros.</div>}</>}</div></Layout>;
+  // Agrupado por área y turno, como "Horarios laborales" del administrador. Se
+  // muestran los turnos que tiene cada área (aunque el filtro los deje vacíos)
+  // y, dentro de cada grupo, se mantiene el orden por riesgo.
+  const groups = useMemo(() => {
+    const byArea = new Map();
+    employees.forEach((item) => {
+      const area = item.area || 'Sin área'; const turno = String(item.turno || '').toLowerCase() || 'sin turno';
+      if (!byArea.has(area)) byArea.set(area, new Map());
+      if (!byArea.get(area).has(turno)) byArea.get(area).set(turno, []);
+    });
+    filtered.forEach((item) => { byArea.get(item.area || 'Sin área').get(String(item.turno || '').toLowerCase() || 'sin turno').push(item); });
+    const orden = (turno) => { const index = turnos.indexOf(turno); return index === -1 ? turnos.length : index; };
+    return [...byArea.entries()]
+      .map(([area, map]) => ({ area, total: [...map.values()].reduce((acc, list) => acc + list.length, 0), turnos: [...map.entries()].map(([turno, list]) => ({ turno, employees: list })).sort((a, b) => orden(a.turno) - orden(b.turno)) }))
+      .filter((group) => group.total > 0)
+      .sort((a, b) => (a.area === 'Sin área') - (b.area === 'Sin área') || a.area.localeCompare(b.area, 'es'));
+  }, [employees, filtered]);
+  return <Layout><div className="empleados-content"><div className="empleados-heading"><div><h1>Historial de empleados</h1><p>Consultá la evolución de las mediciones de todos los operarios.</p></div><div className="empleados-live"><span></span>Datos del período seleccionado</div></div><div className="empleados-toolbar"><div className="empleados-field"><label>Buscar operario</label><input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre o legajo..." /></div><div className="empleados-field empleados-field--small"><label>Área</label><select value={filters.area} onChange={(event) => setFilters({ ...filters, area: event.target.value })}><option value="">Todas</option>{areas.map((area) => <option key={area} value={area}>{area}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Turno</label><select value={filters.turno} onChange={(event) => setFilters({ ...filters, turno: event.target.value })}><option value="">Todos</option>{turnos.map((turno) => <option key={turno} value={turno}>{turno}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Desde</label><input type="date" value={filters.desde} onChange={(event) => setFilters({ ...filters, desde: event.target.value })} /></div><div className="empleados-field empleados-field--small"><label>Hasta</label><input type="date" value={filters.hasta} onChange={(event) => setFilters({ ...filters, hasta: event.target.value })} /></div><button className="btn-export" onClick={onSearch}>Actualizar</button></div>{loading && <div className="empleado-empty">Cargando empleados y mediciones...</div>}{error && <div className="empleado-error">{error}</div>}{!loading && !error && <><p className="empleados-count">{filtered.length} de {employees.length} empleados activos</p>{filtered.length > 0 && <div className="grupos-area-turno empleados-grupos">{groups.map((group) => <section className="area-turno-seccion" key={group.area}><h3 className="area-turno-seccion__titulo">{group.area} <small>{group.total} operario{group.total !== 1 ? 's' : ''}</small></h3><div className="area-turno-seccion__turnos">{group.turnos.map((turno) => <article className="grupo-area-turno" key={turno.turno}><header className="grupo-area-turno__header"><h4>{turnoLabel(turno.turno)}</h4><span>{turno.employees.length} operario{turno.employees.length !== 1 ? 's' : ''}</span></header><div className="grupo-area-turno__operarios empleados-grupo__cards">{turno.employees.length ? turno.employees.map((employee) => <EmployeeCard key={employee.id} employee={employee} onClick={() => onSelect(employee)} />) : <span className="grupo-area-turno__vacio">Sin operarios para los filtros</span>}</div></article>)}</div></section>)}</div>}{filtered.length === 0 && <div className="empleado-empty">No hay empleados que coincidan con los filtros.</div>}</>}</div></Layout>;
 }
 
-function Chart({ points, fatigue = 130, overexertion = 160 }) {
-  if (!points.length) return <div className="empleado-empty">No hay mediciones para graficar en este período.</div>;
-  const values = points.map((point) => point.fcPromedio);
+// Colores de las marcas de alerta sobre el gráfico (mismos tonos que los umbrales).
+const ALERT_MARKS = {
+  FATIGA: { label: 'Fatiga', cls: 'fatiga' },
+  SOBREESFUERZO: { label: 'Sobreesfuerzo', cls: 'sobreesfuerzo' },
+  INACTIVIDAD_PROLONGADA: { label: 'Inactividad prolongada', cls: 'inactividad' },
+};
+const alertMark = (tipo) => ALERT_MARKS[String(tipo || '').toUpperCase()] || { label: tipo || 'Alerta', cls: 'otra' };
+const CHART_BOX = { width: 760, height: 280, left: 44, right: 18, top: 22, bottom: 40 };
+const PLOT_W = CHART_BOX.width - CHART_BOX.left - CHART_BOX.right;
+const ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos (los puntos son de 1 minuto)
+const MAX_DRAWN_POINTS = 700; // por encima se promedia por columna para no dibujar miles de nodos
+const GAP_MS = 5 * 60_000; // más de 5 min sin lecturas corta la línea
+
+function formatTick(t, span) {
+  const date = new Date(t);
+  if (span > 3 * 24 * 3600_000) return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+  if (span > 18 * 3600_000) return date.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+function clampWindow(start, span, t0, t1) {
+  const total = t1 - t0;
+  const s = Math.min(total, Math.max(Math.min(ZOOM_MIN_MS, total), span));
+  const v0 = Math.min(t1 - s, Math.max(t0, start));
+  return { v0, v1: v0 + s };
+}
+
+function Chart({ points, alerts = [], fatigue = 130, overexertion = 160 }) {
+  const series = useMemo(() => points.map((point) => ({ ...point, t: new Date(point.ts).getTime() })).filter((point) => !Number.isNaN(point.t)).sort((a, b) => a.t - b.t), [points]);
+  const marks = useMemo(() => alerts.map((alert) => ({ id: alert.id, t: new Date(alert.fecha_hora).getTime(), estado: alert.estado, ...alertMark(alert.tipo_alerta) })).filter((mark) => !Number.isNaN(mark.t)), [alerts]);
+  const times = [...series.map((point) => point.t), ...marks.map((mark) => mark.t)];
+  const t0 = times.length ? Math.min(...times) : 0;
+  const t1 = times.length ? Math.max(Math.max(...times), t0 + 60_000) : 0;
+
+  const [view, setView] = useState({ v0: t0, v1: t1 });
+  const viewRef = useRef(view); viewRef.current = view;
+  const containerRef = useRef(null); const svgRef = useRef(null); const dragRef = useRef(null);
+  useEffect(() => { setView({ v0: t0, v1: t1 }); }, [t0, t1]);
+
+  const zoom = (factor, center) => {
+    const { v0, v1 } = viewRef.current; const span = v1 - v0; const c = center ?? (v0 + v1) / 2;
+    const next = span * factor; setView(clampWindow(c - ((c - v0) / span) * next, next, t0, t1));
+  };
+  const reset = () => setView({ v0: t0, v1: t1 });
+  const timeAt = (clientX) => {
+    const rect = svgRef.current.getBoundingClientRect(); const { v0, v1 } = viewRef.current;
+    const ratio = Math.min(1, Math.max(0, (((clientX - rect.left) / rect.width) * CHART_BOX.width - CHART_BOX.left) / PLOT_W));
+    return v0 + ratio * (v1 - v0);
+  };
+
+  // La rueda se registra a mano: en React onWheel es pasivo y no deja frenar el scroll de la página.
+  useEffect(() => {
+    const element = containerRef.current; if (!element) return undefined;
+    const onWheel = (event) => { if (!svgRef.current || !svgRef.current.contains(event.target)) return; event.preventDefault(); zoom(event.deltaY < 0 ? 0.8 : 1.25, timeAt(event.clientX)); };
+    element.addEventListener('wheel', onWheel, { passive: false });
+    return () => element.removeEventListener('wheel', onWheel);
+  });
+
+  // Arrastre: se captura el puntero recién al moverse, para que el doble clic (restablecer) siga llegando al gráfico.
+  const onPointerDown = (event) => { if (event.button !== 0) return; dragRef.current = { x: event.clientX, width: svgRef.current.getBoundingClientRect().width, ...viewRef.current, active: false }; };
+  const onPointerMove = (event) => {
+    const drag = dragRef.current; if (!drag) return;
+    if (!drag.active) { if (Math.abs(event.clientX - drag.x) < 3) return; drag.active = true; containerRef.current.setPointerCapture(event.pointerId); containerRef.current.classList.add('is-dragging'); }
+    const dx = ((event.clientX - drag.x) / drag.width) * CHART_BOX.width; const span = drag.v1 - drag.v0;
+    setView(clampWindow(drag.v0 - (dx / PLOT_W) * span, span, t0, t1));
+  };
+  const endDrag = () => { dragRef.current = null; containerRef.current?.classList.remove('is-dragging'); };
+
+  if (!series.length && !marks.length) return <div className="empleado-empty">No hay mediciones para graficar en este período.</div>;
+
+  const { v0, v1 } = view; const span = Math.max(v1 - v0, 1);
+  const { width, height, left, right, top, bottom } = CHART_BOX;
+  const x = (t) => left + ((t - v0) / span) * PLOT_W;
+
+  // Puntos visibles más un vecino a cada lado para que la línea llegue al borde.
+  let first = series.findIndex((point) => point.t >= v0); if (first === -1) first = series.length; first = Math.max(0, first - 1);
+  let last = -1; for (let i = series.length - 1; i >= 0; i -= 1) { if (series[i].t <= v1) { last = Math.min(series.length - 1, i + 1); break; } }
+  const segment = last >= first ? series.slice(first, last + 1) : [];
+  const visible = segment.filter((point) => point.t >= v0 && point.t <= v1);
+
+  // Con muchos puntos (rangos de varios días) se promedia por columna de pantalla.
+  let drawn = segment; let gap = GAP_MS;
+  if (segment.length > MAX_DRAWN_POINTS) {
+    const colMs = span / MAX_DRAWN_POINTS; const cols = new Map();
+    segment.forEach((point) => { const key = Math.floor((point.t - v0) / colMs); const col = cols.get(key) || { t: 0, sum: 0, lecturas: 0, n: 0, fcMin: Infinity, fcMax: -Infinity }; col.t += point.t; col.sum += point.fcPromedio; col.n += 1; col.lecturas += point.lecturas; col.fcMin = Math.min(col.fcMin, point.fcMin ?? point.fcPromedio); col.fcMax = Math.max(col.fcMax, point.fcMax ?? point.fcPromedio); cols.set(key, col); });
+    drawn = [...cols.values()].map((col) => ({ t: col.t / col.n, fcPromedio: Math.round(col.sum / col.n), lecturas: col.lecturas, fcMin: col.fcMin, fcMax: col.fcMax })).sort((a, b) => a.t - b.t);
+    gap = Math.max(GAP_MS, colMs * 2.5);
+  }
+
+  const values = (visible.length ? visible : segment).map((point) => point.fcPromedio);
   const min = Math.max(30, Math.floor(Math.min(...values, fatigue) / 10) * 10 - 10);
   const max = Math.min(220, Math.ceil(Math.max(...values, overexertion) / 10) * 10 + 10);
-  const width = 760; const height = 260; const left = 54; const right = 18; const top = 18; const bottom = 42;
-  const x = (index) => left + (index / Math.max(points.length - 1, 1)) * (width - left - right);
   const y = (value) => height - bottom - ((value - min) / Math.max(max - min, 1)) * (height - top - bottom);
-  const line = values.map((value, index) => `${index ? 'L' : 'M'} ${x(index)} ${y(value)}`).join(' ');
+  const line = drawn.map((point, index) => `${index === 0 || point.t - drawn[index - 1].t > gap ? 'M' : 'L'} ${x(point.t).toFixed(1)} ${y(point.fcPromedio).toFixed(1)}`).join(' ');
   const ticks = Array.from({ length: 5 }, (_, index) => Math.round(min + ((max - min) * index) / 4));
-  const dateIndexes = Array.from(new Set([0, Math.floor((points.length - 1) / 3), Math.floor((points.length - 1) * 2 / 3), points.length - 1]));
-  return <svg className="empleado-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolución de frecuencia cardíaca">
-    {ticks.map((tick) => <g key={tick}><line className="empleado-chart__grid" x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} /><text x="4" y={y(tick) + 4}>{tick}</text></g>)}
-    <line className="empleado-chart__threshold" x1={left} x2={width - right} y1={y(fatigue)} y2={y(fatigue)} /><line className="empleado-chart__threshold empleado-chart__threshold--critical" x1={left} x2={width - right} y1={y(overexertion)} y2={y(overexertion)} />
-    <path className="empleado-chart__line" d={line} />
-    {points.map((point, index) => <circle className="empleado-chart__point" key={`${point.ts}-${index}`} cx={x(index)} cy={y(point.fcPromedio)} r="4" fill="var(--teal-400)"><title>{`${point.fcPromedio} BPM · ${formatDate(point.ts)} · ${point.lecturas} lectura(s)`}</title></circle>)}
-    {dateIndexes.map((index) => <text className="empleado-chart__date" key={`date-${index}`} x={x(index)} y={height - 13} textAnchor="middle">{formatDateShort(points[index].ts)}</text>)}
-    <text className="empleado-chart__label empleado-chart__label--fatigue" x={left + 5} y={y(fatigue) - 5}>Fatiga {fatigue}</text><text className="empleado-chart__label empleado-chart__label--critical" x={left + 5} y={y(overexertion) - 5}>Sobreesfuerzo {overexertion}</text>
-  </svg>;
+  const xTicks = Array.from({ length: 6 }, (_, index) => v0 + (span * index) / 5);
+  const drawnVisible = drawn.filter((point) => point.t >= v0 && point.t <= v1);
+  const radius = drawnVisible.length <= 150 ? 4 : 2.5;
+  const visibleMarks = marks.filter((mark) => mark.t >= v0 && mark.t <= v1);
+  const full = v0 <= t0 && v1 >= t1; const atMin = span <= Math.min(ZOOM_MIN_MS, t1 - t0) + 1;
+  const tipos = [...new Map(marks.map((mark) => [mark.cls, mark])).values()];
+
+  return <div className="empleado-chart-zoom" ref={containerRef} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
+    <div className="empleado-chart-toolbar">
+      <span className="empleado-chart-toolbar__range">{full ? 'Período completo' : `${formatDate(v0)} – ${formatDate(v1)}`}</span>
+      <span className="empleado-chart-toolbar__hint">Rueda del mouse para hacer zoom · arrastrá para moverte · doble clic para restablecer</span>
+      <div className="empleado-chart-toolbar__zoom" role="group" aria-label="Zoom del gráfico"><button type="button" onClick={() => zoom(2)} disabled={full} aria-label="Alejar">−</button><button type="button" onClick={() => zoom(0.5)} disabled={atMin} aria-label="Acercar">+</button><button type="button" onClick={reset} disabled={full}>Restablecer</button></div>
+    </div>
+    <svg ref={svgRef} className="empleado-chart empleado-chart--zoomable" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolución de frecuencia cardíaca" onPointerDown={onPointerDown} onDoubleClick={reset}>
+      <defs><clipPath id="empleadoChartClip"><rect x={left} y="0" width={PLOT_W} height={height} /></clipPath></defs>
+      {ticks.map((tick) => <g key={tick}><line className="empleado-chart__grid" x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} /><text x="4" y={y(tick) + 4}>{tick}</text></g>)}
+      <line className="empleado-chart__threshold" x1={left} x2={width - right} y1={y(fatigue)} y2={y(fatigue)} /><line className="empleado-chart__threshold empleado-chart__threshold--critical" x1={left} x2={width - right} y1={y(overexertion)} y2={y(overexertion)} />
+      <g clipPath="url(#empleadoChartClip)">
+        {visibleMarks.map((mark) => <g key={`alert-${mark.id}`} className={`empleado-chart__alert empleado-chart__alert--${mark.cls}`}><line x1={x(mark.t)} x2={x(mark.t)} y1={top} y2={height - bottom} /><line className="empleado-chart__alert-hit" x1={x(mark.t)} x2={x(mark.t)} y1={top} y2={height - bottom}><title>{`${mark.label} · ${formatDate(mark.t)}${mark.estado ? ` · ${mark.estado}` : ''}`}</title></line>{visibleMarks.length <= 4 && <text x={x(mark.t) + 4} y={top - 8 + 9}>{mark.label}</text>}</g>)}
+        <path className="empleado-chart__line" d={line} />
+        {drawnVisible.length <= 400 && drawnVisible.map((point) => <circle className="empleado-chart__point" key={point.t} cx={x(point.t)} cy={y(point.fcPromedio)} r={radius} fill="var(--teal-400)"><title>{`${point.fcPromedio} BPM · ${formatDate(point.t)} · ${point.lecturas} lectura(s)`}</title></circle>)}
+      </g>
+      {xTicks.map((t, index) => <text className="empleado-chart__date" key={`tick-${index}`} x={x(t)} y={height - 13} textAnchor={index === 0 ? 'start' : index === xTicks.length - 1 ? 'end' : 'middle'}>{formatTick(t, span)}</text>)}
+      <text className="empleado-chart__label empleado-chart__label--fatigue" x={left + 5} y={y(fatigue) - 5}>Fatiga {fatigue}</text><text className="empleado-chart__label empleado-chart__label--critical" x={left + 5} y={y(overexertion) - 5}>Sobreesfuerzo {overexertion}</text>
+    </svg>
+    {marks.length > 0 && <div className="empleado-chart-legend">{tipos.map((mark) => <span key={mark.cls} className={`empleado-chart-legend__item empleado-chart-legend__item--${mark.cls}`}><i></i>{mark.label}</span>)}<span className="empleado-chart-legend__count">{visibleMarks.length} de {marks.length} alertas en pantalla</span></div>}
+  </div>;
 }
 
 function DetailView({ employee, filters, onBack }) {
   const [detail, setDetail] = useState({ loading: true, series: [], rows: [], alerts: [], error: '' });
-  useEffect(() => { let cancelled = false; const name = encodeURIComponent(fullName(employee)); Promise.all([apiFetch(`/mediciones?desde=${filters.desde}&hasta=${filters.hasta}&empleado=${name}&limit=200`), apiFetch(`/mediciones?desde=${filters.desde}&hasta=${filters.hasta}&empleado=${name}&bucket=1m`), apiFetch(`/alertas/historico?desde=${filters.desde}&empleado=${name}`)]).then(([rows, series, alerts]) => { if (!cancelled) setDetail({ loading: false, rows: rows.data || [], series: series.data || [], alerts: alerts.data || [], error: '' }); }).catch((error) => { if (!cancelled) setDetail({ loading: false, series: [], rows: [], alerts: [], error: error.message }); }); return () => { cancelled = true; }; }, [employee, filters.desde, filters.hasta]);
-  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Líneas de referencia incluidas</span></div><Chart points={detail.series} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div><div className="empleado-detail-card" style={{ gridColumn: '1 / -1' }}><div className="empleado-detail-card__header"><h2>Lecturas registradas</h2><span>Últimas {detail.rows.length}</span></div><div className="empleado-table-scroll"><table className="empleado-readings"><thead><tr><th>Fecha y hora</th><th>Frecuencia cardíaca</th><th>Actividad</th></tr></thead><tbody>{detail.rows.slice(0, 100).map((row) => <tr key={row.id}><td>{formatDate(row.fecha_hora)}</td><td><strong>{row.frecuencia_cardiaca ?? '--'} BPM</strong></td><td>{row.actividad ?? '--'}</td></tr>)}</tbody></table></div></div></div>}</div></Layout>;
+  useEffect(() => { let cancelled = false; const name = encodeURIComponent(fullName(employee)); const id = encodeURIComponent(employee.id); Promise.all([apiFetch(`/mediciones?desde=${filters.desde}&hasta=${filters.hasta}&id_trabajador=${id}&limit=200`), apiFetch(`/mediciones?desde=${filters.desde}&hasta=${filters.hasta}&id_trabajador=${id}&bucket=1m`), apiFetch(`/alertas/historico?desde=${filters.desde}&empleado=${name}`)]).then(([rows, series, alerts]) => { if (cancelled) return; /* El filtro por nombre del backend es parcial (ILIKE): se acota por id y al "Hasta" del período. */ const hastaFin = new Date(`${filters.hasta}T23:59:59.999`).getTime(); const ownAlerts = (alerts.data || []).filter((alert) => String(alert.id_trabajador) === String(employee.id) && new Date(alert.fecha_hora).getTime() <= hastaFin); setDetail({ loading: false, rows: rows.data || [], series: series.data || [], alerts: ownAlerts, error: '' }); }).catch((error) => { if (!cancelled) setDetail({ loading: false, series: [], rows: [], alerts: [], error: error.message }); }); return () => { cancelled = true; }; }, [employee, filters.desde, filters.hasta]);
+  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={detail.series} alerts={detail.alerts} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div><div className="empleado-detail-card" style={{ gridColumn: '1 / -1' }}><div className="empleado-detail-card__header"><h2>Lecturas registradas</h2><span>Últimas {detail.rows.length}</span></div><div className="empleado-table-scroll"><table className="empleado-readings"><thead><tr><th>Fecha y hora</th><th>Frecuencia cardíaca</th><th>Actividad</th></tr></thead><tbody>{detail.rows.slice(0, 100).map((row) => <tr key={row.id}><td>{formatDate(row.fecha_hora)}</td><td><strong>{row.frecuencia_cardiaca ?? '--'} BPM</strong></td><td>{row.actividad ?? '--'}</td></tr>)}</tbody></table></div></div></div>}</div></Layout>;
 }
 
 function App() {

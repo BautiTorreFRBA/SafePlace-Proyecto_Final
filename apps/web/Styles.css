@@ -4410,3 +4410,25 @@ select.cfg-input {
 @media (max-width: 640px) {
   .fc-modal__stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Zoom del gráfico de FC */
+.fc-chart__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px 0; }
+.fc-chart__range { color: var(--text-primary); font-size: 0.78rem; font-weight: 600; }
+.fc-chart__hint { flex: 1; color: var(--text-muted); font-size: 0.68rem; }
+.fc-chart__zoom { display: flex; gap: 6px; }
+.fc-chart__zoom button { min-width: 30px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-primary); background: var(--bg-card-alt); font: 600 0.78rem var(--font); cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.fc-chart__zoom button:hover:not(:disabled) { border-color: var(--teal-500); background: var(--teal-dim); }
+.fc-chart__zoom button:disabled { opacity: 0.4; cursor: default; }
+.fc-chart__canvas .fc-chart { cursor: grab; touch-action: pan-y; user-select: none; }
+.fc-modal__chart.is-dragging .fc-chart { cursor: grabbing; }
+@media (max-width: 640px) { .fc-chart__hint { display: none; } }
+
+/* Configuración Operativa — modal de Configuración particular */
+.cfg-particular__hint { margin: 0; color: var(--text-muted); font-size: 0.78rem; }
+
+/* Empleados (admin) — columna de FC de fatiga / sobreesfuerzo */
+.emp-fc { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.emp-fc__valores { color: var(--text-primary); font-size: 0.82rem; white-space: nowrap; }
+.emp-fc__valores small { color: var(--text-muted); font-size: 0.68rem; }
+.emp-fc__origen { padding: 1px 7px; border-radius: 999px; color: var(--text-secondary); background: var(--bg-card-alt); font-size: 0.66rem; }
+.emp-fc__origen--particular { color: var(--teal-400); background: var(--teal-dim); }

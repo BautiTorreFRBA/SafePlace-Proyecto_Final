@@ -144,20 +144,24 @@ let fcModalAlertaId = null;
 // YYYY-MM-DD del día de la alerta en hora argentina (el backend filtra por ese calendario).
 const diaAR = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE_AR }).format(date);
 
-async function obtenerUmbrales() {
-  if (umbralesCache) return umbralesCache;
-  try {
-    const payload = await apiFetch('/umbrales');
-    const u = payload?.data || {};
+// Umbral general + configuraciones particulares por operario (mismo criterio
+// que el Motor de Reglas: la particular reemplaza sólo las dos FC).
+async function obtenerUmbrales(idTrabajador) {
+  if (!umbralesCache) {
+    const [global, particulares] = await Promise.allSettled([apiFetch('/umbrales'), apiFetch('/umbrales-operario')]);
+    const u = global.status === 'fulfilled' ? global.value?.data || {} : {};
     umbralesCache = {
-      fatiga: Number(u.fc_fatiga) || UMBRALES_POR_DEFECTO.fatiga,
-      sobreesfuerzo: Number(u.fc_sobreesfuerzo) || UMBRALES_POR_DEFECTO.sobreesfuerzo,
+      general: {
+        fatiga: Number(u.fc_fatiga) || UMBRALES_POR_DEFECTO.fatiga,
+        sobreesfuerzo: Number(u.fc_sobreesfuerzo) || UMBRALES_POR_DEFECTO.sobreesfuerzo,
+      },
+      particulares: new Map(particulares.status === 'fulfilled'
+        ? (particulares.value?.data || []).map((p) => [String(p.id_operario), { fatiga: Number(p.fc_fatiga), sobreesfuerzo: Number(p.fc_sobreesfuerzo) }])
+        : []),
     };
-  } catch (error) {
-    console.error(error);
-    umbralesCache = { ...UMBRALES_POR_DEFECTO };
+    [global, particulares].filter((r) => r.status === 'rejected').forEach((r) => console.error(r.reason));
   }
-  return umbralesCache;
+  return umbralesCache.particulares.get(String(idTrabajador)) || umbralesCache.general;
 }
 
 function renderStatsFc(puntos) {
@@ -171,52 +175,174 @@ function renderStatsFc(puntos) {
   fcModalStats.innerHTML = stat('Promedio FC', promedio) + stat('Mínimo', min) + stat('Máximo', max) + stat('Lecturas', lecturas, '');
 }
 
+// Estado del gráfico: la serie completa del día y la ventana visible [v0, v1]
+// (zoom). El eje X es tiempo real, así que el zoom es sólo cambiar esa ventana.
+const FC_CHART = { width: 800, height: 280, left: 40, right: 18, top: 18, bottom: 36 };
+const FC_PLOT_W = FC_CHART.width - FC_CHART.left - FC_CHART.right;
+const FC_ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos
+const fcZoom = { puntos: [], umbrales: UMBRALES_POR_DEFECTO, momentoAlerta: null, t0: 0, t1: 0, v0: 0, v1: 0 };
+const tsDe = (p) => new Date(p.ts).getTime();
+const horaFc = (t) => fmtARHora(new Date(t), { hour: '2-digit', minute: '2-digit' });
+
 function renderGraficoFc(puntos, umbrales, momentoAlerta) {
+  fcZoom.puntos = puntos;
   if (!puntos.length) {
     fcModalChart.innerHTML = '<div class="fc-modal__empty">No hay mediciones de frecuencia cardíaca para este empleado en el día.</div>';
     return;
   }
-  const { fatiga, sobreesfuerzo } = umbrales;
-  const valores = puntos.map((p) => p.fcPromedio);
+  fcZoom.umbrales = umbrales;
+  fcZoom.momentoAlerta = momentoAlerta ? new Date(momentoAlerta).getTime() : NaN;
+  fcZoom.t0 = tsDe(puntos[0]);
+  fcZoom.t1 = Math.max(tsDe(puntos[puntos.length - 1]), fcZoom.t0 + 60_000);
+  fcZoom.v0 = fcZoom.t0;
+  fcZoom.v1 = fcZoom.t1;
+
+  fcModalChart.innerHTML = `<div class="fc-chart__toolbar">
+      <span class="fc-chart__range" id="fcChartRange"></span>
+      <span class="fc-chart__hint">Rueda del mouse para hacer zoom · arrastrá para moverte · doble clic para restablecer</span>
+      <div class="fc-chart__zoom" role="group" aria-label="Zoom del gráfico">
+        <button type="button" data-fc-zoom="out" aria-label="Alejar">−</button>
+        <button type="button" data-fc-zoom="in" aria-label="Acercar">+</button>
+        <button type="button" data-fc-zoom="reset" aria-label="Restablecer zoom">Restablecer</button>
+      </div>
+    </div>
+    <div class="fc-chart__canvas" id="fcChartCanvas"></div>`;
+  dibujarGraficoFc();
+}
+
+function dibujarGraficoFc() {
+  const canvas = document.getElementById('fcChartCanvas');
+  if (!canvas) return;
+  const { puntos, umbrales: { fatiga, sobreesfuerzo }, v0, v1, t0, t1 } = fcZoom;
+  const { width, height, left, right, top, bottom } = FC_CHART;
+
+  // Puntos visibles + un vecino a cada lado para que la línea llegue al borde.
+  const iIni = Math.max(0, puntos.findIndex((p) => tsDe(p) >= v0) - 1);
+  let iFin = puntos.length - 1;
+  for (let i = puntos.length - 1; i >= 0; i -= 1) { if (tsDe(puntos[i]) <= v1) { iFin = Math.min(puntos.length - 1, i + 1); break; } }
+  const tramo = puntos.slice(iIni, iFin + 1);
+  const visibles = tramo.filter((p) => tsDe(p) >= v0 && tsDe(p) <= v1);
+
+  // Eje Y ajustado a lo visible: al hacer zoom se ve más detalle de la variación.
+  const valores = (visibles.length ? visibles : tramo).map((p) => p.fcPromedio);
   const min = Math.max(30, Math.floor(Math.min(...valores, fatiga) / 10) * 10 - 10);
   const max = Math.min(220, Math.ceil(Math.max(...valores, sobreesfuerzo) / 10) * 10 + 10);
-  const width = 800; const height = 280; const left = 40; const right = 18; const top = 18; const bottom = 36;
-
-  // Eje X por tiempo real (no por índice): los cortes de señal quedan como huecos visibles.
-  const t0 = new Date(puntos[0].ts).getTime();
-  const t1 = Math.max(new Date(puntos[puntos.length - 1].ts).getTime(), t0 + 60_000);
-  const x = (t) => left + ((t - t0) / (t1 - t0)) * (width - left - right);
+  const x = (t) => left + ((t - v0) / (v1 - v0)) * FC_PLOT_W;
   const y = (v) => height - bottom - ((v - min) / Math.max(max - min, 1)) * (height - top - bottom);
 
   // Se corta la línea cuando hay más de 5 minutos sin lecturas.
   let linea = '';
-  puntos.forEach((p, i) => {
-    const t = new Date(p.ts).getTime();
-    const salto = i === 0 || t - new Date(puntos[i - 1].ts).getTime() > 5 * 60_000;
-    linea += `${salto ? 'M' : 'L'} ${x(t).toFixed(1)} ${y(p.fcPromedio).toFixed(1)} `;
+  tramo.forEach((p, i) => {
+    const salto = i === 0 || tsDe(p) - tsDe(tramo[i - 1]) > 5 * 60_000;
+    linea += `${salto ? 'M' : 'L'} ${x(tsDe(p)).toFixed(1)} ${y(p.fcPromedio).toFixed(1)} `;
   });
 
   const ticksY = Array.from({ length: 5 }, (_, i) => Math.round(min + ((max - min) * i) / 4));
-  const ticksX = Array.from({ length: 6 }, (_, i) => t0 + ((t1 - t0) * i) / 5);
-  const hora = (t) => fmtARHora(new Date(t), { hour: '2-digit', minute: '2-digit' });
-
-  const tAlerta = momentoAlerta ? new Date(momentoAlerta).getTime() : NaN;
-  const marcaAlerta = tAlerta >= t0 && tAlerta <= t1
-    ? `<line class="fc-chart__alert" x1="${x(tAlerta)}" x2="${x(tAlerta)}" y1="${top}" y2="${height - bottom}" /><text class="fc-chart__label--alert" x="${x(tAlerta) + 4}" y="${top + 9}">Alerta ${hora(tAlerta)}</text>`
+  const ticksX = Array.from({ length: 6 }, (_, i) => v0 + ((v1 - v0) * i) / 5);
+  const radio = visibles.length <= 120 ? 3.5 : 2.5;
+  const tA = fcZoom.momentoAlerta;
+  const marcaAlerta = tA >= v0 && tA <= v1
+    ? `<line class="fc-chart__alert" x1="${x(tA)}" x2="${x(tA)}" y1="${top}" y2="${height - bottom}" /><text class="fc-chart__label--alert" x="${x(tA) + 4}" y="${top + 9}">Alerta ${horaFc(tA)}</text>`
     : '';
 
-  fcModalChart.innerHTML = `<svg class="fc-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Frecuencia cardíaca del día">
+  canvas.innerHTML = `<svg class="fc-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Frecuencia cardíaca del día">
+    <defs><clipPath id="fcChartClip"><rect x="${left}" y="0" width="${FC_PLOT_W}" height="${height}" /></clipPath></defs>
     ${ticksY.map((v) => `<line class="fc-chart__grid" x1="${left}" x2="${width - right}" y1="${y(v)}" y2="${y(v)}" /><text x="4" y="${y(v) + 4}">${v}</text>`).join('')}
     <line class="fc-chart__threshold" x1="${left}" x2="${width - right}" y1="${y(fatiga)}" y2="${y(fatiga)}" />
     <line class="fc-chart__threshold fc-chart__threshold--critical" x1="${left}" x2="${width - right}" y1="${y(sobreesfuerzo)}" y2="${y(sobreesfuerzo)}" />
-    ${marcaAlerta}
-    <path class="fc-chart__line" d="${linea}" />
-    ${puntos.map((p) => `<circle class="fc-chart__point" cx="${x(new Date(p.ts).getTime())}" cy="${y(p.fcPromedio)}" r="2.5"><title>${p.fcPromedio} BPM · ${hora(p.ts)} · ${p.lecturas} lectura(s)</title></circle>`).join('')}
-    ${ticksX.map((t) => `<text class="fc-chart__hour" x="${x(t)}" y="${height - 12}" text-anchor="middle">${hora(t)}</text>`).join('')}
+    <g clip-path="url(#fcChartClip)">
+      ${marcaAlerta}
+      <path class="fc-chart__line" d="${linea}" />
+      ${visibles.map((p) => `<circle class="fc-chart__point" cx="${x(tsDe(p))}" cy="${y(p.fcPromedio)}" r="${radio}"><title>${p.fcPromedio} BPM · ${horaFc(tsDe(p))} · ${p.lecturas} lectura(s)</title></circle>`).join('')}
+    </g>
+    ${ticksX.map((t) => `<text class="fc-chart__hour" x="${x(t)}" y="${height - 12}" text-anchor="middle">${horaFc(t)}</text>`).join('')}
     <text class="fc-chart__label--fatigue" x="${left + 5}" y="${y(fatiga) - 5}">Fatiga ${fatiga}</text>
     <text class="fc-chart__label--critical" x="${left + 5}" y="${y(sobreesfuerzo) - 5}">Sobreesfuerzo ${sobreesfuerzo}</text>
   </svg>`;
+
+  const completo = v0 <= t0 && v1 >= t1;
+  const minimo = v1 - v0 <= Math.min(FC_ZOOM_MIN_MS, t1 - t0) + 1;
+  document.getElementById('fcChartRange').textContent = completo ? 'Día completo' : `${horaFc(v0)} – ${horaFc(v1)}`;
+  fcModalChart.querySelector('[data-fc-zoom="in"]').disabled = minimo;
+  fcModalChart.querySelector('[data-fc-zoom="out"]').disabled = completo;
+  fcModalChart.querySelector('[data-fc-zoom="reset"]').disabled = completo;
 }
+
+// Mueve la ventana [inicio, inicio + span] dentro del día sin salirse de los bordes.
+function fijarVentanaFc(inicio, span) {
+  const total = fcZoom.t1 - fcZoom.t0;
+  const s = Math.min(total, Math.max(Math.min(FC_ZOOM_MIN_MS, total), span));
+  const v0 = Math.min(fcZoom.t1 - s, Math.max(fcZoom.t0, inicio));
+  fcZoom.v0 = v0;
+  fcZoom.v1 = v0 + s;
+}
+
+function zoomFc(factor, centro = (fcZoom.v0 + fcZoom.v1) / 2) {
+  const span = fcZoom.v1 - fcZoom.v0;
+  const proporcion = (centro - fcZoom.v0) / span;
+  const nuevoSpan = span * factor;
+  fijarVentanaFc(centro - proporcion * nuevoSpan, nuevoSpan);
+  dibujarGraficoFc();
+}
+
+// clientX del mouse → instante en el eje X (el SVG escala con el ancho del modal).
+function tiempoEnPuntero(svg, clientX) {
+  const rect = svg.getBoundingClientRect();
+  const vx = ((clientX - rect.left) / rect.width) * FC_CHART.width;
+  const ratio = Math.min(1, Math.max(0, (vx - FC_CHART.left) / FC_PLOT_W));
+  return fcZoom.v0 + ratio * (fcZoom.v1 - fcZoom.v0);
+}
+
+fcModalChart.addEventListener('click', (event) => {
+  const boton = event.target.closest('[data-fc-zoom]');
+  if (!boton || !fcZoom.puntos.length) return;
+  const accion = boton.dataset.fcZoom;
+  if (accion === 'reset') { fcZoom.v0 = fcZoom.t0; fcZoom.v1 = fcZoom.t1; dibujarGraficoFc(); }
+  else zoomFc(accion === 'in' ? 0.5 : 2);
+});
+
+fcModalChart.addEventListener('wheel', (event) => {
+  const svg = event.target.closest('.fc-chart');
+  if (!svg || !fcZoom.puntos.length) return;
+  event.preventDefault();
+  zoomFc(event.deltaY < 0 ? 0.8 : 1.25, tiempoEnPuntero(svg, event.clientX));
+}, { passive: false });
+
+fcModalChart.addEventListener('dblclick', (event) => {
+  if (!event.target.closest('.fc-chart')) return;
+  fcZoom.v0 = fcZoom.t0; fcZoom.v1 = fcZoom.t1;
+  dibujarGraficoFc();
+});
+
+// Arrastre para desplazarse. El SVG se regenera en cada movimiento, así que el
+// arrastre se sigue sobre el contenedor (que es estable) con pointer capture.
+let arrastreFc = null;
+let frameFc = null;
+fcModalChart.addEventListener('pointerdown', (event) => {
+  const svg = event.target.closest('.fc-chart');
+  if (!svg || event.button !== 0 || !fcZoom.puntos.length) return;
+  arrastreFc = { x: event.clientX, ancho: svg.getBoundingClientRect().width, v0: fcZoom.v0, span: fcZoom.v1 - fcZoom.v0, activo: false };
+});
+fcModalChart.addEventListener('pointermove', (event) => {
+  if (!arrastreFc) return;
+  // Se captura recién al moverse: capturar en el pointerdown desviaría el
+  // doble clic (restablecer) al contenedor en vez del gráfico.
+  if (!arrastreFc.activo) {
+    if (Math.abs(event.clientX - arrastreFc.x) < 3) return;
+    arrastreFc.activo = true;
+    fcModalChart.setPointerCapture(event.pointerId);
+    fcModalChart.classList.add('is-dragging');
+  }
+  const dxViewBox = ((event.clientX - arrastreFc.x) / arrastreFc.ancho) * FC_CHART.width;
+  fijarVentanaFc(arrastreFc.v0 - (dxViewBox / FC_PLOT_W) * arrastreFc.span, arrastreFc.span);
+  if (!frameFc) frameFc = requestAnimationFrame(() => { frameFc = null; dibujarGraficoFc(); });
+});
+const terminarArrastreFc = () => {
+  arrastreFc = null;
+  fcModalChart.classList.remove('is-dragging');
+};
+fcModalChart.addEventListener('pointerup', terminarArrastreFc);
+fcModalChart.addEventListener('pointercancel', terminarArrastreFc);
 
 function cerrarModalFc() {
   fcModal.classList.remove('modal-overlay--visible');
@@ -245,7 +371,7 @@ window.revisarAlerta = async (id) => {
   try {
     const [serie, umbrales] = await Promise.all([
       apiFetch(`/mediciones?desde=${dia}&hasta=${dia}&id_trabajador=${alerta.idTrabajador}&bucket=1m`),
-      obtenerUmbrales(),
+      obtenerUmbrales(alerta.idTrabajador),
     ]);
     if (fcModalAlertaId !== id) return; // se cerró o se abrió otra alerta mientras cargaba
     const puntos = serie?.data || [];

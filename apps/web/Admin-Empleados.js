@@ -20,6 +20,10 @@ const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactiv
 const sortButtons = Array.from(document.querySelectorAll('.emp-sort'));
 
 let empleados = [];
+// Umbrales de FC: el global (Configuración Operativa) y las excepciones por
+// operario (Configuración particular), indexadas por id de operario.
+let umbralGlobal = null;
+let umbralesParticulares = new Map();
 let editingId = null;
 let sortState = {
   key: 'nombreCompleto',
@@ -78,6 +82,10 @@ function getSortValue(emp, key) {
       return emp.estado === 'activo' ? 1 : 0;
     case 'alta':
       return emp.alta ? new Date(emp.alta).getTime() : 0;
+    case 'fc': {
+      const fc = fcDeEmpleado(emp);
+      return fc ? fc.fatiga * 1000 + fc.sobreesfuerzo : Number.MAX_SAFE_INTEGER;
+    }
     default:
       return normalizarTexto(String(emp[key] ?? ''));
   }
@@ -152,8 +160,27 @@ function normalizarEmpleado(emp) {
   };
 }
 
+// FC que el Motor de Reglas le aplica al operario: la particular si tiene, o la global.
+function fcDeEmpleado(emp) {
+  const particular = umbralesParticulares.get(String(emp.id));
+  if (particular) return { fatiga: particular.fc_fatiga, sobreesfuerzo: particular.fc_sobreesfuerzo, particular: true };
+  if (umbralGlobal) return { fatiga: umbralGlobal.fc_fatiga, sobreesfuerzo: umbralGlobal.fc_sobreesfuerzo, particular: false };
+  return null;
+}
+
+// Si los umbrales no se pueden leer la tabla de empleados se muestra igual,
+// con la columna de FC en "--".
+async function cargarUmbrales() {
+  const [global, particulares] = await Promise.allSettled([apiFetch('/umbrales'), apiFetch('/umbrales-operario')]);
+  umbralGlobal = global.status === 'fulfilled' ? global.value?.data || null : null;
+  umbralesParticulares = new Map(particulares.status === 'fulfilled'
+    ? (particulares.value?.data || []).map((p) => [String(p.id_operario), p])
+    : []);
+  [global, particulares].filter((r) => r.status === 'rejected').forEach((r) => console.error(r.reason));
+}
+
 async function cargarEmpleados() {
-  const json = await apiFetch(EMPLOYEES_ENDPOINT);
+  const [json] = await Promise.all([apiFetch(EMPLOYEES_ENDPOINT), cargarUmbrales()]);
   empleados = (json.data || []).map(normalizarEmpleado);
   renderTable();
 }
@@ -176,10 +203,19 @@ function renderTable() {
   empCount.textContent = `${ordenados.length} empleado${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
 
   tableBody.innerHTML = ordenados.length === 0
-    ? '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
+    ? '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se encontraron empleados</td></tr>'
     : ordenados.map((emp) => rowHTML(emp)).join('');
 
   actualizarIndicadoresOrden();
+}
+
+function fcHTML(emp) {
+  const fc = fcDeEmpleado(emp);
+  if (!fc) return '<span style="color:var(--text-muted)">--</span>';
+  const origen = fc.particular
+    ? '<span class="emp-fc__origen emp-fc__origen--particular" title="Configuración particular">Particular</span>'
+    : '<span class="emp-fc__origen" title="Umbral general de Configuración Operativa">General</span>';
+  return `<div class="emp-fc"><span class="emp-fc__valores"><strong>${escapeHtml(fc.fatiga)}</strong> / <strong>${escapeHtml(fc.sobreesfuerzo)}</strong> <small>BPM</small></span>${origen}</div>`;
 }
 
 function rowHTML(emp) {
@@ -194,6 +230,7 @@ function rowHTML(emp) {
       <td style="color:var(--text-secondary)">${escapeHtml(emp.depto)}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.turno ? emp.turno.charAt(0).toUpperCase() + emp.turno.slice(1) : '--')}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
+      <td>${fcHTML(emp)}</td>
       <td>${estadoBadge}</td>
       <td style="color:var(--text-primary); font-size:0.82rem">${escapeHtml(emp.alta)}</td>
       <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${emp.id}">Editar</button><button class="emp-actions__deactivate" data-id="${emp.id}" ${esActivo ? '' : 'disabled'}>Desactivar</button></div></td>
@@ -320,5 +357,5 @@ cargarEmpleados().catch((err) => {
   empCount.textContent = err.status === 401 || err.status === 403
     ? 'Sesión sin permisos para consultar empleados'
     : 'Error cargando empleados';
-  tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(err.message || 'No se pudieron cargar los empleados')}</td></tr>`;
 });

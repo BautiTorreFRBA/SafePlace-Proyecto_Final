@@ -150,79 +150,65 @@
         </div>
         </div>
 
-        <!-- Trabajos: cada uno con sus propios umbrales, asignables por
-             ventana de horario en Horarios Laborales. Sin trabajo asignado,
-             se usa el umbral global de arriba. -->
+        <!-- Configuración particular: FC de fatiga y sobreesfuerzo propias de
+             un operario (umbral_operario). Todos los demás usan los umbrales
+             globales de arriba. -->
         <div class="emp-header" style="margin-top:8px;">
             <div>
-                <h2 class="emp-header__title" style="font-size:1.05rem;">Trabajos</h2>
-                <p class="emp-header__count">Tipos de tarea con umbrales propios, asignables por día en Horarios Laborales</p>
+                <h2 class="emp-header__title" style="font-size:1.05rem;">Configuración particular</h2>
+                <p class="emp-header__count">Operarios con frecuencias cardíacas propias. El resto usa la FC de fatiga y sobreesfuerzo de arriba.</p>
             </div>
-            <button class="btn-nuevo" id="btnNuevoTrabajo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo Trabajo</button>
+            <button class="btn-nuevo" id="btnNuevaParticular"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva configuración</button>
         </div>
 
         <div class="emp-table-wrap">
             <table class="emp-table">
                 <thead>
                     <tr>
-                        <th>NOMBRE</th>
-                        <th>DESCRIPCIÓN</th>
-                        <th>ESTADO</th>
+                        <th>OPERARIO</th>
+                        <th>LEGAJO</th>
+                        <th>FC FATIGA</th>
+                        <th>FC SOBREESFUERZO</th>
+                        <th>ÚLTIMA MODIFICACIÓN</th>
                         <th></th>
                     </tr>
                 </thead>
-                <tbody id="trabajoTableBody"></tbody>
+                <tbody id="particularTableBody"></tbody>
             </table>
         </div>
 
-        <div class="modal-overlay" id="trabajoModalOverlay">
+        <div class="modal-overlay" id="particularModalOverlay">
             <div class="modal">
                 <div class="modal__header">
-                    <h3 class="modal__title" id="trabajoModalTitle">Nuevo Trabajo</h3>
-                    <button class="modal__close" id="trabajoModalClose"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    <h3 class="modal__title" id="particularModalTitle">Nueva configuración particular</h3>
+                    <button class="modal__close" id="particularModalClose" aria-label="Cerrar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 <div class="modal__body">
                     <div class="modal__field">
-                        <label class="modal__label">NOMBRE</label>
-                        <input class="modal__input" id="tNombre" type="text" placeholder="Ej: Soldadura" />
+                        <label class="modal__label" for="pOperario">OPERARIO</label>
+                        <select class="modal__input" id="pOperario" data-operario-autocomplete>
+                            <option value="">Escribí el nombre o legajo del operario...</option>
+                        </select>
                     </div>
                     <div class="modal__field">
-                        <label class="modal__label">DESCRIPCIÓN</label>
-                        <input class="modal__input" id="tDescripcion" type="text" placeholder="Opcional" />
+                        <label class="modal__label" for="pFcFatiga">FC FATIGA (BPM)</label>
+                        <input class="modal__input" id="pFcFatiga" type="number" min="30" max="250" step="1" />
                     </div>
                     <div class="modal__field">
-                        <label class="modal__label">FC FATIGA (BPM) / MINUTOS SOSTENIDOS</label>
-                        <div style="display:flex; gap:8px;">
-                            <input class="modal__input" id="tFcFatiga" type="number" value="140" />
-                            <input class="modal__input" id="tMinutosFatiga" type="number" value="10" />
-                        </div>
+                        <label class="modal__label" for="pFcSobreesfuerzo">FC SOBREESFUERZO (BPM)</label>
+                        <input class="modal__input" id="pFcSobreesfuerzo" type="number" min="30" max="250" step="1" />
                     </div>
-                    <div class="modal__field">
-                        <label class="modal__label">FC SOBREESFUERZO (BPM) / ACTIVIDAD MÍNIMA (0-1)</label>
-                        <div style="display:flex; gap:8px;">
-                            <input class="modal__input" id="tFcSobreesfuerzo" type="number" value="170" />
-                            <input class="modal__input" id="tActividadSobreesfuerzo" type="number" step="0.05" min="0" max="1" value="0.8" />
-                        </div>
-                    </div>
-                    <div class="modal__field">
-                        <label class="modal__label">MINUTOS INACTIVIDAD / TOLERANCIA DESCONEXIÓN (MIN)</label>
-                        <div style="display:flex; gap:8px;">
-                            <input class="modal__input" id="tMinutosInactividad" type="number" value="30" />
-                            <input class="modal__input" id="tMinutosDesconexionTolerada" type="number" value="15" />
-                        </div>
-                    </div>
-                    <div class="modal__field" id="tActivoField" style="display:none;">
-                        <label class="modal__label"><input type="checkbox" id="tActivo" /> Activo</label>
-                    </div>
+                    <p class="cfg-particular__hint" id="pHint"></p>
                 </div>
                 <div class="modal__footer">
-                    <button class="modal__btn modal__btn--cancel" id="trabajoModalCancel">Cancelar</button>
-                    <button class="modal__btn modal__btn--save" id="trabajoModalSave">Guardar</button>
+                    <button class="modal__btn modal__btn--cancel" id="particularModalCancel">Cancelar</button>
+                    <button class="modal__btn modal__btn--save" id="particularModalSave">Guardar</button>
                 </div>
             </div>
         </div>
     </main>
   <script src="session-ui.js"></script>
+  <script src="operario-autocomplete.js"></script>
   <script src="Admin-Configuracion.js"></script>
 </body>
 </html>
