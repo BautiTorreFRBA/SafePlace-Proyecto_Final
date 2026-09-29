@@ -31,6 +31,15 @@ function sessionUser() {
   const roleLabel = role === 'supervisor' && area ? `Supervisor del área ${area}` : roleLabels[role] || 'Usuario';
   return { name, role: roleLabel, initials: initials(name) };
 }
+// Un supervisor sólo ve el área y los turnos que tiene a cargo (mismo criterio
+// que el backend en /mediciones: área y turno exactos). Otros roles ven todo.
+function dentroDelAlcance(worker) {
+  if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() !== 'supervisor') return true;
+  const area = sessionStorage.getItem('userSupervisorArea') || '';
+  let turnos = [];
+  try { turnos = JSON.parse(sessionStorage.getItem('userSupervisorTurnos') || '[]'); } catch { turnos = []; }
+  return Boolean(area) && worker.area === area && Array.isArray(turnos) && turnos.includes(worker.turno);
+}
 function formatDate(value) { if (!value) return 'Sin datos'; const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Sin datos' : date.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 function formatDateShort(value) { if (!value) return '--'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }); }
 
@@ -42,13 +51,24 @@ function MenuIcon({ type }) {
     wearable: <><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
     notifications: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
+    team: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    broadcast: <><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></>,
   };
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{paths[type]}</svg>;
 }
 
+// La misma pantalla la usan el Supervisor y Seguridad e Higiene: cada HTML
+// indica su rol en <div id="root" data-rol="..."> y se arma el menú de ese rol.
+const PAGE_ROL = document.getElementById('root').dataset.rol || 'supervisor';
+const NAV_LINKS = {
+  supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']],
+  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['team', 'Empleados', 'Seguridad-Empleados.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
+};
+
 function Sidebar() {
   const user = sessionUser();
-  const links = [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']];
+  const links = NAV_LINKS[PAGE_ROL] || NAV_LINKS.supervisor;
   return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href]) => <a className={`nav-item ${label === 'Empleados' ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
 }
 
@@ -105,7 +125,10 @@ const alertMark = (tipo) => ALERT_MARKS[String(tipo || '').toUpperCase()] || { l
 const CHART_BOX = { width: 760, height: 280, left: 44, right: 18, top: 22, bottom: 40 };
 const PLOT_W = CHART_BOX.width - CHART_BOX.left - CHART_BOX.right;
 const ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos (los puntos son de 1 minuto)
-const VISTA_INICIAL_MS = 24 * 3600_000; // al abrir se muestra el último día del período
+const DIA_MS = 24 * 3600_000;
+const AR_OFFSET_MS = 3 * 3600_000; // Argentina es UTC-3 todo el año (sin horario de verano)
+// 00:00 (hora argentina) del día calendario de t.
+const inicioDiaAR = (t) => Math.floor((t - AR_OFFSET_MS) / DIA_MS) * DIA_MS + AR_OFFSET_MS;
 const MAX_DRAWN_POINTS = 700; // por encima se promedia por columna para no dibujar miles de nodos
 const GAP_MS = 5 * 60_000; // más de 5 min sin lecturas corta la línea
 
@@ -129,7 +152,8 @@ function Chart({ points, alerts = [], fatigue = 130, overexertion = 160 }) {
   const t0 = times.length ? Math.min(...times) : 0;
   const t1 = times.length ? Math.max(Math.max(...times), t0 + 60_000) : 0;
 
-  const initialView = () => ({ v0: Math.max(t0, t1 - VISTA_INICIAL_MS), v1: t1 });
+  // Al abrir se muestran sólo las mediciones del día de la última lectura (desde las 00:00).
+  const initialView = () => ({ v0: Math.max(t0, Math.min(inicioDiaAR(t1), t1 - ZOOM_MIN_MS)), v1: t1 });
   const [view, setView] = useState(initialView);
   const viewRef = useRef(view); viewRef.current = view;
   const containerRef = useRef(null); const svgRef = useRef(null); const dragRef = useRef(null);
@@ -228,7 +252,7 @@ function DetailView({ employee, filters, onBack }) {
 
 function App() {
   const [employees, setEmployees] = useState([]); const [selected, setSelected] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [filters, setFilters] = useState({ search: '', area: '', turno: '', desde: defaultDesde, hasta: defaultHasta });
-  const load = async () => { setLoading(true); setError(''); try { const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); setError(''); try { const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).filter(dentroDelAlcance).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
   useEffect(() => { load(); }, []);
   return selected ? <DetailView employee={selected} filters={filters} onBack={() => setSelected(null)} /> : <ListView employees={employees} loading={loading} error={error} filters={filters} setFilters={setFilters} onSearch={load} onSelect={setSelected} />;
 }

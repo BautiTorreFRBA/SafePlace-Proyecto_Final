@@ -3,7 +3,7 @@ import { cpSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Páginas que Vite tiene que compilar (React/JSX). Sumar acá cada vista nueva hecha con React.
-const PAGINAS_REACT = ['Supervisor-Empleados.html'];
+const PAGINAS_REACT = ['Supervisor-Empleados.html', 'Seguridad-Empleados.html'];
 
 // El resto de las páginas son HTML + <script src="..."> clásicos (sin type="module"):
 // Vite no los empaqueta ni los emite, así que se copian tal cual a dist.
