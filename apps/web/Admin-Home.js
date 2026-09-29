@@ -22,6 +22,15 @@ const AVATARES = {
   neutro: 'assets/avatars/avatar-neutro.svg',
 };
 
+// Turno en curso con la hora de la planta (Argentina), mismas franjas que Gestión de
+// Empleados: de 20:00 a 08:00 se toma el turno noche (el último del día).
+function turnoActual() {
+  const horaAR = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  if (horaAR >= 8 && horaAR < 12) return 'mañana';
+  if (horaAR >= 12 && horaAR < 16) return 'tarde';
+  return 'noche';
+}
+
 let trabajadores = [];
 let filtroActual = 'todos';
 let busquedaActual = '';
@@ -110,20 +119,17 @@ function renderCard(item) {
   const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
-  const lectura = reciente
-    ? `<div class="op-card__fc"><strong>${escapeHtml(item.frecuencia_cardiaca)}</strong> <small>BPM</small></div>`
-    : `<div class="op-card__fc op-card__fc--vacia"><strong>—</strong> <small>BPM</small></div>
-       <p class="op-card__sin-lectura">Sin lectura reciente${item.fecha_hora ? `<br>Última lectura: ${escapeHtml(fechaHora(item.fecha_hora))}` : ''}</p>`;
+  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong> <small>BPM</small></div>`;
 
-  // El dibujo ocupa toda la tarjeta; encima: estado arriba a la izquierda, FC actual arriba a la
-  // derecha y el nombre abajo, sobre el torso. El avatar se pinta con el color del estado (mask +
+  // El dibujo ocupa toda la tarjeta; encima: FC actual arriba a la derecha y abajo, sobre el
+  // torso, el nombre y el estado. El avatar se pinta con el color del estado (mask +
   // ilustración con multiply: el relleno blanco toma el color y las líneas quedan negras).
   return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
-    <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
       <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
+      <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
     </div>
   </a>`;
 }
@@ -180,7 +186,11 @@ async function cargarHome() {
       alertasPorTrabajador.get(clave).push(alerta.tipo_alerta);
     });
 
-    const data = Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : [];
+    // Sólo los operarios del turno en curso.
+    const turno = turnoActual();
+    const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : [])
+      .filter((item) => String(item.turno || '').toLowerCase() === turno);
+    document.getElementById('turnoActual').textContent = `Turno ${turno}`;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador) }));
     renderAll();
   } catch (error) {
