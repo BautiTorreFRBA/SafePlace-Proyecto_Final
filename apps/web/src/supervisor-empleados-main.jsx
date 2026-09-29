@@ -125,10 +125,7 @@ const alertMark = (tipo) => ALERT_MARKS[String(tipo || '').toUpperCase()] || { l
 const CHART_BOX = { width: 760, height: 280, left: 44, right: 18, top: 22, bottom: 40 };
 const PLOT_W = CHART_BOX.width - CHART_BOX.left - CHART_BOX.right;
 const ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos (los puntos son de 1 minuto)
-const DIA_MS = 24 * 3600_000;
-const AR_OFFSET_MS = 3 * 3600_000; // Argentina es UTC-3 todo el año (sin horario de verano)
-// 00:00 (hora argentina) del día calendario de t.
-const inicioDiaAR = (t) => Math.floor((t - AR_OFFSET_MS) / DIA_MS) * DIA_MS + AR_OFFSET_MS;
+const VISTA_INICIAL_MS = 24 * 3600_000; // vista principal: las últimas 24 horas con datos
 const MAX_DRAWN_POINTS = 700; // por encima se promedia por columna para no dibujar miles de nodos
 const GAP_MS = 5 * 60_000; // más de 5 min sin lecturas corta la línea
 
@@ -152,8 +149,8 @@ function Chart({ points, alerts = [], fatigue = 130, overexertion = 160 }) {
   const t0 = times.length ? Math.min(...times) : 0;
   const t1 = times.length ? Math.max(Math.max(...times), t0 + 60_000) : 0;
 
-  // Al abrir se muestran sólo las mediciones del día de la última lectura (desde las 00:00).
-  const initialView = () => ({ v0: Math.max(t0, Math.min(inicioDiaAR(t1), t1 - ZOOM_MIN_MS)), v1: t1 });
+  // Al abrir (y al restablecer) se muestran las 24 horas previas a la última lectura.
+  const initialView = () => ({ v0: Math.max(t0, t1 - VISTA_INICIAL_MS), v1: t1 });
   const [view, setView] = useState(initialView);
   const viewRef = useRef(view); viewRef.current = view;
   const containerRef = useRef(null); const svgRef = useRef(null); const dragRef = useRef(null);

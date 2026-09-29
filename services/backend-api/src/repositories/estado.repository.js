@@ -1,18 +1,11 @@
 const db = require('../config/database');
 
-const turnoActual = () => {
-  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  if (hora >= 8 && hora < 12) return 'mañana';
-  if (hora >= 12 && hora < 16) return 'tarde';
-  if (hora >= 16 && hora < 20) return 'noche';
-  return '__sin_turno_activo__';
-};
-
 const listarTrabajadoresActivos = async (usuario = {}) => {
   const esSupervisor = usuario.role === 'supervisor';
   const area = esSupervisor ? usuario.areaSupervisada || '__sin_alcance__' : null;
   const turnos = esSupervisor ? usuario.turnosSupervisados || [] : null;
-  const turnoSeguridad = usuario.role === 'seguridad' ? turnoActual() : null;
+  // Seguridad e Higiene ve todos los turnos: el filtro por turno queda desactivado (null).
+  const turnoSeguridad = null;
   const query = `
     WITH ultima_asignacion AS (
       SELECT DISTINCT ON (ad.id_trabajador)

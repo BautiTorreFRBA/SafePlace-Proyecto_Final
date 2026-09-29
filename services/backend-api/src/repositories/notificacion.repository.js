@@ -1,13 +1,7 @@
 const db = require('../config/database');
 
-const turnoSeguridadActual = (usuario = {}) => {
-  if (usuario.role !== 'seguridad') return null;
-  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  if (hora >= 8 && hora < 12) return 'mañana';
-  if (hora >= 12 && hora < 16) return 'tarde';
-  if (hora >= 16 && hora < 20) return 'noche';
-  return '__sin_turno_activo__';
-};
+// Seguridad e Higiene ve todos los turnos: el filtro por turno queda desactivado (null).
+const turnoSeguridadActual = () => null;
 
 const crear = async ({ idAlerta }) => {
   const query = `

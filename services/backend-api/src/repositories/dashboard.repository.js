@@ -213,13 +213,8 @@ const listarUsuarios = async () => {
 const alcanceSupervisor = (usuario = {}) => ({
   area: usuario.role === 'supervisor' ? usuario.areaSupervisada || '__sin_alcance__' : null,
   turnos: usuario.role === 'supervisor' ? usuario.turnosSupervisados || [] : null,
-  turnoSeguridad: usuario.role === 'seguridad' ? (() => {
-    const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TIMEZONE, hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-    if (hora >= 8 && hora < 12) return 'mañana';
-    if (hora >= 12 && hora < 16) return 'tarde';
-    if (hora >= 16 && hora < 20) return 'noche';
-    return '__sin_turno_activo__';
-  })() : null,
+  // Seguridad e Higiene ve todos los turnos: el filtro por turno queda desactivado (null).
+  turnoSeguridad: null,
 });
 
 const listarMediciones = async ({ desde = null, hasta = null, limit = 100, offset = 0 } = {}, usuario = {}) => {

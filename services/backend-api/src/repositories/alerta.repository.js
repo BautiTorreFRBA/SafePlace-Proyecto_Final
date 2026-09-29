@@ -72,10 +72,8 @@ const actualizarEstado = async (id, estado) => {
 // Bandeja de alertas activas (H0013), con la identidad ya reidentificada
 // (H0020) para mostrar nombre/apellido.
 const listarActivas = async (usuario = {}) => {
-  const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  const turnoSeguridad = usuario.role === 'seguridad'
-    ? (hora >= 8 && hora < 12 ? 'mañana' : hora >= 12 && hora < 16 ? 'tarde' : hora >= 16 && hora < 20 ? 'noche' : '__sin_turno_activo__')
-    : null;
+  // Seguridad e Higiene ve todos los turnos: el filtro por turno queda desactivado (null).
+  const turnoSeguridad = null;
   const query = `
     SELECT
       a.id,
