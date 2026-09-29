@@ -25,7 +25,8 @@ const etiquetaTurno = (turno) => (turno ? turno.charAt(0).toUpperCase() + turno.
 // para que no vuelvan al estado inicial cada vez que se filtra u ordena.
 const turnosAbiertos = new Map();
 
-// Mismas franjas que el Home (hora de la planta, Argentina); fuera de 08:00-20:00 no hay turno.
+// Mismas franjas que el Home (hora de la planta, Argentina). De 20:00 a 08:00 se
+// toma el turno noche (el último del día), así siempre hay un turno abierto.
 function turnoActual() {
   const hora = Number(new Intl.DateTimeFormat('en-GB', {
     timeZone: 'America/Argentina/Buenos_Aires',
@@ -35,8 +36,7 @@ function turnoActual() {
 
   if (hora >= 8 && hora < 12) return 'mañana';
   if (hora >= 12 && hora < 16) return 'tarde';
-  if (hora >= 16 && hora < 20) return 'noche';
-  return null;
+  return 'noche';
 }
 // Columnas de cada tabla de grupo. Área y turno no se repiten: ya los da el grupo.
 const COLUMNAS = [

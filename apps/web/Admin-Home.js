@@ -119,10 +119,12 @@ function renderCard(item) {
   // y la ilustración encima con multiply, así el relleno blanco toma el color y las líneas quedan negras.
   return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}">
     <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
-    <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
-    <p class="op-card__meta">${escapeHtml(subtitulo)}</p>
-    ${lectura}
-    <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
+    <div class="op-card__info">
+      <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
+      <p class="op-card__meta">${escapeHtml(subtitulo)}</p>
+      ${lectura}
+      <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
+    </div>
   </a>`;
 }
 
