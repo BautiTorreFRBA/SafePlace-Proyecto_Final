@@ -111,19 +111,19 @@ function renderCard(item) {
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
   const lectura = reciente
-    ? `<div class="op-card__fc"><strong>${escapeHtml(item.frecuencia_cardiaca)}</strong><small>BPM</small></div>`
-    : `<div class="op-card__fc op-card__fc--vacia"><strong>—</strong></div>
-       <p class="op-card__sin-lectura">Sin lectura reciente${item.fecha_hora ? `<br><span>Última lectura: ${escapeHtml(fechaHora(item.fecha_hora))}</span>` : ''}</p>`;
+    ? `<div class="op-card__fc"><strong>${escapeHtml(item.frecuencia_cardiaca)}</strong> <small>BPM</small></div>`
+    : `<div class="op-card__fc op-card__fc--vacia"><strong>—</strong> <small>BPM</small></div>
+       <p class="op-card__sin-lectura">Sin lectura reciente${item.fecha_hora ? `<br>Última lectura: ${escapeHtml(fechaHora(item.fecha_hora))}` : ''}</p>`;
 
-  // El avatar se pinta con el color del estado: el contenedor tiene la forma del dibujo (mask)
-  // y la ilustración encima con multiply, así el relleno blanco toma el color y las líneas quedan negras.
-  return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}">
+  // El dibujo ocupa toda la tarjeta; encima: estado arriba a la izquierda, FC actual arriba a la
+  // derecha y el nombre abajo, sobre el torso. El avatar se pinta con el color del estado (mask +
+  // ilustración con multiply: el relleno blanco toma el color y las líneas quedan negras).
+  return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
-    <div class="op-card__info">
+    <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
+    <div class="op-card__lectura">${lectura}</div>
+    <div class="op-card__pie">
       <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
-      <p class="op-card__meta">${escapeHtml(subtitulo)}</p>
-      ${lectura}
-      <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
     </div>
   </a>`;
 }
