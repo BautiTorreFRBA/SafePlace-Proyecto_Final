@@ -20,6 +20,23 @@ const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
 const TURNOS = ['mañana', 'tarde', 'noche'];
 const etiquetaTurno = (turno) => (turno ? turno.charAt(0).toUpperCase() + turno.slice(1) : 'Sin turno');
+// Desplegables de turno que el usuario abrió o cerró a mano (clave "área|turno"),
+// para que no vuelvan al estado inicial cada vez que se filtra u ordena.
+const turnosAbiertos = new Map();
+
+// Mismas franjas que el Home (hora de la planta, Argentina); fuera de 08:00-20:00 no hay turno.
+function turnoActual() {
+  const hora = Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date()));
+
+  if (hora >= 8 && hora < 12) return 'mañana';
+  if (hora >= 12 && hora < 16) return 'tarde';
+  if (hora >= 16 && hora < 20) return 'noche';
+  return null;
+}
 // Columnas de cada tabla de grupo. Área y turno no se repiten: ya los da el grupo.
 const COLUMNAS = [
   ['legajo', 'LEGAJO'],
@@ -268,21 +285,28 @@ function agruparPorAreaYTurno(lista) {
 }
 
 function grupoAreaHTML({ area, total, turnos }) {
+  const actual = turnoActual();
+  const buscando = searchInput.value.trim() !== '';
+  const abierto = (turno) => {
+    const clave = `${area}|${turno}`;
+    if (turnosAbiertos.has(clave)) return turnosAbiertos.get(clave);
+    return buscando || turno === actual;
+  };
   return `<section class="area-turno-seccion">
       <h3 class="area-turno-seccion__titulo">${escapeHtml(area)} <small>${total} empleado${total !== 1 ? 's' : ''}</small></h3>
       <div class="emp-grupos__turnos">
-        ${turnos.map(([turno, lista]) => `<article class="grupo-area-turno">
-          <header class="grupo-area-turno__header">
-            <h4>${escapeHtml(etiquetaTurno(turno))}</h4>
+        ${turnos.map(([turno, lista]) => `<details class="grupo-area-turno" data-clave="${escapeHtml(`${area}|${turno}`)}"${abierto(turno) ? ' open' : ''}>
+          <summary class="grupo-area-turno__header">
+            <h4>${escapeHtml(etiquetaTurno(turno))}${turno === actual ? ' <span class="grupo-area-turno__actual">Turno actual</span>' : ''}</h4>
             <span>${lista.length} empleado${lista.length !== 1 ? 's' : ''}</span>
-          </header>
+          </summary>
           <div class="emp-grupos__tabla">
             <table class="emp-table">
               <thead><tr>${COLUMNAS.map(([key, label, title, align]) => `<th${align === 'center' ? ' class="emp-col--center"' : ''}><button class="emp-sort" type="button" data-sort="${key}"${title ? ` title="${escapeHtml(title)}"` : ''}>${label}</button></th>`).join('')}<th></th></tr></thead>
               <tbody>${lista.map(rowHTML).join('')}</tbody>
             </table>
           </div>
-        </article>`).join('')}
+        </details>`).join('')}
       </div>
     </section>`;
 }
@@ -316,6 +340,12 @@ function rowHTML(emp) {
     </tr>`;
 }
 
+// Los selects se muestran como buscadores (operario-autocomplete.js), que sólo
+// se actualizan con el evento change; asignar .value por código no lo dispara.
+function refrescarSelects(...selects) {
+  selects.forEach((select) => select.dispatchEvent(new Event('change', { bubbles: true })));
+}
+
 function openModal(modo, id = null) {
   editingId = id;
   if (modo === 'editar') {
@@ -335,6 +365,7 @@ function openModal(modo, id = null) {
     mDept.value = '';
     mTurno.value = '';
   }
+  refrescarSelects(mDept, mTurno);
   modalOverlay.classList.add('modal-overlay--visible');
   mNombre.focus();
 }
@@ -350,6 +381,7 @@ function limpiarCampos() {
   mEmail.value = '';
   mDept.value = '';
   mTurno.value = '';
+  refrescarSelects(mDept, mTurno);
 }
 
 async function guardarEmpleado() {
@@ -393,6 +425,11 @@ async function desactivarEmpleado(id) {
     alert(error.message);
   }
 }
+
+// toggle no burbujea: se escucha en captura para recordar lo que abre o cierra el usuario.
+empGrupos.addEventListener('toggle', (e) => {
+  if (e.target.matches('.grupo-area-turno')) turnosAbiertos.set(e.target.dataset.clave, e.target.open);
+}, true);
 
 empGrupos.addEventListener('click', (e) => {
   const sortBtn = e.target.closest('.emp-sort');

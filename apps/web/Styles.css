@@ -154,12 +154,10 @@ html, body {
 
 /* Orden uniforme del menú lateral del Supervisor en todas sus pantallas. */
 .sidebar__nav .nav-item[href="Supervisor-Home.html"] { order: 1; }
-.sidebar__nav .nav-item[href="Supervisor-Monitoreo.html"] { order: 2; }
-.sidebar__nav .nav-item[href="Supervisor-Empleados.html"] { order: 3; }
-.sidebar__nav .nav-item[href="Supervisor-Mediciones.html"] { order: 4; }
-.sidebar__nav .nav-item[href="Supervisor-Wearables.html"] { order: 5; }
-.sidebar__nav .nav-item[href="Supervisor-Procesamiento.html"] { order: 6; }
-.sidebar__nav .nav-item[href="Supervisor-Notificaciones.html"] { order: 7; }
+.sidebar__nav .nav-item[href="Supervisor-Empleados.html"] { order: 2; }
+.sidebar__nav .nav-item[href="Supervisor-Mediciones.html"] { order: 3; }
+.sidebar__nav .nav-item[href="Supervisor-Wearables.html"] { order: 4; }
+.sidebar__nav .nav-item[href="Supervisor-Notificaciones.html"] { order: 5; }
 
 .nav-item svg {
   width: 16px;
@@ -4023,6 +4021,36 @@ select.cfg-input {
   color: var(--text-muted);
 }
 
+/* ── FILTRO POR ROL ─────────────────────────────────────────── */
+
+.usr-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 28px 16px;
+}
+
+.usr-rol-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.usr-rol-btn:hover { border-color: var(--teal-500); color: var(--text-primary); }
+.usr-rol-btn--activo { background: var(--teal-dim); border-color: var(--teal-500); color: var(--teal-400); }
+.usr-rol-btn__total { padding: 0 7px; border-radius: 999px; background: var(--bg-card-alt); color: var(--text-muted); font-size: 0.7rem; }
+.usr-rol-btn--activo .usr-rol-btn__total { color: var(--teal-400); }
+
 /* ── TABLA DE USUARIOS ──────────────────────────────────────── */
 
 .usr-table-wrap {
@@ -4073,6 +4101,24 @@ select.cfg-input {
   color: var(--text-primary);
   white-space: nowrap;
   vertical-align: middle;
+}
+
+.usr-table tbody tr.usr-grupo,
+.usr-table tbody tr.usr-grupo:hover {
+  background: var(--bg-card-alt);
+}
+
+.usr-table tr.usr-grupo td {
+  padding: 9px 20px;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.usr-table tr.usr-grupo small {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .usr-td-avatar {
@@ -4344,6 +4390,10 @@ select.cfg-input {
     max-width: 100%;
   }
 
+  .usr-roles {
+    padding: 0 16px 12px;
+  }
+
   .usr-table-wrap {
     padding: 0 16px 20px;
   }
@@ -4439,6 +4489,15 @@ select.cfg-input {
 .emp-grupos .area-turno-seccion__titulo small { margin-left: 6px; color: var(--text-muted); font-size: 0.74rem; font-weight: 500; }
 .emp-grupos__turnos { display: flex; flex-direction: column; gap: 14px; }
 .emp-grupos__tabla { overflow-x: auto; }
+/* Cada turno es un desplegable: abierto el turno en curso, cerrados los demás */
+.emp-grupos .grupo-area-turno__header { cursor: pointer; list-style: none; user-select: none; }
+.emp-grupos .grupo-area-turno__header::-webkit-details-marker { display: none; }
+.emp-grupos .grupo-area-turno__header h4 { display: flex; align-items: center; gap: 8px; }
+.emp-grupos .grupo-area-turno__header h4::before { content: '›'; display: inline-block; color: var(--text-muted); font-size: 1.1rem; line-height: 1; transition: transform 0.15s; }
+.emp-grupos .grupo-area-turno[open] > .grupo-area-turno__header h4::before { transform: rotate(90deg); }
+.emp-grupos .grupo-area-turno:not([open]) > .grupo-area-turno__header { border-bottom: 0; }
+.emp-grupos .grupo-area-turno__header:hover { background: var(--bg-card); }
+.emp-grupos .grupo-area-turno__actual { padding: 1px 8px; border-radius: 999px; color: var(--teal-400); background: var(--teal-dim); font-size: 0.66rem; font-weight: 600; }
 .emp-grupos__tabla .emp-table { border: 0; border-radius: 0; }
 .emp-grupos__mensaje { padding: 32px; color: var(--text-muted); font-size: 0.875rem; text-align: center; }
 

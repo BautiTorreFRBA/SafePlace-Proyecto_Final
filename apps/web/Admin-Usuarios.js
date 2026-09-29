@@ -6,6 +6,7 @@ const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;
 const tableBody = document.getElementById('usrTableBody');
 const usrCount = document.getElementById('usrCount');
 const usrSearch = document.getElementById('usrSearch');
+const usrRoles = document.getElementById('usrRoles');
 const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
 const modalOverlay = document.getElementById('usrModalOverlay');
 const modalClose = document.getElementById('usrModalClose');
@@ -25,6 +26,15 @@ const supervisorTurnos = document.getElementById('usrSupervisorTurnos');
 let usuarios = [];
 let empresas = [];
 let editandoId = null;
+let rolFiltro = 'todos';
+
+// Orden de los grupos y de los botones de filtro.
+const GRUPOS_ROL = [
+  ['admin', 'Administradores'],
+  ['supervisor', 'Supervisores'],
+  ['seguridad', 'Seguridad e Higiene'],
+  ['otro', 'Sin rol'],
+];
 
 function getAuthHeaders() {
   const token = sessionStorage.getItem('authToken');
@@ -136,15 +146,34 @@ function actualizarContador(total = usuarios.length) {
   usrCount.textContent = `${total} ${total === 1 ? 'usuario del sistema' : 'usuarios del sistema'}`;
 }
 
+function rolClave(usuario) {
+  return getRolValue(usuario) || 'otro';
+}
+
+// Un botón por rol con la cantidad que coincide con la búsqueda; "Sin rol"
+// sólo aparece si hay usuarios así.
+function renderFiltroRoles(coincidentes) {
+  const cantidad = (clave) => coincidentes.filter((usuario) => rolClave(usuario) === clave).length;
+  const botones = [['todos', 'Todos', coincidentes.length], ...GRUPOS_ROL
+    .filter(([clave]) => clave !== 'otro' || usuarios.some((usuario) => rolClave(usuario) === 'otro'))
+    .map(([clave, label]) => [clave, label, cantidad(clave)])];
+  usrRoles.innerHTML = botones.map(([clave, label, total]) => `
+    <button type="button" class="usr-rol-btn${rolFiltro === clave ? ' usr-rol-btn--activo' : ''}" data-rol="${clave}" aria-pressed="${rolFiltro === clave}">
+      ${label} <span class="usr-rol-btn__total">${total}</span>
+    </button>`).join('');
+}
+
 function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
   const busqueda = usrSearch.value.trim().toLowerCase();
-  const filtrados = usuarios.filter((usuario) => {
+  const coincidentes = usuarios.filter((usuario) => {
     const nombreCompleto = `${usuario.nombre || ''} ${usuario.apellido || ''}`.toLowerCase();
     const email = String(usuario.email || '').toLowerCase();
     const rol = String(getRolLabel(usuario)).toLowerCase();
     return nombreCompleto.includes(busqueda) || email.includes(busqueda) || rol.includes(busqueda);
   });
+  const filtrados = rolFiltro === 'todos' ? coincidentes : coincidentes.filter((usuario) => rolClave(usuario) === rolFiltro);
 
+  renderFiltroRoles(coincidentes);
   actualizarContador(filtrados.length);
 
   if (filtrados.length === 0) {
@@ -158,7 +187,7 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
     return;
   }
 
-  tableBody.innerHTML = filtrados.map((usuario) => {
+  const filaUsuario = (usuario) => {
     const nombre = usuario.nombre || usuario.usuario_nombre || '';
     const apellido = usuario.apellido || usuario.usuario_apellido || '';
     const avatar = iniciales(nombre, apellido) || 'US';
@@ -186,7 +215,24 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
         </td>
       </tr>
     `;
+  };
+
+  // Agrupados por rol: una fila de encabezado por grupo y sus usuarios debajo.
+  tableBody.innerHTML = GRUPOS_ROL.map(([clave, label]) => {
+    const grupo = filtrados.filter((usuario) => rolClave(usuario) === clave);
+    if (grupo.length === 0) return '';
+    return `
+      <tr class="usr-grupo">
+        <td colspan="6">${label} <small>${grupo.length} usuario${grupo.length !== 1 ? 's' : ''}</small></td>
+      </tr>
+      ${grupo.map(filaUsuario).join('')}`;
   }).join('');
+}
+
+// Los selects se muestran como buscadores (operario-autocomplete.js), que sólo
+// se actualizan con el evento change; asignar .value por código no lo dispara.
+function refrescarSelects(...selects) {
+  selects.forEach((select) => select.dispatchEvent(new Event('change', { bubbles: true })));
 }
 
 function abrirModal() {
@@ -212,7 +258,7 @@ function limpiarFormulario() {
   selectRol.value = 'supervisor';
   selectSupervisorArea.value = '';
   supervisorTurnos.querySelectorAll('input').forEach((input) => { input.checked = false; });
-  actualizarCamposSupervisor();
+  refrescarSelects(selectEmpresa, selectRol, selectSupervisorArea);
 }
 
 function actualizarCamposSupervisor() {
@@ -299,7 +345,7 @@ function editarUsuario(id) {
   selectSupervisorArea.value = usuario.area_supervisada || '';
   const turnos = Array.isArray(usuario.turnos_supervisados) ? usuario.turnos_supervisados : [];
   supervisorTurnos.querySelectorAll('input').forEach((input) => { input.checked = turnos.includes(input.value); });
-  actualizarCamposSupervisor();
+  refrescarSelects(selectEmpresa, selectRol, selectSupervisorArea);
   modalOverlay.classList.add('usr-modal-overlay--visible');
 }
 
@@ -336,6 +382,12 @@ modalClose.addEventListener('click', cerrarModal);
 modalCancel.addEventListener('click', cerrarModal);
 modalCreate.addEventListener('click', guardarUsuario);
 usrSearch.addEventListener('input', () => renderTabla());
+usrRoles.addEventListener('click', (e) => {
+  const boton = e.target.closest('.usr-rol-btn');
+  if (!boton) return;
+  rolFiltro = boton.dataset.rol;
+  renderTabla();
+});
 selectRol.addEventListener('change', actualizarCamposSupervisor);
 
 modalOverlay.addEventListener('click', (e) => {

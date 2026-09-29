@@ -27,16 +27,9 @@ function sessionUser() {
   const name = rawName.trim() ? rawName.trim().split(/\s+/).map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ') : 'Usuario';
   const role = String(sessionStorage.getItem('userRole') || '').trim().toLowerCase();
   const roleLabels = { admin: 'Administrador', supervisor: 'Supervisor Operativo', seguridad: 'Resp. Seguridad e Higiene' };
-  return { name, role: roleLabels[role] || 'Usuario', initials: initials(name) };
-}
-function SessionUserUI() {
-  useEffect(() => {
-    const user = sessionUser();
-    document.querySelectorAll('.sidebar__user-name').forEach((element) => { element.textContent = user.name; });
-    document.querySelectorAll('.sidebar__user-role').forEach((element) => { element.textContent = user.role; });
-    document.querySelectorAll('.sidebar__footer .avatar, .topbar__right .avatar').forEach((element) => { element.textContent = user.initials; });
-  }, []);
-  return null;
+  const area = sessionStorage.getItem('userSupervisorArea') || '';
+  const roleLabel = role === 'supervisor' && area ? `Supervisor del área ${area}` : roleLabels[role] || 'Usuario';
+  return { name, role: roleLabel, initials: initials(name) };
 }
 function formatDate(value) { if (!value) return 'Sin datos'; const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Sin datos' : date.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 function formatDateShort(value) { if (!value) return '--'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }); }
@@ -44,11 +37,10 @@ function formatDateShort(value) { if (!value) return '--'; const date = new Date
 function MenuIcon({ type }) {
   const paths = {
     home: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>,
-    monitor: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>,
     employees: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
     measurements: <><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></>,
     wearable: <><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></>,
-    processing: <><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></>,
+    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
     notifications: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
   };
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{paths[type]}</svg>;
@@ -56,12 +48,12 @@ function MenuIcon({ type }) {
 
 function Sidebar() {
   const user = sessionUser();
-  const links = [['home', 'Home', 'Supervisor-Home.html'], ['monitor', 'Monitoreo', 'Supervisor-Monitoreo.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['processing', 'Procesamiento', 'Supervisor-Procesamiento.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']];
-  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href]) => <a className={`nav-item ${label === 'Empleados' ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm"></div><div><div className="sidebar__user-name">Supervisor</div><div className="sidebar__user-role">Supervisor</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="monitor" /> Cerrar sesión</a></div></aside>;
+  const links = [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']];
+  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href]) => <a className={`nav-item ${label === 'Empleados' ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
 }
 
 function Layout({ children, selected, onBack }) {
-  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar"></div></div></header>{selected && <button className="empleado-back" onClick={onBack}><span>←</span> Volver a empleados</button>}{children}</main></div>;
+  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={onBack}><span>←</span> Volver a empleados</button>}{children}</main></div>;
 }
 
 const turnoLabel = (turno) => turno.charAt(0).toUpperCase() + turno.slice(1);
@@ -113,6 +105,7 @@ const alertMark = (tipo) => ALERT_MARKS[String(tipo || '').toUpperCase()] || { l
 const CHART_BOX = { width: 760, height: 280, left: 44, right: 18, top: 22, bottom: 40 };
 const PLOT_W = CHART_BOX.width - CHART_BOX.left - CHART_BOX.right;
 const ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos (los puntos son de 1 minuto)
+const VISTA_INICIAL_MS = 24 * 3600_000; // al abrir se muestra el último día del período
 const MAX_DRAWN_POINTS = 700; // por encima se promedia por columna para no dibujar miles de nodos
 const GAP_MS = 5 * 60_000; // más de 5 min sin lecturas corta la línea
 
@@ -136,16 +129,17 @@ function Chart({ points, alerts = [], fatigue = 130, overexertion = 160 }) {
   const t0 = times.length ? Math.min(...times) : 0;
   const t1 = times.length ? Math.max(Math.max(...times), t0 + 60_000) : 0;
 
-  const [view, setView] = useState({ v0: t0, v1: t1 });
+  const initialView = () => ({ v0: Math.max(t0, t1 - VISTA_INICIAL_MS), v1: t1 });
+  const [view, setView] = useState(initialView);
   const viewRef = useRef(view); viewRef.current = view;
   const containerRef = useRef(null); const svgRef = useRef(null); const dragRef = useRef(null);
-  useEffect(() => { setView({ v0: t0, v1: t1 }); }, [t0, t1]);
+  useEffect(() => { setView(initialView()); }, [t0, t1]);
 
   const zoom = (factor, center) => {
     const { v0, v1 } = viewRef.current; const span = v1 - v0; const c = center ?? (v0 + v1) / 2;
     const next = span * factor; setView(clampWindow(c - ((c - v0) / span) * next, next, t0, t1));
   };
-  const reset = () => setView({ v0: t0, v1: t1 });
+  const reset = () => setView(initialView());
   const timeAt = (clientX) => {
     const rect = svgRef.current.getBoundingClientRect(); const { v0, v1 } = viewRef.current;
     const ratio = Math.min(1, Math.max(0, (((clientX - rect.left) / rect.width) * CHART_BOX.width - CHART_BOX.left) / PLOT_W));
@@ -201,14 +195,14 @@ function Chart({ points, alerts = [], fatigue = 130, overexertion = 160 }) {
   const drawnVisible = drawn.filter((point) => point.t >= v0 && point.t <= v1);
   const radius = drawnVisible.length <= 150 ? 4 : 2.5;
   const visibleMarks = marks.filter((mark) => mark.t >= v0 && mark.t <= v1);
-  const full = v0 <= t0 && v1 >= t1; const atMin = span <= Math.min(ZOOM_MIN_MS, t1 - t0) + 1;
+  const full = v0 <= t0 && v1 >= t1; const atInitial = v0 === initialView().v0 && v1 === t1; const atMin = span <= Math.min(ZOOM_MIN_MS, t1 - t0) + 1;
   const tipos = [...new Map(marks.map((mark) => [mark.cls, mark])).values()];
 
   return <div className="empleado-chart-zoom" ref={containerRef} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
     <div className="empleado-chart-toolbar">
       <span className="empleado-chart-toolbar__range">{full ? 'Período completo' : `${formatDate(v0)} – ${formatDate(v1)}`}</span>
       <span className="empleado-chart-toolbar__hint">Rueda del mouse para hacer zoom · arrastrá para moverte · doble clic para restablecer</span>
-      <div className="empleado-chart-toolbar__zoom" role="group" aria-label="Zoom del gráfico"><button type="button" onClick={() => zoom(2)} disabled={full} aria-label="Alejar">−</button><button type="button" onClick={() => zoom(0.5)} disabled={atMin} aria-label="Acercar">+</button><button type="button" onClick={reset} disabled={full}>Restablecer</button></div>
+      <div className="empleado-chart-toolbar__zoom" role="group" aria-label="Zoom del gráfico"><button type="button" onClick={() => zoom(2)} disabled={full} aria-label="Alejar">−</button><button type="button" onClick={() => zoom(0.5)} disabled={atMin} aria-label="Acercar">+</button><button type="button" onClick={reset} disabled={atInitial}>Restablecer</button></div>
     </div>
     <svg ref={svgRef} className="empleado-chart empleado-chart--zoomable" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolución de frecuencia cardíaca" onPointerDown={onPointerDown} onDoubleClick={reset}>
       <defs><clipPath id="empleadoChartClip"><rect x={left} y="0" width={PLOT_W} height={height} /></clipPath></defs>
@@ -239,4 +233,4 @@ function App() {
   return selected ? <DetailView employee={selected} filters={filters} onBack={() => setSelected(null)} /> : <ListView employees={employees} loading={loading} error={error} filters={filters} setFilters={setFilters} onSearch={load} onSelect={setSelected} />;
 }
 
-createRoot(document.getElementById('root')).render(<><SessionUserUI /><App /></>);
+createRoot(document.getElementById('root')).render(<App />);
