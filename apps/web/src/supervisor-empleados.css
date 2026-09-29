@@ -54,3 +54,9 @@
 .empleados-grupos .area-turno-seccion__turnos { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:start; }
 .empleados-grupo__cards { gap:10px; padding:10px; }
 .empleados-grupo__cards .empleado-card { min-height:0; width:100%; }
+/* Estado vacío del gráfico: la ventana de 24 h se dibuja igual, con el aviso encima */
+.empleado-chart-frame { position:relative; }
+.empleado-chart-empty { position:absolute; inset:0 0 40px 44px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; pointer-events:none; color:var(--text-secondary); font-size:.85rem; }
+.empleado-chart-empty p { margin:0; }
+.empleado-chart-empty button { pointer-events:auto; padding:6px 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card-alt); color:var(--teal-400); font:inherit; font-size:.78rem; font-weight:600; cursor:pointer; }
+.empleado-chart-empty button:hover { border-color:var(--teal-500); }
