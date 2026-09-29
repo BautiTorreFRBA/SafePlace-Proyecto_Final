@@ -129,6 +129,7 @@ function renderCard(item) {
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
       <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
+      ${item.area ? `<p class="op-card__area">${escapeHtml(item.area)}</p>` : ''}
       <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
     </div>
   </a>`;

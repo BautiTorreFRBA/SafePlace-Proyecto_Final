@@ -263,7 +263,7 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
 }
 
 function DetailView({ employee, filters, onBack }) {
-  const [detail, setDetail] = useState({ loading: true, series: [], rows: [], alerts: [], chartAlerts: [], error: '' });
+  const [detail, setDetail] = useState({ loading: true, series: [], alerts: [], chartAlerts: [], error: '' });
   // "Ahora" se fija al entrar a la pantalla: la ventana inicial del gráfico es (now − 24 h, now).
   const [now] = useState(() => Date.now());
   const inicio24h = now - VENTANA_INICIAL_MS;
@@ -277,24 +277,22 @@ function DetailView({ employee, filters, onBack }) {
     let cancelled = false; const name = encodeURIComponent(fullName(employee)); const id = encodeURIComponent(employee.id);
     const alertasDesde = diaAR(Math.min(periodStart, inicio24h));
     Promise.all([
-      apiFetch(`/mediciones?desde=${filters.desde}&hasta=${filters.hasta}&id_trabajador=${id}&limit=200`),
       apiFetch(`/mediciones?desde=${diaAR(inicio24h)}&hasta=${diaAR(now)}&id_trabajador=${id}&bucket=1m`),
       apiFetch(`/alertas/historico?desde=${alertasDesde}&empleado=${name}`),
-    ]).then(([rows, series, alerts]) => {
+    ]).then(([series, alerts]) => {
       if (cancelled) return;
       // El filtro por nombre del backend es parcial (ILIKE): se acota por id.
       const own = (alerts.data || []).filter((alert) => String(alert.id_trabajador) === String(employee.id));
       const time = (alert) => new Date(alert.fecha_hora).getTime();
       setDetail({
         loading: false,
-        rows: rows.data || [],
         series: (series.data || []).filter((point) => new Date(point.ts).getTime() >= inicio24h),
         // Historial de alertas: el período Desde/Hasta. Gráfico: desde el inicio del período (o las últimas 24 h) hasta ahora.
         alerts: own.filter((alert) => time(alert) >= periodStart && time(alert) <= hastaFin),
         chartAlerts: own,
         error: '',
       });
-    }).catch((error) => { if (!cancelled) setDetail({ loading: false, series: [], rows: [], alerts: [], chartAlerts: [], error: error.message }); });
+    }).catch((error) => { if (!cancelled) setDetail({ loading: false, series: [], alerts: [], chartAlerts: [], error: error.message }); });
     return () => { cancelled = true; };
   }, [employee, filters.desde, filters.hasta]);
   // Resto del período para el gráfico: se pide recién cuando el usuario sale de las últimas 24 h.
@@ -308,7 +306,7 @@ function DetailView({ employee, filters, onBack }) {
   };
   const chartPoints = fullSeries.state === 'done' ? fullSeries.data : detail.series;
   const lastReading = employee.ultima ? new Date(employee.ultima).getTime() : null;
-  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={detail.chartAlerts} now={now} domainStart={periodStart} lastReading={lastReading} onNeedFull={loadFull} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div><div className="empleado-detail-card" style={{ gridColumn: '1 / -1' }}><div className="empleado-detail-card__header"><h2>Lecturas registradas</h2><span>Últimas {detail.rows.length}</span></div><div className="empleado-table-scroll"><table className="empleado-readings"><thead><tr><th>Fecha y hora</th><th>Frecuencia cardíaca</th><th>Actividad</th></tr></thead><tbody>{detail.rows.slice(0, 100).map((row) => <tr key={row.id}><td>{formatDate(row.fecha_hora)}</td><td><strong>{row.frecuencia_cardiaca ?? '--'} BPM</strong></td><td>{row.actividad ?? '--'}</td></tr>)}</tbody></table></div></div></div>}</div></Layout>;
+  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={detail.chartAlerts} now={now} domainStart={periodStart} lastReading={lastReading} onNeedFull={loadFull} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div></div>}</div></Layout>;
 }
 
 function App() {

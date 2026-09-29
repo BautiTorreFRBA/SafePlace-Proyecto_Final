@@ -69,24 +69,8 @@
     <!-- Filtro por rol: un botón por rol (inyectados por Admin-Usuarios.js) -->
     <div class="usr-roles" id="usrRoles" role="group" aria-label="Filtrar por rol"></div>
 
-    <!-- Tabla de usuarios -->
-    <div class="usr-table-wrap">
-      <table class="usr-table">
-        <thead>
-          <tr>
-            <th>NOMBRE</th>
-            <th>EMAIL</th>
-            <th>ID EMPRESA</th>
-            <th>ROL</th>
-            <th>ESTADO</th>
-            <th>ACCIONES</th>
-          </tr>
-        </thead>
-        <tbody id="usrTableBody">
-          <!-- Filas inyectadas por Usuarios.js -->
-        </tbody>
-      </table>
-    </div>
+    <!-- Usuarios agrupados por rol: un recuadro por rol, como las áreas de Gestión de Empleados -->
+    <section class="grupos-area-turno usr-grupos" id="usrGrupos" aria-live="polite"></section>
 
   </main>
 </div>

@@ -3,7 +3,7 @@ const USERS_ENDPOINT = `${API_BASE_URL}/dashboard/users`;
 const COMPANIES_ENDPOINT = `${API_BASE_URL}/dashboard/companies`;
 const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;
 
-const tableBody = document.getElementById('usrTableBody');
+const usrGrupos = document.getElementById('usrGrupos');
 const usrCount = document.getElementById('usrCount');
 const usrSearch = document.getElementById('usrSearch');
 const usrRoles = document.getElementById('usrRoles');
@@ -177,13 +177,7 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
   actualizarContador(filtrados.length);
 
   if (filtrados.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">
-          ${mensajeVacio}
-        </td>
-      </tr>
-    `;
+    usrGrupos.innerHTML = `<p class="usr-grupos__mensaje">${mensajeVacio}</p>`;
     return;
   }
 
@@ -217,15 +211,20 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
     `;
   };
 
-  // Agrupados por rol: una fila de encabezado por grupo y sus usuarios debajo.
-  tableBody.innerHTML = GRUPOS_ROL.map(([clave, label]) => {
+  // Un recuadro por rol (como las áreas de Gestión de Empleados), cada uno con su tabla.
+  usrGrupos.innerHTML = GRUPOS_ROL.map(([clave, label]) => {
     const grupo = filtrados.filter((usuario) => rolClave(usuario) === clave);
     if (grupo.length === 0) return '';
     return `
-      <tr class="usr-grupo">
-        <td colspan="6">${label} <small>${grupo.length} usuario${grupo.length !== 1 ? 's' : ''}</small></td>
-      </tr>
-      ${grupo.map(filaUsuario).join('')}`;
+      <section class="area-turno-seccion">
+        <h3 class="area-turno-seccion__titulo">${label} <small>${grupo.length} usuario${grupo.length !== 1 ? 's' : ''}</small></h3>
+        <div class="usr-grupos__tabla">
+          <table class="usr-table">
+            <thead><tr><th>NOMBRE</th><th>EMAIL</th><th>EMPRESA</th><th>ROL</th><th>ESTADO</th><th>ACCIONES</th></tr></thead>
+            <tbody>${grupo.map(filaUsuario).join('')}</tbody>
+          </table>
+        </div>
+      </section>`;
   }).join('');
 }
 
