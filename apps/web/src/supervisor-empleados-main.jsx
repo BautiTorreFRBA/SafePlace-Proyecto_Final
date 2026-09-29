@@ -54,6 +54,8 @@ function MenuIcon({ type }) {
     team: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
     clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
     broadcast: <><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></>,
+    document: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></>,
+    audit: <><path d="M9 11h6"/><path d="M9 15h6"/><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L15 12.6 11 14l1.4-4 6-6.4z"/></>,
   };
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{paths[type]}</svg>;
 }
@@ -63,17 +65,19 @@ function MenuIcon({ type }) {
 const PAGE_ROL = document.getElementById('root').dataset.rol || 'supervisor';
 const NAV_LINKS = {
   supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']],
+  // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
+  admin: [['home', 'Home', 'Admin-Home.html', true], ['employees', 'Empleados', 'Admin-Empleados.html', false], ['wearable', 'Asociar Wearable', 'Admin-AsociarWearable.html', false], ['wearable', 'Estado Dispositivos', 'Admin-EstadoDispositivos.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['broadcast', 'Configuración', 'Admin-Configuracion.html', false], ['clock', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
   seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['team', 'Empleados', 'Seguridad-Empleados.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
 };
 
 function Sidebar() {
   const user = sessionUser();
   const links = NAV_LINKS[PAGE_ROL] || NAV_LINKS.supervisor;
-  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href]) => <a className={`nav-item ${label === 'Empleados' ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
+  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href, active = label === 'Empleados']) => <a className={`nav-item ${active ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
 }
 
 function Layout({ children, selected, onBack }) {
-  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={onBack}><span>←</span> Volver a empleados</button>}{children}</main></div>;
+  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={PAGE_ROL === 'admin' ? () => { window.location.href = 'Admin-Home.html'; } : onBack}><span>←</span> {PAGE_ROL === 'admin' ? 'Volver al inicio' : 'Volver a empleados'}</button>}{children}</main></div>;
 }
 
 const turnoLabel = (turno) => turno.charAt(0).toUpperCase() + turno.slice(1);
@@ -311,6 +315,14 @@ function App() {
   const [employees, setEmployees] = useState([]); const [selected, setSelected] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [filters, setFilters] = useState({ search: '', area: '', turno: '', desde: defaultDesde, hasta: defaultHasta });
   const load = async () => { setLoading(true); setError(''); try { const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).filter(dentroDelAlcance).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
   useEffect(() => { load(); }, []);
+  // ?empleado=<id> abre directo el historial de ese operario (lo usan las tarjetas del Home del admin).
+  const empleadoInicial = useRef(new URLSearchParams(window.location.search).get('empleado'));
+  useEffect(() => {
+    if (!empleadoInicial.current || !employees.length) return;
+    const match = employees.find((item) => String(item.id) === empleadoInicial.current);
+    empleadoInicial.current = null;
+    if (match) setSelected(match);
+  }, [employees]);
   return selected ? <DetailView employee={selected} filters={filters} onBack={() => setSelected(null)} /> : <ListView employees={employees} loading={loading} error={error} filters={filters} setFilters={setFilters} onSearch={load} onSelect={setSelected} />;
 }
 

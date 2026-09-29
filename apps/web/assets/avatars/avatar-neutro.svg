@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 360" width="260" height="360">
+  <!-- Avatar neutro (sexo sin cargar): relleno blanco y líneas negras, como las
+       ilustraciones de hombre/mujer, para colorearse con mix-blend-mode: multiply. -->
+  <g fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M8 354 L34 250 Q42 226 70 220 L100 212 L160 212 L190 220 Q218 226 226 250 L252 354 Z"/>
+    <path d="M104 186 L104 222 Q130 238 156 222 L156 186 Z"/>
+    <ellipse cx="130" cy="140" rx="54" ry="64"/>
+    <path d="M70 108 Q72 42 130 38 Q188 42 190 108 Z"/>
+    <path d="M58 108 L202 108 Q206 118 198 122 L62 122 Q54 118 58 108 Z"/>
+    <path d="M130 40 L130 106" fill="none"/>
+    <path d="M100 222 L130 300 L160 222" fill="none"/>
+  </g>
+</svg>

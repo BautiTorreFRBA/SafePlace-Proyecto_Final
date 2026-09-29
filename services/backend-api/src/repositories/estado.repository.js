@@ -63,6 +63,11 @@ const listarTrabajadoresActivos = async (usuario = {}) => {
       o.nombre,
       o.apellido,
       o.area,
+      o.turno,
+      o.sexo,
+      -- Umbral particular del operario (NULL = usa el global de fc_fatiga/fc_sobreesfuerzo).
+      o."FC_Fatiga" AS fc_fatiga_particular,
+      o."FC_Sobreesfuerzo" AS fc_sobreesfuerzo_particular,
       ua.id_dispositivo,
       ua.monitoreo_desde,
       d.capacidades AS dispositivo_capacidades,

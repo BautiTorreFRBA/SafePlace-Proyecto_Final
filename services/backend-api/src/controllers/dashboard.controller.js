@@ -40,6 +40,7 @@ const crearEmpleado = async (req, res, next) => {
       area: req.body.area,
       email: req.body.email,
       turno: req.body.turno,
+      sexo: req.body.sexo,
       idEmpresa,
     });
 
@@ -61,6 +62,7 @@ const actualizarEmpleado = async (req, res, next) => {
       area: req.body.area,
       email: req.body.email,
       turno: req.body.turno,
+      sexo: req.body.sexo,
       idEmpresa,
     });
 

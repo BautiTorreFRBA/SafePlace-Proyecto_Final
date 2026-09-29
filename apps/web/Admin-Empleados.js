@@ -16,6 +16,7 @@ const mApellido = document.getElementById('mApellido');
 const mEmail = document.getElementById('mEmail');
 const mDept = document.getElementById('mDept');
 const mTurno = document.getElementById('mTurno');
+const mSexo = document.getElementById('mSexo');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
 const TURNOS = ['mañana', 'tarde', 'noche'];
@@ -188,6 +189,7 @@ function normalizarEmpleado(emp) {
     iniciales: iniciales(nombreCompleto || emp.legajo || ''),
     depto: emp.depto || emp.area || 'Sin asignar',
     turno: emp.turno || '',
+    sexo: emp.sexo || '',
     rol: emp.rol || 'Operario',
     estado: estaActivo ? 'activo' : 'inactivo',
     alta: emp.alta ? fmtARFecha(new Date(emp.alta)) : '--',
@@ -357,6 +359,7 @@ function openModal(modo, id = null) {
     mEmail.value = emp.email || '';
     setSelectByText(mDept, emp.depto || emp.area || '');
     mTurno.value = emp.turno || '';
+    mSexo.value = emp.sexo || '';
   } else {
     modalTitle.textContent = 'Nuevo Empleado';
     mNombre.value = '';
@@ -364,8 +367,9 @@ function openModal(modo, id = null) {
     mEmail.value = '';
     mDept.value = '';
     mTurno.value = '';
+    mSexo.value = '';
   }
-  refrescarSelects(mDept, mTurno);
+  refrescarSelects(mDept, mTurno, mSexo);
   modalOverlay.classList.add('modal-overlay--visible');
   mNombre.focus();
 }
@@ -381,7 +385,8 @@ function limpiarCampos() {
   mEmail.value = '';
   mDept.value = '';
   mTurno.value = '';
-  refrescarSelects(mDept, mTurno);
+  mSexo.value = '';
+  refrescarSelects(mDept, mTurno, mSexo);
 }
 
 async function guardarEmpleado() {
@@ -390,6 +395,7 @@ async function guardarEmpleado() {
   const email = mEmail.value.trim();
   const area = mDept.value.trim();
   const turno = mTurno.value;
+  const sexo = mSexo.value;
 
   if (!nombre || !apellido || !area || !email || !turno) {
     alert('Completá nombre, apellido, departamento, turno y email.');
@@ -399,7 +405,7 @@ async function guardarEmpleado() {
   try {
     await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
-      body: JSON.stringify({ nombre, apellido, area, email, turno }),
+      body: JSON.stringify({ nombre, apellido, area, email, turno, sexo }),
     });
     closeModal();
     limpiarCampos();
@@ -464,7 +470,7 @@ modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 modalSave.addEventListener('click', guardarEmpleado);
-[mNombre, mApellido, mEmail, mDept, mTurno].forEach((campo) => campo.addEventListener('keydown', (e) => {
+[mNombre, mApellido, mEmail, mDept, mTurno, mSexo].forEach((campo) => campo.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     guardarEmpleado();
   }

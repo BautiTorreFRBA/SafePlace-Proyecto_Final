@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
-import { cpSync, readdirSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Páginas que Vite tiene que compilar (React/JSX). Sumar acá cada vista nueva hecha con React.
-const PAGINAS_REACT = ['Supervisor-Empleados.html', 'Seguridad-Empleados.html'];
+const PAGINAS_REACT = ['Supervisor-Empleados.html', 'Seguridad-Empleados.html', 'Admin-HistorialEmpleado.html'];
 
 // El resto de las páginas son HTML + <script src="..."> clásicos (sin type="module"):
 // Vite no los empaqueta ni los emite, así que se copian tal cual a dist.
@@ -28,6 +28,8 @@ function copiarEstaticos() {
         if (!esEstatico || NO_ESTATICOS.has(archivo) || PAGINAS_REACT.includes(archivo)) continue;
         cpSync(resolve(raiz, archivo), resolve(destino, archivo));
       }
+      // Imágenes (avatares del Home del admin, etc.).
+      if (existsSync(resolve(raiz, 'assets'))) cpSync(resolve(raiz, 'assets'), resolve(destino, 'assets'), { recursive: true });
     },
   };
 }

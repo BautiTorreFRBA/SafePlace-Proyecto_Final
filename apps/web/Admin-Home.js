@@ -1,350 +1,198 @@
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 15000;
+// Mismo límite que el backend (estado.repository): una lectura de más de 5 min se considera desactualizada.
+const LIMITE_DESACTUALIZADO_S = 5 * 60;
+const HISTORIAL_URL = 'Admin-HistorialEmpleado.html';
 
-let alertsChart = null;
-let heartChart = null;
+// Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
+// Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
+const ESTADOS = {
+  sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
+  fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
+  inactividad: { label: 'Inactividad prolongada', color: '#60a5fa', grupo: 'advertencia', rank: 2 },
+  normal: { label: 'Normal', color: '#4ade80', grupo: 'normal', rank: 3 },
+  sin_datos: { label: 'Sin datos', color: '#9ca3af', grupo: 'sin_datos', rank: 4 },
+};
+// Tipo de alerta activa → estado. Si hay varias, gana la de menor rank (SOBREESFUERZO > FATIGA > INACTIVIDAD).
+const ALERTA_A_ESTADO = { SOBREESFUERZO: 'sobreesfuerzo', FATIGA: 'fatiga', INACTIVIDAD_PROLONGADA: 'inactividad' };
 
-async function apiFetch(path, options = {}) {
-  const token = sessionStorage.getItem('authToken');
-  if (!token) {
-    window.location.href = 'InicioSesion.html';
-    return null;
-  }
+const AVATARES = {
+  masculino: 'assets/avatars/avatar-hombre.png',
+  femenino: 'assets/avatars/avatar-mujer.png',
+  neutro: 'assets/avatars/avatar-neutro.svg',
+};
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
-  }
-
-  return payload;
-}
+let trabajadores = [];
+let filtroActual = 'todos';
+let busquedaActual = '';
 
 function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
 
 function nombreCompleto(item) {
-  return `${item.operario_nombre || item.nombre || ''} ${item.operario_apellido || item.apellido || ''}`.trim() || 'Sin asignar';
+  return `${item.nombre || item.operario_nombre || ''} ${item.apellido || item.operario_apellido || ''}`.trim() || `Trabajador ${item.id_trabajador ?? ''}`.trim();
 }
 
 function iniciales(nombre) {
   const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return 'SP';
-  return partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
+  return partes.length ? partes.slice(0, 2).map((parte) => parte[0]).join('').toUpperCase() : 'SP';
 }
 
-function esCritica(prioridad) {
-  const normalizada = String(prioridad || '').toLowerCase();
-  return normalizada.includes('crit');
-}
-
-function etiquetaSeveridad(prioridad) {
-  return esCritica(prioridad) ? 'Crítica' : 'Media';
-}
-
-function formatearHora(value) {
-  if (!value) return '';
+// "18/9, 12:43 p. m." en hora argentina.
+function fechaHora(value) {
   const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return '';
-  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(fecha.getTime()) ? '' : fmtAR(fecha, { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-// Los turnos se interpretan siempre con la hora de la planta (Argentina),
-// independientemente de la zona horaria configurada en la computadora.
-function turnoActual() {
-  const hora = Number(new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    hour: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date()));
-
-  if (hora >= 8 && hora < 12) return 'mañana';
-  if (hora >= 12 && hora < 16) return 'tarde';
-  if (hora >= 16 && hora < 20) return 'noche';
-  return null;
+function hora(value) {
+  if (!value) return '--:--';
+  const fecha = new Date(value);
+  return Number.isNaN(fecha.getTime()) ? '--:--' : fmtARHora(fecha, { hour: '2-digit', minute: '2-digit' });
 }
 
-// Fuera de 08:00-20:00 no hay ningún turno reconocido por turnoActual() —
-// eso NO significa que no haya nada que mostrar (ej. operarios en horario
-// nocturno cargado a mano en horario_operario), así que sin turno activo se
-// muestra todo sin filtrar en vez de vaciar el dashboard entero.
-function filtrarPorTurno(items, idsDelTurno, campoId, turno) {
-  if (!turno) return items;
-  return items.filter((item) => idsDelTurno.has(Number(item[campoId])));
+async function apiFetch(path) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) { window.location.href = 'InicioSesion.html'; throw new Error('Sesión expirada'); }
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || payload.message || 'No se pudo cargar el panel.');
+  return payload;
 }
 
-function actualizarEtiquetaTurno(turno) {
-  const titulo = document.getElementById('workerListTitle');
-  const detalle = document.getElementById('turnoActualInfo');
-  if (!titulo || !detalle) return;
+function tieneLecturaReciente(item) {
+  return item.id_medicion != null && item.segundos_desde_ultima_lectura != null
+    && Number(item.segundos_desde_ultima_lectura) <= LIMITE_DESACTUALIZADO_S;
+}
 
-  if (!turno) {
-    titulo.textContent = 'Operarios (todos los turnos)';
-    detalle.textContent = 'Fuera de 08:00–20:00 no hay un turno mañana/tarde/noche reconocido — mostrando todos los operarios.';
-    return;
+// 1) alerta activa (la de mayor prioridad), 2) sin lectura reciente → sin datos,
+// 3) FC actual contra sus umbrales (el particular si tiene, si no el global).
+function calcularEstado(item, alertasPorTrabajador) {
+  const tipos = [...(alertasPorTrabajador.get(String(item.id_trabajador)) || []), item.tipo_alerta];
+  const porAlerta = tipos
+    .map((tipo) => ALERTA_A_ESTADO[String(tipo || '').toUpperCase()])
+    .filter(Boolean)
+    .sort((a, b) => ESTADOS[a].rank - ESTADOS[b].rank)[0];
+  if (porAlerta) return porAlerta;
+  if (!tieneLecturaReciente(item) || item.frecuencia_cardiaca == null) return 'sin_datos';
+
+  const fc = Number(item.frecuencia_cardiaca);
+  const sobreesfuerzo = item.fc_sobreesfuerzo_particular ?? item.fc_sobreesfuerzo;
+  const fatiga = item.fc_fatiga_particular ?? item.fc_fatiga;
+  if (sobreesfuerzo != null && fc >= Number(sobreesfuerzo)) return 'sobreesfuerzo';
+  if (fatiga != null && fc >= Number(fatiga)) return 'fatiga';
+  return 'normal';
+}
+
+function descripcionEstado(item) {
+  if (item.estado === 'sin_datos') {
+    return item.fecha_hora ? `Última lectura: ${fechaHora(item.fecha_hora)}` : 'Sin datos biométricos disponibles';
   }
-
-  titulo.textContent = `Última lectura · turno ${turno}`;
-  detalle.textContent = `Mostrando únicamente operarios del turno ${turno}.`;
+  if (item.estado === 'normal') return 'Lecturas dentro de los parámetros';
+  if (item.estado === 'inactividad') return 'Inactividad prolongada';
+  return `${ESTADOS[item.estado].label}${item.frecuencia_cardiaca != null ? ` · ${item.frecuencia_cardiaca} BPM` : ''}`;
 }
 
-// Mismo criterio de "estado actual" que ya usa Supervisor (estado.repository
-// en el backend): normal/advertencia/crítico por FC + alerta activa, o
-// desactualizado/sin_datos si la última lectura es vieja o no existe. Antes
-// esta pantalla armaba su propio "Normal" a mano con /dashboard/measurements/
-// latest, que no distinguía una lectura de hace meses de una de hace un minuto.
-const ESTADO_CONFIG = {
-  normal: { label: 'Normal', badge: 'badge--normal' },
-  advertencia: { label: 'Media', badge: 'badge--warning' },
-  critico: { label: 'Crítica', badge: 'badge--critical' },
-  desactualizado: { label: 'Desactualizado', badge: 'badge--warning' },
-  sin_datos: { label: 'Sin datos', badge: 'badge--neutral' },
-};
-
-function formatearAntiguedad(fechaHora) {
-  if (!fechaHora) return 'sin lecturas';
-  const ms = Date.now() - new Date(fechaHora).getTime();
-  if (Number.isNaN(ms)) return '';
-  const minutos = Math.floor(ms / 60000);
-  if (minutos < 1) return 'hace instantes';
-  if (minutos < 60) return `hace ${minutos} min`;
-  const horas = Math.floor(minutos / 60);
-  if (horas < 24) return `hace ${horas} h`;
-  return `hace ${Math.floor(horas / 24)} d`;
+function renderSummary() {
+  const porGrupo = trabajadores.reduce((acc, item) => { const { grupo } = ESTADOS[item.estado]; acc[grupo] = (acc[grupo] || 0) + 1; return acc; }, {});
+  const asignados = trabajadores.filter((item) => item.id_dispositivo != null).length;
+  document.getElementById('kpiTrabajadores').textContent = trabajadores.length;
+  document.getElementById('kpiAtencion').textContent = (porGrupo.critico || 0) + (porGrupo.advertencia || 0);
+  document.getElementById('kpiCritico').textContent = porGrupo.critico || 0;
+  document.getElementById('kpiDispositivos').textContent = `${asignados}/${trabajadores.length}`;
+  [['Todos', trabajadores.length], ['Critico', porGrupo.critico || 0], ['Advertencia', porGrupo.advertencia || 0], ['Normal', porGrupo.normal || 0], ['SinDatos', porGrupo.sin_datos || 0]]
+    .forEach(([key, value]) => { document.getElementById(`filter${key}`).textContent = value; });
 }
 
-function renderKpis({ trabajadores, alertas, riesgosHoy, dispositivos }) {
-  const monitoreados = new Set(trabajadores.map((item) => item.id_trabajador).filter((id) => id != null));
-  document.getElementById('kpiTrabajadores').textContent = monitoreados.size;
-  document.getElementById('kpiAlertas').textContent = alertas.length;
-  document.getElementById('kpiRiesgos').textContent = riesgosHoy.length;
+function renderCard(item) {
+  const config = ESTADOS[item.estado];
+  const nombre = nombreCompleto(item);
+  const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
+  const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
+  const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
+  const lectura = reciente
+    ? `<div class="op-card__fc"><strong>${escapeHtml(item.frecuencia_cardiaca)}</strong><small>BPM</small></div>`
+    : `<div class="op-card__fc op-card__fc--vacia"><strong>—</strong></div>
+       <p class="op-card__sin-lectura">Sin lectura reciente${item.fecha_hora ? `<br><span>Última lectura: ${escapeHtml(fechaHora(item.fecha_hora))}</span>` : ''}</p>`;
 
-  const conectados = dispositivos.filter((d) => d.ultimo_estado === 'CONECTADO').length;
-  document.getElementById('kpiDispositivos').textContent = `${conectados}/${dispositivos.length}`;
-
-  const alertasBadge = document.getElementById('alertasBadge');
-  if (alertasBadge) {
-    alertasBadge.textContent = `${alertas.length} ${alertas.length === 1 ? 'alerta' : 'alertas'}`;
-  }
+  // El avatar se pinta con el color del estado: el contenedor tiene la forma del dibujo (mask)
+  // y la ilustración encima con multiply, así el relleno blanco toma el color y las líneas quedan negras.
+  return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}">
+    <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
+    <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
+    <p class="op-card__meta">${escapeHtml(subtitulo)}</p>
+    ${lectura}
+    <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
+  </a>`;
 }
 
-function renderAlertList(alertas) {
-  const alertList = document.getElementById('alertList');
-  if (!alertList) return;
-
-  if (alertas.length === 0) {
-    alertList.innerHTML = '<li class="alert-item"><div class="alert-item__info"><span>No hay alertas activas</span></div></li>';
-    return;
-  }
-
-  alertList.innerHTML = alertas.slice(0, 6).map((a) => {
-    const critica = esCritica(a.prioridad);
-    return `<li class="alert-item">
-      <span class="dot ${critica ? 'dot--red' : 'dot--orange'}"></span>
-      <div class="alert-item__info">
-        <strong>${escapeHtml(nombreCompleto(a))}</strong>
-        <span>${escapeHtml(a.tipo_alerta || 'Alerta')}</span>
-      </div>
-      <span class="alert-item__time">${escapeHtml(formatearHora(a.fecha_hora))}</span>
-      <span class="badge ${critica ? 'badge--critical' : 'badge--warning'}">${etiquetaSeveridad(a.prioridad)}</span>
-    </li>`;
-  }).join('');
+function renderGrid() {
+  const grid = document.getElementById('workerGrid');
+  const busqueda = busquedaActual.toLocaleLowerCase();
+  const filtrados = trabajadores
+    .filter((item) => (filtroActual === 'todos' || ESTADOS[item.estado].grupo === filtroActual)
+      && (nombreCompleto(item).toLocaleLowerCase().includes(busqueda) || String(item.legajo || '').toLocaleLowerCase().includes(busqueda)))
+    .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank
+      || (Number(b.frecuencia_cardiaca) || 0) - (Number(a.frecuencia_cardiaca) || 0)
+      || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
+  grid.innerHTML = filtrados.length
+    ? filtrados.map(renderCard).join('')
+    : '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
 }
 
-function renderWorkerList(trabajadores) {
-  const workerList = document.getElementById('workerList');
-  if (!workerList) return;
-
-  if (trabajadores.length === 0) {
-    workerList.innerHTML = '<li class="worker-item"><div class="worker-item__info"><span>Sin trabajadores monitoreados</span></div></li>';
-    return;
-  }
-
-  workerList.innerHTML = trabajadores.slice(0, 6).map((item) => {
-    const nombre = nombreCompleto(item);
-    const config = ESTADO_CONFIG[item.estado_actual] || ESTADO_CONFIG.normal;
-    const lectura = item.frecuencia_cardiaca != null
-      ? `${item.frecuencia_cardiaca} BPM · ${escapeHtml(formatearAntiguedad(item.fecha_hora))}`
-      : 'Sin lecturas';
-
-    return `<li class="worker-item">
-      <div class="avatar avatar--sm">${escapeHtml(iniciales(nombre))}</div>
-      <div class="worker-item__info">
-        <strong>${escapeHtml(nombre)}</strong>
-        <span>${lectura}</span>
-      </div>
-      <span class="badge ${config.badge}">${escapeHtml(config.label)}</span>
-    </li>`;
-  }).join('');
+function renderAlerts() {
+  const alertas = trabajadores
+    .filter((item) => ['critico', 'advertencia'].includes(ESTADOS[item.estado].grupo))
+    .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank);
+  document.getElementById('alertList').innerHTML = alertas.length
+    ? alertas.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${ESTADOS[item.estado].grupo === 'critico' ? 'critico' : 'advertencia'}"><span class="status-indicator"></span><div><strong>${escapeHtml(nombreCompleto(item))}</strong><span>${escapeHtml(descripcionEstado(item))}</span></div><time>${escapeHtml(hora(item.alerta_fecha_hora || item.fecha_hora))}</time></div>`).join('')
+    : '<div class="supervisor-empty supervisor-empty--small">No hay alertas activas.</div>';
 }
 
-function renderAlertsChart(historico) {
-  const canvas = document.getElementById('alertsChart');
-  if (!canvas || !window.Chart) return;
-
-  const dias = [];
-  const conteoPorDia = {};
-  for (let i = 6; i >= 0; i -= 1) {
-    const fecha = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const clave = fmtARFecha(fecha, { day: '2-digit', month: '2-digit' });
-    dias.push(clave);
-    conteoPorDia[clave] = 0;
-  }
-
-  historico.forEach((a) => {
-    const clave = fmtARFecha(new Date(a.fecha_hora), { day: '2-digit', month: '2-digit' });
-    if (clave in conteoPorDia) conteoPorDia[clave] += 1;
-  });
-
-  alertsChart?.destroy();
-  alertsChart = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: dias,
-      datasets: [{
-        data: dias.map((d) => conteoPorDia[d]),
-        backgroundColor: '#f59e0b',
-        borderRadius: 6,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-        y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
-      },
-    },
-  });
+function renderConnectivity() {
+  const offline = trabajadores.filter((item) => item.estado === 'sin_datos');
+  document.getElementById('offlineCount').textContent = offline.length;
+  document.getElementById('connectivityList').innerHTML = offline.length
+    ? offline.map((item) => `<div class="supervisor-connectivity-item"><div class="worker-avatar worker-avatar--small">${escapeHtml(iniciales(nombreCompleto(item)))}</div><div><strong>${escapeHtml(nombreCompleto(item))}</strong><span>${escapeHtml(descripcionEstado(item))}</span></div></div>`).join('')
+    : '<div class="supervisor-empty supervisor-empty--small">Todos los operarios tienen lecturas recientes.</div>';
 }
 
-function renderHeartChart(medicionesHoy) {
-  const canvas = document.getElementById('heartChart');
-  if (!canvas || !window.Chart) return;
-
-  const promedioPorHora = new Array(24).fill(null).map(() => ({ suma: 0, cantidad: 0 }));
-  medicionesHoy.forEach((m) => {
-    if (m.frecuencia_cardiaca == null) return;
-    const hora = new Date(m.fecha_hora).getHours();
-    promedioPorHora[hora].suma += Number(m.frecuencia_cardiaca);
-    promedioPorHora[hora].cantidad += 1;
-  });
-
-  const horaActual = new Date().getHours();
-  const horas = [];
-  const promedios = [];
-  for (let h = 0; h <= horaActual; h += 1) {
-    horas.push(`${String(h).padStart(2, '0')}:00`);
-    const bucket = promedioPorHora[h];
-    promedios.push(bucket.cantidad > 0 ? Math.round(bucket.suma / bucket.cantidad) : null);
-  }
-
-  heartChart?.destroy();
-  heartChart = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: horas,
-      datasets: [{
-        label: 'BPM promedio',
-        data: promedios,
-        borderColor: '#2dd4bf',
-        backgroundColor: 'rgba(45, 212, 191, 0.15)',
-        fill: true,
-        tension: 0.35,
-        spanGaps: true,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#94a3b8', maxTicksLimit: 8 }, grid: { display: false } },
-        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
-      },
-    },
-  });
+function renderAll() {
+  renderSummary();
+  renderGrid();
+  renderAlerts();
+  renderConnectivity();
+  document.getElementById('currentDate').textContent = `Actualizado ${fmtARHora(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 }
 
 async function cargarHome() {
-  const inicioHoy = new Date();
-  inicioHoy.setHours(0, 0, 0, 0);
-  const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  try {
+    const [estadoResult, alertasResult] = await Promise.allSettled([apiFetch('/estado/trabajadores-activos'), apiFetch('/alertas/activas')]);
+    if (estadoResult.status === 'rejected') throw estadoResult.reason;
+    if (alertasResult.status === 'rejected') console.error(alertasResult.reason);
 
-  const [medicionesResult, alertasResult, historicoResult, hoyResult, dispositivosResult, medicionesHoyResult, empleadosResult] = await Promise.allSettled([
-    apiFetch('/estado/trabajadores-activos'),
-    apiFetch('/alertas/activas'),
-    apiFetch(`/alertas/historico?desde=${encodeURIComponent(hace7dias.toISOString())}`),
-    apiFetch(`/alertas/historico?desde=${encodeURIComponent(inicioHoy.toISOString())}`),
-    apiFetch('/dashboard/devices'),
-    apiFetch(`/dashboard/measurements?desde=${encodeURIComponent(inicioHoy.toISOString())}&limit=1000`),
-    apiFetch('/dashboard/employees'),
-  ]);
+    const alertasPorTrabajador = new Map();
+    (alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : []).forEach((alerta) => {
+      const clave = String(alerta.id_trabajador);
+      if (!alertasPorTrabajador.has(clave)) alertasPorTrabajador.set(clave, []);
+      alertasPorTrabajador.get(clave).push(alerta.tipo_alerta);
+    });
 
-  const turno = turnoActual();
-  const empleados = empleadosResult.status === 'fulfilled' ? (empleadosResult.value?.data || []) : [];
-  const idsDelTurno = new Set(empleados
-    .filter((empleado) => empleado.estado && turno && String(empleado.turno || '').toLowerCase() === turno)
-    .map((empleado) => Number(empleado.id)));
-
-  const trabajadores = filtrarPorTurno(medicionesResult.status === 'fulfilled' ? (medicionesResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
-  const alertasActivas = filtrarPorTurno(alertasResult.status === 'fulfilled' ? (alertasResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
-  const historico = filtrarPorTurno(historicoResult.status === 'fulfilled' ? (historicoResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
-  const alertasHoy = filtrarPorTurno(hoyResult.status === 'fulfilled' ? (hoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
-  const dispositivos = filtrarPorTurno(dispositivosResult.status === 'fulfilled' ? (dispositivosResult.value?.data || []) : [], idsDelTurno, 'operario_id', turno);
-  const medicionesHoy = filtrarPorTurno(medicionesHoyResult.status === 'fulfilled' ? (medicionesHoyResult.value?.data || []) : [], idsDelTurno, 'id_trabajador', turno);
-
-  actualizarEtiquetaTurno(turno);
-  renderKpis({ trabajadores, alertas: alertasActivas, riesgosHoy: alertasHoy, dispositivos });
-  renderAlertList(alertasActivas);
-  renderWorkerList(trabajadores);
-  renderAlertsChart(historico);
-  renderHeartChart(medicionesHoy);
-
-  [
-    medicionesResult,
-    alertasResult,
-    historicoResult,
-    hoyResult,
-    dispositivosResult,
-    medicionesHoyResult,
-    empleadosResult,
-  ].forEach((result) => {
-    if (result.status === 'rejected') {
-      console.error(result.reason);
-    }
-  });
+    const data = Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : [];
+    trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador) }));
+    renderAll();
+  } catch (error) {
+    console.error(error);
+    document.getElementById('workerGrid').innerHTML = `<div class="supervisor-empty supervisor-empty--error">${escapeHtml(error.message)}</div>`;
+  }
 }
 
-document.getElementById('currentDate').textContent = fmtARFecha(new Date(), {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-});
+document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEventListener('click', () => {
+  filtroActual = button.dataset.filter;
+  document.querySelectorAll('.supervisor-filter').forEach((item) => item.classList.toggle('is-active', item === button));
+  renderGrid();
+}));
+document.getElementById('workerSearch').addEventListener('input', (event) => { busquedaActual = event.target.value.trim(); renderGrid(); });
 
-cargarHome().catch((error) => {
-  console.error(error);
-  const alertList = document.getElementById('alertList');
-  if (alertList) {
-    alertList.innerHTML = `<li class="alert-item"><div class="alert-item__info"><span>${escapeHtml(error.message)}</span></div></li>`;
-  }
-});
-
-setInterval(() => cargarHome().catch((error) => console.error(error)), POLL_INTERVAL_MS);
+cargarHome();
+setInterval(cargarHome, POLL_INTERVAL_MS);

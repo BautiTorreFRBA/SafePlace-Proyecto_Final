@@ -26,6 +26,7 @@ const listarEmpleados = async () => {
       o.apellido,
       o.area AS depto,
       o.turno,
+      o.sexo,
       o.mail AS email,
       'Operario' AS rol,
       o.estado AS estado,
@@ -51,7 +52,17 @@ const generarLegajoEmpleado = async (client) => {
   return `EMP-${String(siguiente).padStart(3, '0')}`;
 };
 
-const crearEmpleado = async ({ nombre, apellido, area, email, turno, idEmpresa }) => {
+// Sexo opcional: '' / null = sin cargar. undefined (no enviado) = no se toca al editar.
+const SEXOS_VALIDOS = ['masculino', 'femenino'];
+const normalizarSexo = (sexo) => {
+  if (sexo === undefined) return undefined;
+  const limpio = String(sexo ?? '').trim().toLowerCase();
+  if (!limpio) return null;
+  if (!SEXOS_VALIDOS.includes(limpio)) throw new Error('El sexo debe ser masculino o femenino.');
+  return limpio;
+};
+
+const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
@@ -69,6 +80,7 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, idEmpresa }
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
     throw new Error('El email del empleado no es válido.');
   }
+  const sexoLimpio = normalizarSexo(sexo) ?? null;
 
   try {
     const client = await db.getPool().connect();
@@ -79,12 +91,12 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, idEmpresa }
       client.release();
     }
     const query = `
-    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, turno, mail, alta, estado)
-      VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NOW(), TRUE)
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, mail AS email, estado;
+    INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, turno, mail, sexo, alta, estado)
+      VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, NOW(), TRUE)
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, sexo, mail AS email, estado;
     `;
 
-    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase()]);
+    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio]);
     return res.rows[0];
   } catch (error) {
     if (error.code === '23505') {
@@ -105,7 +117,7 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, idEmpresa }
   }
 };
 
-const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, idEmpresa }) => {
+const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, sexo, idEmpresa }) => {
   const nombreLimpio = String(nombre || '').trim();
   const apellidoLimpio = String(apellido || '').trim();
   const areaLimpia = String(area || '').trim();
@@ -123,6 +135,7 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, id
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
     throw new Error('El email del empleado no es válido.');
   }
+  const sexoLimpio = normalizarSexo(sexo);
 
   try {
     const query = `
@@ -132,12 +145,13 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, id
           apellido = $4,
           area = $5,
           turno = $6,
-          mail = NULLIF($7, '')
+          mail = NULLIF($7, ''),
+          sexo = CASE WHEN $8::boolean THEN $9 ELSE sexo END
       WHERE id = $1
-      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, mail AS email;
+      RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, sexo, mail AS email;
     `;
 
-    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase()]);
+    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio !== undefined, sexoLimpio ?? null]);
     return res.rows[0] || null;
   } catch (error) {
     if (error.code === '23505') {

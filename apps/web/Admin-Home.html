@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafePlace – Dashboard</title><link rel="stylesheet" href="Styles.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 
 <body> 
@@ -52,117 +51,47 @@
         </div>
       </header>
 
-      <!-- Bienvenida -->
-      <div class="welcome">
-        <h2 class="welcome__title">Bienvenido, <!-- Nombre del que inicio sesion --></h2> 
-        <p class="welcome__date" id="currentDate"></p> 
+      <!-- Estado de la planta -->
+      <div class="supervisor-welcome">
+        <div>
+          <h2 class="supervisor-welcome__title">Estado de la planta</h2>
+          <p class="supervisor-welcome__subtitle">Priorización de operarios según sus últimas mediciones</p>
+        </div>
+        <div class="supervisor-welcome__status"><span class="live-dot"></span><span id="currentDate">Actualizando...</span></div>
       </div>
 
-      <!-- PANTALLA HOME -->
-       
-      <section class="kpi-grid">
-
-        <div class="kpi-card kpi-card--teal">
-          <div class="kpi-card__body">
-            <span class="kpi-card__label">TRABAJADORES MONITOREADOS</span>
-            <span class="kpi-card__value" id="kpiTrabajadores">--</span>
-          </div>
-          <div class="kpi-card__icon kpi-card__icon--teal">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card--red">
-          <div class="kpi-card__body">
-            <span class="kpi-card__label">ALERTAS ACTIVAS</span>
-            <span class="kpi-card__value" id="kpiAlertas">--</span>
-          </div>
-          <div class="kpi-card__icon kpi-card__icon--red">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card--orange">
-          <div class="kpi-card__body">
-            <span class="kpi-card__label">RIESGOS DETECTADOS</span>
-            <span class="kpi-card__value" id="kpiRiesgos">--</span>
-          </div>
-          <div class="kpi-card__icon kpi-card__icon--orange">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-        </div>
-
-        <div class="kpi-card kpi-card--blue">
-          <div class="kpi-card__body">
-            <span class="kpi-card__label">DISPOSITIVOS CONECTADOS</span>
-            <span class="kpi-card__value" id="kpiDispositivos">--</span> 
-          </div>
-          <div class="kpi-card__icon kpi-card__icon--blue">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
-          </div>
-        </div>
-
+      <section class="supervisor-summary" aria-label="Resumen operativo">
+        <div class="supervisor-summary__item"><span class="summary-value" id="kpiTrabajadores">--</span><span>monitoreados</span></div>
+        <div class="supervisor-summary__item supervisor-summary__item--warning"><span class="summary-value" id="kpiAtencion">--</span><span>requieren atención</span></div>
+        <div class="supervisor-summary__item supervisor-summary__item--critical"><span class="summary-value" id="kpiCritico">--</span><span>en estado crítico</span></div>
+        <div class="supervisor-summary__item"><span class="summary-value" id="kpiDispositivos">--</span><span>dispositivos asignados</span></div>
       </section>
 
-      <!--  GRÁFICAS  -->
-      <section class="charts-grid">
-
-        <!-- Alertas por día -->
-        <div class="card">
-          <div class="card__header">
-            <span class="card__icon-label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/> </svg>
-              Alertas por día (última semana)
-            </span>
-          </div>
-          <div class="card__body">
-            <canvas id="alertsChart" height="180"></canvas>
-          </div>
+      <!-- Grilla de operarios (tarjetas con avatar coloreado según estado) -->
+      <section class="supervisor-panel">
+        <div class="supervisor-panel__header">
+          <div><h3>Operarios monitoreados</h3><p>Los casos prioritarios aparecen primero</p></div>
+          <label class="supervisor-search"><span aria-hidden="true">⌕</span><input id="workerSearch" type="search" placeholder="Buscar operario..." autocomplete="off" /></label>
         </div>
-
-        <!-- Frecuencia cardíaca -->
-        <div class="card">
-          <div class="card__header">
-            <span class="card__icon-label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              Frecuencia Cardíaca Promedio (hoy)
-            </span>
-          </div>
-          <div class="card__body">
-            <canvas id="heartChart" height="180"></canvas>
-          </div>
+        <div class="supervisor-filters" role="group" aria-label="Filtrar operarios">
+          <button class="supervisor-filter is-active" type="button" data-filter="todos">Todos <span id="filterTodos">0</span></button>
+          <button class="supervisor-filter" type="button" data-filter="critico">Críticos <span id="filterCritico">0</span></button>
+          <button class="supervisor-filter" type="button" data-filter="advertencia">Advertencia <span id="filterAdvertencia">0</span></button>
+          <button class="supervisor-filter" type="button" data-filter="normal">Normales <span id="filterNormal">0</span></button>
+          <button class="supervisor-filter" type="button" data-filter="sin_datos">Sin datos <span id="filterSinDatos">0</span></button>
         </div>
-
+        <div class="op-grid" id="workerGrid" aria-live="polite"></div>
       </section>
 
-      <section class="tables-grid">
-        <!-- Alertas Activas -->
-        <div class="card">
-          <div class="card__header">
-            <span class="card__title">Alertas Activas</span>
-            <span class="badge badge--neutral" id="alertasBadge">-- alertas</span> 
-          </div>
-          <div class="card__body card__body--flush">
-            <ul class="alert-list" id="alertList"></ul>
-          </div>
+      <section class="supervisor-bottom-grid">
+        <div class="supervisor-panel supervisor-panel--compact">
+          <div class="supervisor-panel__header"><div><h3>Alertas activas</h3><p>Situaciones que requieren seguimiento</p></div><span class="badge badge--neutral">Tiempo real</span></div>
+          <div class="supervisor-alert-list" id="alertList"></div>
         </div>
-
-        <!-- Estado de Trabajadores -->
-        <div class="card">
-          <div class="card__header">
-            <div>
-              <span class="card__title" id="workerListTitle">Operarios del turno actual</span>
-              <span class="card__subtitle" id="turnoActualInfo"></span>
-            </div>
-          </div>
-          <div class="card__body card__body--flush">
-            <ul class="worker-list" id="workerList"></ul>
-          </div>
+        <div class="supervisor-panel supervisor-panel--compact">
+          <div class="supervisor-panel__header"><div><h3>Conectividad</h3><p>Operarios sin lectura reciente</p></div><span class="badge badge--neutral" id="offlineCount">0</span></div>
+          <div class="supervisor-connectivity-list" id="connectivityList"></div>
         </div>
-
       </section>
 
     </main>
