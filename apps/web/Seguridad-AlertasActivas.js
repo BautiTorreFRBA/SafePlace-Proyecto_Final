@@ -8,13 +8,14 @@ const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
 let alertas = [];
 const severidadesActivas = new Set(['critico', 'advertencia']);
-const tiposActivos = new Set(['FATIGA', 'INACTIVIDAD_PROLONGADA', 'SOBREESFUERZO', 'EMERGENCIA']);
+const tiposActivos = new Set(['FATIGA', 'INACTIVIDAD_PROLONGADA', 'SOBREESFUERZO', 'EMERGENCIA', 'SUPER_EMERGENCIA']);
 
 const ETIQUETA_TIPO_ALERTA = {
   FATIGA: 'Fatiga',
   SOBREESFUERZO: 'Sobreesfuerzo',
   INACTIVIDAD_PROLONGADA: 'Inactividad prolongada (wearable desconectado)',
   EMERGENCIA: 'EMERGENCIA',
+  SUPER_EMERGENCIA: 'SUPER EMERGENCIA',
 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
 const claseTipo = (t) => ({
@@ -22,6 +23,7 @@ const claseTipo = (t) => ({
   SOBREESFUERZO: 'sobreesfuerzo',
   INACTIVIDAD_PROLONGADA: 'inactividad',
   EMERGENCIA: 'sobreesfuerzo',
+  SUPER_EMERGENCIA: 'sobreesfuerzo',
 }[String(t || '').toUpperCase()] || '');
 
 function escapeHtml(value) {

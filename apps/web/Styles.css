@@ -706,9 +706,28 @@ html, body {
   50% { background:#7f1d1d; filter:drop-shadow(0 0 0 rgba(255,45,45,0)); }
 }
 @keyframes op-emergencia-chip { 0%,100% { background:#b91c1c; } 50% { background:#ef4444; } }
+/* SUPER EMERGENCIA (más de dos emergencias): ocupa dos columnas, más alta y parpadea el doble de rápido (2 Hz, bajo el umbral de 3 destellos/s). */
+.op-card--super-emergencia { grid-column:span 2; min-height:340px; border-width:2px; border-color:#ff1a1a; animation:op-super-card .5s ease-in-out infinite; z-index:1; }
+.op-card--super-emergencia .op-avatar { inset:40px 18px 0; animation:op-super-avatar .5s ease-in-out infinite; }
+.op-card--super-emergencia .op-card__nombre { font-size:1.25rem; }
+.op-card--super-emergencia .op-card__fc strong { font-size:1.9rem; }
+.op-card--super-emergencia .op-chip { padding:5px 14px; border-color:#ff1a1a; background:#b91c1c; color:#fff; font-size:.82rem; font-weight:900; letter-spacing:.1em; text-transform:uppercase; animation:op-super-chip .5s ease-in-out infinite; }
+.op-card--super-emergencia .op-chip i { background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.35); }
+@keyframes op-super-card {
+  0%,100% { background:#3d0000; box-shadow:0 0 0 0 rgba(255,26,26,.85), 0 0 22px rgba(255,26,26,.6); }
+  50% { background:#8f0000; box-shadow:0 0 0 12px rgba(255,26,26,0), 0 0 56px rgba(255,26,26,1); }
+}
+@keyframes op-super-avatar {
+  0%,100% { background:#ff1a1a; filter:drop-shadow(0 0 18px rgba(255,26,26,1)); }
+  50% { background:#5c0000; filter:drop-shadow(0 0 0 rgba(255,26,26,0)); }
+}
+@keyframes op-super-chip { 0%,100% { background:#b91c1c; } 50% { background:#ff1a1a; } }
+@media (max-width:480px) { .op-card--super-emergencia { grid-column:auto; } }
 @media (prefers-reduced-motion: reduce) {
-  .op-card--emergencia,.op-card--emergencia .op-avatar,.op-card--emergencia .op-chip { animation:none; }
+  .op-card--emergencia,.op-card--emergencia .op-avatar,.op-card--emergencia .op-chip,
+  .op-card--super-emergencia,.op-card--super-emergencia .op-avatar,.op-card--super-emergencia .op-chip { animation:none; }
   .op-card--emergencia { background:#3b0d0d; box-shadow:0 0 0 2px #ef4444, 0 0 22px rgba(239,68,68,.6); }
+  .op-card--super-emergencia { background:#5c0000; box-shadow:0 0 0 3px #ff1a1a, 0 0 34px rgba(255,26,26,.8); }
 }
 .op-card__lectura { position:absolute; top:10px; right:12px; text-align:right; }
 .op-card__fc { display:flex; align-items:baseline; justify-content:flex-end; gap:4px; color:#fff; font-weight:800; text-shadow:0 2px 6px rgba(0,0,0,.6); }

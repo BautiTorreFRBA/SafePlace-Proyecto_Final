@@ -14,11 +14,29 @@ const VENTANA_EMERGENCIA_MIN = 60;
 const ALERTAS_PARA_EMERGENCIA = 3;
 const TIPOS_PREVIOS_A_INACTIVIDAD = ['FATIGA', 'SOBREESFUERZO'];
 
+// SUPER_EMERGENCIA ("super super alerta"): el mismo operario acumula más de dos
+// EMERGENCIA (o sea EMERGENCIAS_PARA_SUPER o más) dentro de la ventana. Como sólo
+// puede haber una EMERGENCIA Activa por operario, las anteriores tienen que
+// haberse cerrado para que se cree una nueva y sume.
+const TIPO_SUPER_EMERGENCIA = 'SUPER_EMERGENCIA';
+const EMERGENCIAS_PARA_SUPER = 3;
+const TIPOS_ESCALADA = [TIPO_EMERGENCIA, TIPO_SUPER_EMERGENCIA];
+
+// Devuelve el motivo de la super emergencia o null. Se evalúa al crear una
+// EMERGENCIA, que ya está contada en la ventana.
+const motivoSuperEmergencia = async (idSeudonimo) => {
+  const tipos = (await alertaRepository.listarTiposEnVentana(idSeudonimo, VENTANA_EMERGENCIA_MIN)) || [];
+  const emergencias = tipos.filter((nombre) => nombre === TIPO_EMERGENCIA).length;
+  return emergencias >= EMERGENCIAS_PARA_SUPER
+    ? `${emergencias} emergencias en los últimos ${VENTANA_EMERGENCIA_MIN} min`
+    : null;
+};
+
 // Devuelve el motivo de la emergencia (texto para auditoría) o null si no
 // corresponde. La alerta recién creada ya está en la ventana.
 const motivoEmergencia = async (idSeudonimo, nombreTipoNuevo) => {
   const tipos = (await alertaRepository.listarTiposEnVentana(idSeudonimo, VENTANA_EMERGENCIA_MIN)) || [];
-  const previas = tipos.filter((nombre) => nombre !== TIPO_EMERGENCIA);
+  const previas = tipos.filter((nombre) => !TIPOS_ESCALADA.includes(nombre));
 
   if (
     nombreTipoNuevo === 'INACTIVIDAD_PROLONGADA'
@@ -85,19 +103,23 @@ const generar = async ({
       console.error('[alertas.service] No se pudo auditar la alerta generada:', err.message);
     });
 
-  if (nombreTipo !== TIPO_EMERGENCIA) {
+  if (nombreTipo !== TIPO_SUPER_EMERGENCIA) {
     // Best-effort: un fallo al escalar no debe perder la alerta ya creada.
     try {
-      const motivo = await motivoEmergencia(idSeudonimo, nombreTipo);
+      const esEmergencia = nombreTipo === TIPO_EMERGENCIA;
+      const motivo = esEmergencia
+        ? await motivoSuperEmergencia(idSeudonimo)
+        : await motivoEmergencia(idSeudonimo, nombreTipo);
       if (motivo) {
+        const tipoEscalado = esEmergencia ? TIPO_SUPER_EMERGENCIA : TIPO_EMERGENCIA;
         await generar({
-          nombreTipo: TIPO_EMERGENCIA,
+          nombreTipo: tipoEscalado,
           idSeudonimo,
-          detalle: `EMERGENCIA para el seudónimo ${idSeudonimo}: ${motivo}.`,
+          detalle: `${tipoEscalado} para el seudónimo ${idSeudonimo}: ${motivo}.`,
         });
       }
     } catch (err) {
-      console.error('[alertas.service] No se pudo evaluar la escalada a EMERGENCIA:', err.message);
+      console.error('[alertas.service] No se pudo evaluar la escalada de la alerta:', err.message);
     }
   }
 
@@ -107,6 +129,8 @@ const generar = async ({
 module.exports = {
   generar,
   TIPO_EMERGENCIA,
+  TIPO_SUPER_EMERGENCIA,
   VENTANA_EMERGENCIA_MIN,
   ALERTAS_PARA_EMERGENCIA,
+  EMERGENCIAS_PARA_SUPER,
 };

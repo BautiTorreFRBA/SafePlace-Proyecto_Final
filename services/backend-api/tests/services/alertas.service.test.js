@@ -19,6 +19,7 @@ const TIPOS_MOCK = {
   SOBREESFUERZO: { id: 2, nombre: 'SOBREESFUERZO', prioridad: 'Crítica' },
   INACTIVIDAD_PROLONGADA: { id: 3, nombre: 'INACTIVIDAD_PROLONGADA', prioridad: 'Media' },
   EMERGENCIA: { id: 4, nombre: 'EMERGENCIA', prioridad: 'Crítica' },
+  SUPER_EMERGENCIA: { id: 5, nombre: 'SUPER_EMERGENCIA', prioridad: 'Crítica' },
 };
 
 const crearConTipo = (idTipoAlerta) => expect.objectContaining({ idTipoAlerta });
@@ -107,8 +108,49 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
     expect(alertaRepository.crear).toHaveBeenCalledWith(crearConTipo(1));
   });
 
-  it('generar EMERGENCIA no vuelve a evaluar la escalada (sin recursión)', async () => {
+  it('3 EMERGENCIA en la ventana (incluida la nueva) generan SUPER_EMERGENCIA', async () => {
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['EMERGENCIA', 'EMERGENCIA', 'EMERGENCIA']);
+
     await alertasService.generar({ nombreTipo: 'EMERGENCIA', idSeudonimo: 7 });
+
+    expect(alertaRepository.crear).toHaveBeenCalledTimes(2);
+    expect(alertaRepository.crear).toHaveBeenLastCalledWith(
+      expect.objectContaining({ idTipoAlerta: 5, idMedicion: null, idSeudonimo: 7 }),
+    );
+    expect(notificacionRepository.crear).toHaveBeenCalledTimes(2);
+  });
+
+  it('2 EMERGENCIA en la ventana no generan SUPER_EMERGENCIA', async () => {
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['EMERGENCIA', 'EMERGENCIA']);
+
+    await alertasService.generar({ nombreTipo: 'EMERGENCIA', idSeudonimo: 7 });
+
+    expect(alertaRepository.crear).toHaveBeenCalledTimes(1);
+  });
+
+  it('las SUPER_EMERGENCIA previas no cuentan como alertas ni como emergencias', async () => {
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'SUPER_EMERGENCIA']);
+
+    await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
+
+    expect(alertaRepository.crear).toHaveBeenCalledTimes(1);
+  });
+
+  it('encadena alerta -> EMERGENCIA -> SUPER_EMERGENCIA cuando corresponde', async () => {
+    alertaRepository.listarTiposEnVentana
+      .mockResolvedValueOnce(['FATIGA', 'FATIGA', 'FATIGA'])
+      .mockResolvedValueOnce(['EMERGENCIA', 'EMERGENCIA', 'EMERGENCIA']);
+
+    await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
+
+    expect(alertaRepository.crear).toHaveBeenCalledTimes(3);
+    expect(alertaRepository.crear).toHaveBeenNthCalledWith(1, crearConTipo(1));
+    expect(alertaRepository.crear).toHaveBeenNthCalledWith(2, crearConTipo(4));
+    expect(alertaRepository.crear).toHaveBeenNthCalledWith(3, crearConTipo(5));
+  });
+
+  it('generar SUPER_EMERGENCIA no vuelve a evaluar la escalada (sin recursión)', async () => {
+    await alertasService.generar({ nombreTipo: 'SUPER_EMERGENCIA', idSeudonimo: 7 });
 
     expect(alertaRepository.listarTiposEnVentana).not.toHaveBeenCalled();
     expect(alertaRepository.crear).toHaveBeenCalledTimes(1);
