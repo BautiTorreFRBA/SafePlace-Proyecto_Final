@@ -2,7 +2,10 @@ const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-
 const POLL_INTERVAL_MS = 15000;
 // Mismo límite que el backend (estado.repository): una lectura de más de 5 min se considera desactualizada.
 const LIMITE_DESACTUALIZADO_S = 5 * 60;
-const HISTORIAL_URL = 'Admin-HistorialEmpleado.html';
+// Home compartido por Admin, Supervisor y Seguridad e Higiene: cada HTML indica en
+// <body data-historial="..."> a qué pantalla de historial llevan las tarjetas (?empleado=<id>).
+// El backend ya limita /estado/trabajadores-activos al alcance de cada supervisor.
+const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmpleado.html';
 
 // Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
