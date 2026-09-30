@@ -146,12 +146,18 @@ function renderSummary() {
     .forEach(([key, value]) => { document.getElementById(`filter${key}`).textContent = value; });
 }
 
-// SÚPER EMERGENCIA: la tarjeta va envuelta y debajo lleva el botón para atenderla. Se resuelve
-// sólo esa alerta; el backend arrastra la EMERGENCIA abierta del mismo operario.
+// SÚPER EMERGENCIA y EMERGENCIA: la tarjeta va envuelta y debajo lleva el botón para atenderla (con
+// confirmación). Se resuelve sólo esa alerta; al atender la súper, el backend arrastra la EMERGENCIA
+// abierta del mismo operario.
 function renderCard(item) {
   const tarjeta = renderTarjeta(item);
-  if (item.estado !== 'super_emergencia' || item.id_alerta_super == null) return tarjeta;
-  return `<div class="op-super">${tarjeta}<button type="button" class="op-super__atender" data-alerta="${escapeHtml(item.id_alerta_super)}">Atender súper emergencia</button></div>`;
+  if (item.estado === 'super_emergencia' && item.id_alerta_super != null) {
+    return `<div class="op-super">${tarjeta}<button type="button" class="op-super__atender" data-alerta="${escapeHtml(item.id_alerta_super)}">Atender súper emergencia</button></div>`;
+  }
+  if (item.estado === 'emergencia' && item.id_alerta_emergencia != null) {
+    return `<div class="op-super">${tarjeta}<button type="button" class="op-super__atender op-super__atender--emergencia" data-alerta="${escapeHtml(item.id_alerta_emergencia)}">Atender emergencia</button></div>`;
+  }
+  return tarjeta;
 }
 
 function renderTarjeta(item) {
@@ -223,20 +229,21 @@ async function cargarHome() {
 
     const alertasPorTrabajador = new Map();
     const superPorTrabajador = new Map(); // id_trabajador -> id de su SUPER_EMERGENCIA activa
+    const emergenciaPorTrabajador = new Map(); // id_trabajador -> id de su EMERGENCIA activa
     (alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : []).forEach((alerta) => {
       const clave = String(alerta.id_trabajador);
       if (!alertasPorTrabajador.has(clave)) alertasPorTrabajador.set(clave, []);
       alertasPorTrabajador.get(clave).push(alerta.tipo_alerta);
-      if (String(alerta.tipo_alerta || '').toUpperCase() === 'SUPER_EMERGENCIA' && !superPorTrabajador.has(clave)) {
-        superPorTrabajador.set(clave, alerta.id);
-      }
+      const tipo = String(alerta.tipo_alerta || '').toUpperCase();
+      if (tipo === 'SUPER_EMERGENCIA' && !superPorTrabajador.has(clave)) superPorTrabajador.set(clave, alerta.id);
+      if (tipo === 'EMERGENCIA' && !emergenciaPorTrabajador.has(clave)) emergenciaPorTrabajador.set(clave, alerta.id);
     });
 
     const alcance = alcanceDelRol();
     const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : []).filter(alcance.incluye);
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
-    trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null }));
+    trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));
     renderAll();
   } catch (error) {
     console.error(error);
@@ -252,7 +259,7 @@ document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEv
 document.getElementById('workerGrid').addEventListener('click', async (event) => {
   const boton = event.target.closest('.op-super__atender');
   if (!boton) return;
-  const operario = trabajadores.find((item) => String(item.id_alerta_super) === String(boton.dataset.alerta));
+  const operario = trabajadores.find((item) => [item.id_alerta_super, item.id_alerta_emergencia].some((id) => id != null && String(id) === String(boton.dataset.alerta)));
   const nombre = operario ? nombreCompleto(operario) : '';
   const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
   if (!(await confirmar(nombre))) return;

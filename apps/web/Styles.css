@@ -725,6 +725,8 @@ html, body {
 .op-super { display:flex; flex-direction:column; gap:8px; min-width:0; }
 .op-super__atender { padding:14px 18px; border:2px solid #ff1a1a; border-radius:12px; background:#ff1a1a; color:#fff; font:inherit; font-size:1rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
 .op-super__atender:hover:not(:disabled) { background:#ff4d4d; }
+.op-super__atender--emergencia { border-color:#ffd60a; background:#ffd60a; color:#1a1300; }
+.op-super__atender--emergencia:hover:not(:disabled) { background:#ffe55c; }
 .op-super__atender:disabled { opacity:.65; cursor:wait; }
 .op-super__atender:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 @media (prefers-reduced-motion: reduce) {
