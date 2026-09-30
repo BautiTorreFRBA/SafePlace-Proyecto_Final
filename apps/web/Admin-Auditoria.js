@@ -112,6 +112,7 @@ function rowHTML(item) {
       <td><span class="badge badge--normal">${escapeHtml(item.operacion || '--')}</span></td>
       <td style="color:var(--text-secondary)">${escapeHtml(item.ip_origen || '--')}</td>
       <td style="color:var(--text-secondary)">${escapeHtml(recursoLabel(item))}</td>
+      <td style="color:var(--text-secondary); font-size:0.82rem; max-width:360px;">${escapeHtml(item.detalle || '--')}</td>
     </tr>`;
 }
 
@@ -123,7 +124,7 @@ function renderAuditoria() {
   auditoriaPagina.textContent = `Página ${paginaActual} de ${totalPaginas}`;
 
   tableBody.innerHTML = registros.length === 0
-    ? '<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay registros de auditoría para los filtros seleccionados</td></tr>'
+    ? '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay registros de auditoría para los filtros seleccionados</td></tr>'
     : registros.map((item) => rowHTML(item)).join('');
 
   btnAnterior.disabled = offset === 0;
@@ -203,5 +204,5 @@ renderAuditoria();
 cargarAuditoria().catch((err) => {
   console.error(err);
   alert(err.message);
-  tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los registros de auditoría</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los registros de auditoría</td></tr>';
 });
