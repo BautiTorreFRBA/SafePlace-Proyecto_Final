@@ -11,7 +11,7 @@ const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmplead
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
 const ESTADOS = {
   super_emergencia: { label: 'Súper emergencia', color: '#ff1a1a', grupo: 'critico', rank: -2 },
-  emergencia: { label: 'Emergencia', color: '#ff6a00', grupo: 'critico', rank: -1 },
+  emergencia: { label: 'Emergencia', color: '#ffd60a', grupo: 'critico', rank: -1 },
   sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
   fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
   inactividad: { label: 'Inactividad prolongada', color: '#60a5fa', grupo: 'advertencia', rank: 2 },
