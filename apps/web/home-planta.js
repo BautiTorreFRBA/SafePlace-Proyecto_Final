@@ -35,6 +35,34 @@ function turnoActual() {
   return 'noche';
 }
 
+// Qué operarios ve cada rol (el alcance del supervisor ya lo aplica el backend):
+// - admin: sólo el turno en curso.
+// - supervisor: su área y todos los turnos que tiene a cargo.
+// - seguridad: todas las áreas y todos los turnos.
+function alcanceDelRol() {
+  const rol = String(sessionStorage.getItem('userRole') || '').trim().toLowerCase();
+  if (rol === 'supervisor') {
+    const area = sessionStorage.getItem('userSupervisorArea') || '';
+    let turnos = [];
+    try { turnos = JSON.parse(sessionStorage.getItem('userSupervisorTurnos') || '[]'); } catch { turnos = []; }
+    turnos = Array.isArray(turnos) ? turnos.map((turno) => String(turno).toLowerCase()) : [];
+    return {
+      incluye: (item) => Boolean(area) && item.area === area && turnos.includes(String(item.turno || '').toLowerCase()),
+      titulo: area ? `Área ${area}` : 'Sin área asignada',
+      detalle: turnos.length ? `Turnos a cargo: ${turnos.join(', ')} · los casos prioritarios aparecen primero` : 'No tenés turnos asignados',
+    };
+  }
+  if (rol === 'seguridad') {
+    return { incluye: () => true, titulo: 'Todos los turnos', detalle: 'Todas las áreas y turnos · los casos prioritarios aparecen primero' };
+  }
+  const turno = turnoActual();
+  return {
+    incluye: (item) => String(item.turno || '').toLowerCase() === turno,
+    titulo: `Turno ${turno}`,
+    detalle: 'Sólo el turno en curso · los casos prioritarios aparecen primero',
+  };
+}
+
 let trabajadores = [];
 let filtroActual = 'todos';
 let busquedaActual = '';
@@ -191,11 +219,10 @@ async function cargarHome() {
       alertasPorTrabajador.get(clave).push(alerta.tipo_alerta);
     });
 
-    // Sólo los operarios del turno en curso.
-    const turno = turnoActual();
-    const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : [])
-      .filter((item) => String(item.turno || '').toLowerCase() === turno);
-    document.getElementById('turnoActual').textContent = `Turno ${turno}`;
+    const alcance = alcanceDelRol();
+    const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : []).filter(alcance.incluye);
+    document.getElementById('turnoActual').textContent = alcance.titulo;
+    document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador) }));
     renderAll();
   } catch (error) {
