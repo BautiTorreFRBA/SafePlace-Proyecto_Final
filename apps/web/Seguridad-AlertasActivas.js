@@ -131,7 +131,19 @@ async function cambiarEstado(id, estado) {
   }
 }
 
-window.cerrarAlerta = (id) => cambiarEstado(id, 'Cerrada');
+// Atender o cerrar una EMERGENCIA / SÚPER EMERGENCIA pide confirmación ("¿Está mejor <operario>?").
+const TIPOS_CON_CONFIRMACION = new Set(['EMERGENCIA', 'SUPER_EMERGENCIA']);
+async function confirmarSiEmergencia(id) {
+  const alerta = alertas.find((a) => String(a.id) === String(id));
+  if (!alerta || !TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta)) return true;
+  const nombre = alerta.empleado === '--' ? '' : alerta.empleado;
+  const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
+  return confirmar(nombre);
+}
+
+window.cerrarAlerta = async (id) => {
+  if (await confirmarSiEmergencia(id)) await cambiarEstado(id, 'Cerrada');
+};
 
 // ── Modal "Revisar": FC del día del empleado ──────────────────────────────
 // Mismo gráfico que el "Historial del empleado" del supervisor, acotado al día
@@ -402,6 +414,7 @@ document.addEventListener('keydown', (event) => {
 fcModalAtender.addEventListener('click', async () => {
   const id = fcModalAlertaId;
   if (id == null) return;
+  if (!(await confirmarSiEmergencia(id))) return;
   cerrarModalFc();
   await cambiarEstado(id, 'Atendida');
 });

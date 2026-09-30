@@ -252,6 +252,10 @@ document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEv
 document.getElementById('workerGrid').addEventListener('click', async (event) => {
   const boton = event.target.closest('.op-super__atender');
   if (!boton) return;
+  const operario = trabajadores.find((item) => String(item.id_alerta_super) === String(boton.dataset.alerta));
+  const nombre = operario ? nombreCompleto(operario) : '';
+  const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
+  if (!(await confirmar(nombre))) return;
   boton.disabled = true;
   boton.textContent = 'Atendiendo…';
   try {
