@@ -706,28 +706,32 @@ html, body {
   50% { background:#7f1d1d; filter:drop-shadow(0 0 0 rgba(255,45,45,0)); }
 }
 @keyframes op-emergencia-chip { 0%,100% { background:#b91c1c; } 50% { background:#ef4444; } }
-/* SUPER EMERGENCIA (más de dos emergencias): ocupa dos columnas, más alta y parpadea el doble de rápido (2 Hz, bajo el umbral de 3 destellos/s). */
-.op-card--super-emergencia { grid-column:span 2; min-height:340px; border-width:2px; border-color:#ff1a1a; animation:op-super-card .5s ease-in-out infinite; z-index:1; }
-.op-card--super-emergencia .op-avatar { inset:40px 18px 0; animation:op-super-avatar .5s ease-in-out infinite; }
-.op-card--super-emergencia .op-card__nombre { font-size:1.25rem; }
-.op-card--super-emergencia .op-card__fc strong { font-size:1.9rem; }
-.op-card--super-emergencia .op-chip { padding:5px 14px; border-color:#ff1a1a; background:#b91c1c; color:#fff; font-size:.82rem; font-weight:900; letter-spacing:.1em; text-transform:uppercase; animation:op-super-chip .5s ease-in-out infinite; }
+/* SÚPER EMERGENCIA (más de dos emergencias): mismo tamaño que el resto de las tarjetas, en violeta neón y
+   parpadeando más rápido que la EMERGENCIA (0,4 s por ciclo = 2,5 destellos/s, bajo el límite de 3/s). */
+.op-card--super-emergencia { border-width:2px; border-color:#b026ff; animation:op-super-card .4s ease-in-out infinite; z-index:1; }
+.op-card--super-emergencia .op-avatar { animation:op-super-avatar .4s ease-in-out infinite; }
+.op-card--super-emergencia .op-chip { border-color:#b026ff; background:#7e22ce; color:#fff; font-weight:900; letter-spacing:.08em; text-transform:uppercase; animation:op-super-chip .4s ease-in-out infinite; }
 .op-card--super-emergencia .op-chip i { background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.35); }
 @keyframes op-super-card {
-  0%,100% { background:#3d0000; box-shadow:0 0 0 0 rgba(255,26,26,.85), 0 0 22px rgba(255,26,26,.6); }
-  50% { background:#8f0000; box-shadow:0 0 0 12px rgba(255,26,26,0), 0 0 56px rgba(255,26,26,1); }
+  0%,100% { background:#2a0045; box-shadow:0 0 0 0 rgba(176,38,255,.85), 0 0 22px rgba(176,38,255,.6); }
+  50% { background:#5b0a94; box-shadow:0 0 0 12px rgba(176,38,255,0), 0 0 56px rgba(176,38,255,1); }
 }
 @keyframes op-super-avatar {
-  0%,100% { background:#ff1a1a; filter:drop-shadow(0 0 18px rgba(255,26,26,1)); }
-  50% { background:#5c0000; filter:drop-shadow(0 0 0 rgba(255,26,26,0)); }
+  0%,100% { background:#b026ff; filter:drop-shadow(0 0 18px rgba(176,38,255,1)); }
+  50% { background:#3b0764; filter:drop-shadow(0 0 0 rgba(176,38,255,0)); }
 }
-@keyframes op-super-chip { 0%,100% { background:#b91c1c; } 50% { background:#ff1a1a; } }
-@media (max-width:480px) { .op-card--super-emergencia { grid-column:auto; } }
+@keyframes op-super-chip { 0%,100% { background:#7e22ce; } 50% { background:#b026ff; } }
+/* Contenedor de la súper emergencia: la tarjeta (mismo tamaño que las demás) y debajo el botón de atender. */
+.op-super { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.op-super__atender { padding:14px 18px; border:2px solid #b026ff; border-radius:12px; background:#b026ff; color:#fff; font:inherit; font-size:1rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
+.op-super__atender:hover:not(:disabled) { background:#c77dff; }
+.op-super__atender:disabled { opacity:.65; cursor:wait; }
+.op-super__atender:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 @media (prefers-reduced-motion: reduce) {
   .op-card--emergencia,.op-card--emergencia .op-avatar,.op-card--emergencia .op-chip,
   .op-card--super-emergencia,.op-card--super-emergencia .op-avatar,.op-card--super-emergencia .op-chip { animation:none; }
   .op-card--emergencia { background:#3b0d0d; box-shadow:0 0 0 2px #ef4444, 0 0 22px rgba(239,68,68,.6); }
-  .op-card--super-emergencia { background:#5c0000; box-shadow:0 0 0 3px #ff1a1a, 0 0 34px rgba(255,26,26,.8); }
+  .op-card--super-emergencia { background:#3b0764; box-shadow:0 0 0 3px #b026ff, 0 0 34px rgba(176,38,255,.8); }
 }
 .op-card__lectura { position:absolute; top:10px; right:12px; text-align:right; }
 .op-card__fc { display:flex; align-items:baseline; justify-content:flex-end; gap:4px; color:#fff; font-weight:800; text-shadow:0 2px 6px rgba(0,0,0,.6); }
@@ -4570,32 +4574,3 @@ select.cfg-input {
 
 /* Gestión de Empleados: con el filtro de área son tres controles; que bajen de línea en pantallas angostas */
 .emp-toolbar { flex-wrap: wrap; }
-
-/* Modal de SÚPER EMERGENCIA: grande, en el centro, con la acción de atender. */
-.super-modal { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(40,0,0,.86); backdrop-filter:blur(3px); animation:super-modal-fondo 1s ease-in-out infinite; }
-.super-modal[hidden] { display:none; }
-.super-modal-abierto { overflow:hidden; }
-.super-modal__panel { position:relative; width:min(780px,100%); max-height:100%; overflow:auto; padding:40px 36px 34px; border:4px solid #ff1a1a; border-radius:26px; background:#1a0505; color:#fff; text-align:center; animation:super-modal-panel .5s ease-in-out infinite; }
-.super-modal__pendientes { position:absolute; top:14px; right:20px; margin:0; padding:3px 12px; border-radius:999px; background:#ff1a1a; color:#fff; font-size:.78rem; font-weight:800; }
-.super-modal__pendientes[hidden],.super-modal__error[hidden] { display:none; }
-.super-modal__titulo { margin:0 0 14px; color:#ff4d4d; font-size:clamp(2rem,6vw,3.4rem); font-weight:900; letter-spacing:.06em; line-height:1.05; text-transform:uppercase; }
-.super-modal__nombre { margin:0; font-size:clamp(1.6rem,4.5vw,2.4rem); font-weight:800; text-transform:uppercase; }
-.super-modal__area { margin:4px 0 0; color:#fca5a5; font-size:1rem; font-weight:600; }
-.super-modal__fc { margin:18px 0 6px; font-weight:900; }
-.super-modal__fc strong { font-size:clamp(3.4rem,11vw,6rem); line-height:1; }
-.super-modal__fc small { font-size:1.3rem; }
-.super-modal__texto { margin:8px 0 22px; color:#fecaca; font-size:1.05rem; }
-.super-modal__error { margin:0 0 14px; padding:8px 12px; border-radius:10px; background:#450a0a; color:#fecaca; font-size:.9rem; }
-.super-modal__acciones { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; }
-.super-modal__btn { padding:14px 26px; border:2px solid #ff1a1a; border-radius:14px; background:transparent; color:#fff; font:inherit; font-size:1.05rem; font-weight:800; text-decoration:none; cursor:pointer; }
-.super-modal__btn--atender { padding:18px 44px; background:#ff1a1a; font-size:1.35rem; letter-spacing:.04em; text-transform:uppercase; }
-.super-modal__btn--atender:hover:not(:disabled) { background:#ff4d4d; }
-.super-modal__btn:disabled { opacity:.6; cursor:wait; }
-.super-modal__btn:focus-visible { outline:3px solid #fff; outline-offset:3px; }
-.super-modal__btn--link:hover,.super-modal__btn--posponer:hover { background:rgba(255,26,26,.2); }
-@keyframes super-modal-fondo { 0%,100% { background:rgba(40,0,0,.86); } 50% { background:rgba(90,0,0,.9); } }
-@keyframes super-modal-panel {
-  0%,100% { box-shadow:0 0 0 0 rgba(255,26,26,.8), 0 0 40px rgba(255,26,26,.55); }
-  50% { box-shadow:0 0 0 14px rgba(255,26,26,0), 0 0 90px rgba(255,26,26,1); }
-}
-@media (prefers-reduced-motion: reduce) { .super-modal,.super-modal__panel { animation:none; } .super-modal__panel { box-shadow:0 0 0 4px #ff1a1a, 0 0 50px rgba(255,26,26,.7); } }

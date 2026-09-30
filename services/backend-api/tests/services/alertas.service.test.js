@@ -181,3 +181,41 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
     errorSpy.mockRestore();
   });
 });
+
+describe('alertas.service — resolverEmergenciasSubordinadas', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    tipoAlertaRepository.obtenerPorNombre.mockImplementation(async (nombre) => TIPOS_MOCK[nombre]);
+    alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo.mockResolvedValue([{ id: 1781 }]);
+  });
+
+  it('al resolver una SUPER_EMERGENCIA pasa la EMERGENCIA activa del mismo seudónimo al mismo estado', async () => {
+    const resueltas = await alertasService.resolverEmergenciasSubordinadas(
+      { id: 1784, id_tipo_alerta: 5, id_seudonimo: 12 },
+      'Atendida',
+    );
+
+    expect(alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo).toHaveBeenCalledWith(12, 4, 'Atendida');
+    expect(resueltas).toEqual([{ id: 1781 }]);
+  });
+
+  it('resolver una EMERGENCIA (o cualquier otro tipo) no arrastra nada', async () => {
+    const resueltas = await alertasService.resolverEmergenciasSubordinadas(
+      { id: 1781, id_tipo_alerta: 4, id_seudonimo: 12 },
+      'Cerrada',
+    );
+
+    expect(alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo).not.toHaveBeenCalled();
+    expect(resueltas).toEqual([]);
+  });
+
+  it('una SUPER_EMERGENCIA sin seudónimo no arrastra nada', async () => {
+    const resueltas = await alertasService.resolverEmergenciasSubordinadas(
+      { id: 1784, id_tipo_alerta: 5, id_seudonimo: null },
+      'Cerrada',
+    );
+
+    expect(alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo).not.toHaveBeenCalled();
+    expect(resueltas).toEqual([]);
+  });
+});

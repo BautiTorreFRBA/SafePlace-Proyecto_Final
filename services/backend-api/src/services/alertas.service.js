@@ -126,8 +126,25 @@ const generar = async ({
   return alerta;
 };
 
+// Resolver una SUPER_EMERGENCIA (Atendida/Cerrada) resuelve también la EMERGENCIA
+// Activa del mismo operario: la súper nace de esas emergencias y no tiene sentido
+// que quede una abierta. Devuelve las alertas que arrastró ([] si no aplica).
+const resolverEmergenciasSubordinadas = async (alerta, estado) => {
+  if (!alerta || alerta.id_seudonimo == null) return [];
+  const tipoSuper = await tipoAlertaRepository.obtenerPorNombre(TIPO_SUPER_EMERGENCIA);
+  if (!tipoSuper || alerta.id_tipo_alerta !== tipoSuper.id) return [];
+  const tipoEmergencia = await tipoAlertaRepository.obtenerPorNombre(TIPO_EMERGENCIA);
+  if (!tipoEmergencia) return [];
+  return alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo(
+    alerta.id_seudonimo,
+    tipoEmergencia.id,
+    estado,
+  );
+};
+
 module.exports = {
   generar,
+  resolverEmergenciasSubordinadas,
   TIPO_EMERGENCIA,
   TIPO_SUPER_EMERGENCIA,
   VENTANA_EMERGENCIA_MIN,

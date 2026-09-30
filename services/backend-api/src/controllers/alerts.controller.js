@@ -1,5 +1,6 @@
 const alertsRepository = require('../repositories/alerts.repository');
 const alertaRepository = require('../repositories/alerta.repository');
+const alertasService = require('../services/alertas.service');
 
 // H0013: "cada alerta posee estado: Activa, Atendida o Cerrada" — el
 // endpoint de cambio de estado sólo acepta pasar a Atendida/Cerrada; volver
@@ -65,7 +66,12 @@ const actualizarEstado = async (req, res, next) => {
     }
 
     const actualizada = await alertaRepository.actualizarEstado(id, estado);
-    res.json({ message: 'Estado de la alerta actualizado.', data: actualizada });
+    const arrastradas = await alertasService.resolverEmergenciasSubordinadas(existente, estado);
+    res.json({
+      message: 'Estado de la alerta actualizado.',
+      data: actualizada,
+      emergencias_resueltas: arrastradas.map((alerta) => alerta.id),
+    });
   } catch (error) {
     next(error);
   }

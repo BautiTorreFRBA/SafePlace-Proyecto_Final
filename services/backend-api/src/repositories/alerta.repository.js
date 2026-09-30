@@ -71,6 +71,24 @@ const cerrarActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta) => {
   return res.rows;
 };
 
+// Pasa a `estado` (Atendida/Cerrada) las alertas Activas de ese seudónimo y tipo.
+// Se usa al resolver una SUPER_EMERGENCIA, que arrastra a la EMERGENCIA abierta.
+const actualizarEstadoActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta, estado) => {
+  const query = `
+    UPDATE alerta a
+    SET estado = $3
+    WHERE a.id_tipo_alerta = $2
+      AND a.estado = 'Activa'
+      AND COALESCE(
+        (SELECT m.id_seudonimo FROM medicion m WHERE m.id = a.id_medicion),
+        a.id_seudonimo
+      ) = $1
+    RETURNING a.*;
+  `;
+  const res = await db.query(query, [idSeudonimo, idTipoAlerta, estado]);
+  return res.rows;
+};
+
 const obtenerPorId = async (id) => {
   const res = await db.query('SELECT * FROM alerta WHERE id = $1;', [id]);
   return res.rows[0];
@@ -117,6 +135,7 @@ module.exports = {
   existeActivaParaSeudonimoYTipo,
   listarTiposEnVentana,
   cerrarActivasPorSeudonimoYTipo,
+  actualizarEstadoActivasPorSeudonimoYTipo,
   obtenerPorId,
   actualizarEstado,
   listarActivas,
