@@ -38,6 +38,21 @@ const existeActivaParaSeudonimoYTipo = async (idSeudonimo, idTipoAlerta) => {
   return res.rowCount > 0;
 };
 
+// Nombres de tipo de las alertas del seudónimo (cualquier estado) generadas en
+// los últimos `minutos`. Base de la escalada a EMERGENCIA.
+const listarTiposEnVentana = async (idSeudonimo, minutos) => {
+  const query = `
+    SELECT ta.nombre
+    FROM alerta a
+    JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
+    LEFT JOIN medicion m ON m.id = a.id_medicion
+    WHERE COALESCE(m.id_seudonimo, a.id_seudonimo) = $1
+      AND a.fecha_hora >= now() - make_interval(mins => $2::int);
+  `;
+  const res = await db.query(query, [idSeudonimo, minutos]);
+  return res.rows.map((row) => row.nombre);
+};
+
 // Cierre automático (CP-E2E-04): cuando el wearable se reconecta, la condición
 // de inactividad prolongada dejó de sostenerse — se cierran sus alertas Activas.
 const cerrarActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta) => {
@@ -100,6 +115,7 @@ const listarActivas = async (usuario = {}) => {
 module.exports = {
   crear,
   existeActivaParaSeudonimoYTipo,
+  listarTiposEnVentana,
   cerrarActivasPorSeudonimoYTipo,
   obtenerPorId,
   actualizarEstado,

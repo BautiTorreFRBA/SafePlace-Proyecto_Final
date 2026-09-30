@@ -52,6 +52,7 @@ const ETIQUETA_TIPO_ALERTA = {
   FATIGA: 'Fatiga',
   SOBREESFUERZO: 'Sobreesfuerzo',
   INACTIVIDAD_PROLONGADA: 'Inactividad prolongada',
+  EMERGENCIA: 'EMERGENCIA',
 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
 

@@ -10,14 +10,15 @@ const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmplead
 // Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
 const ESTADOS = {
+  emergencia: { label: 'Emergencia', color: '#ef4444', grupo: 'critico', rank: -1 },
   sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
   fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
   inactividad: { label: 'Inactividad prolongada', color: '#60a5fa', grupo: 'advertencia', rank: 2 },
   normal: { label: 'Normal', color: '#4ade80', grupo: 'normal', rank: 3 },
   sin_datos: { label: 'Sin datos', color: '#9ca3af', grupo: 'sin_datos', rank: 4 },
 };
-// Tipo de alerta activa → estado. Si hay varias, gana la de menor rank (SOBREESFUERZO > FATIGA > INACTIVIDAD).
-const ALERTA_A_ESTADO = { SOBREESFUERZO: 'sobreesfuerzo', FATIGA: 'fatiga', INACTIVIDAD_PROLONGADA: 'inactividad' };
+// Tipo de alerta activa → estado. Si hay varias, gana la de menor rank (EMERGENCIA > SOBREESFUERZO > FATIGA > INACTIVIDAD).
+const ALERTA_A_ESTADO = { EMERGENCIA: 'emergencia', SOBREESFUERZO: 'sobreesfuerzo', FATIGA: 'fatiga', INACTIVIDAD_PROLONGADA: 'inactividad' };
 
 const AVATARES = {
   masculino: 'assets/avatars/avatar-hombre.png',
@@ -127,7 +128,7 @@ function renderCard(item) {
   // El dibujo ocupa toda la tarjeta; encima: FC actual arriba a la derecha y abajo, sobre el
   // torso, el nombre y el estado. El avatar se pinta con el color del estado (mask +
   // ilustración con multiply: el relleno blanco toma el color y las líneas quedan negras).
-  return `<a class="op-card" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
+  return `<a class="op-card${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
