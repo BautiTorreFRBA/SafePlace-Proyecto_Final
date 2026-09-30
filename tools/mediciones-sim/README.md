@@ -13,9 +13,15 @@ corriendo `sql/sembrar-carga.sql` en el SQL Editor de Neon. Es idempotente.
 ```bash
 cd tools/mediciones-sim
 npm run on       # los 20 operarios pasan a CONECTADO y mandan FC cada ~5 s
-npm run status   # ¿encendida? últimos resúmenes y problemas
+npm run status   # ¿encendida? conectados, requests, problemas
 npm run off      # los 20 pasan a DESCONECTADO y se frena todo
 ```
+
+`status` muestra hace cuánto está encendida, cuántos operarios siguen
+conectados, el total de requests (por código HTTP) y cualquier problema
+detectado (rechazos, sin respuesta del backend). `npm run status:watch` hace
+lo mismo pero refrescando cada 3 s (Ctrl+C para salir) — útil para dejarlo
+abierto en otra terminal mientras mirás el dashboard.
 
 (sin npm: `node carga.js on|off|status`. Variantes: `npm run on -- --cantidad 5`
 usa solo los primeros 5; `npm run dry-run` prueba sin tocar la red.)

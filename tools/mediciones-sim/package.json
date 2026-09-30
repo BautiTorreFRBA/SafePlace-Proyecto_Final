@@ -6,6 +6,7 @@
     "on": "node carga.js on",
     "off": "node carga.js off",
     "status": "node carga.js status",
+    "status:watch": "node carga.js status --watch",
     "dry-run": "node simular-mediciones.js --roster roster.json --dry-run --intervalo 1 --duracion 3"
   },
   "engines": { "node": ">=18" }

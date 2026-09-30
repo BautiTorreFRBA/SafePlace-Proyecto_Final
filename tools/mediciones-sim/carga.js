@@ -6,7 +6,8 @@
  *
  *   node carga.js on       conecta a todos y empieza a mandar mediciones (en segundo plano)
  *   node carga.js off      todos DESCONECTADO y frena
- *   node carga.js status   ¿está encendida? últimos resúmenes
+ *   node carga.js status   ¿está encendida? conectados, requests, problemas
+ *   node carga.js status --watch   lo mismo pero refrescando cada 3 s
  *
  * Extras: `on --cantidad 5` (solo los primeros 5), `on --dry-run` (sin red),
  * `on --url <api>`. Lee GATEWAY_API_KEY / SAFEPLACE_API_URL del entorno o del
@@ -142,23 +143,80 @@ async function apagar() {
   fs.rmSync(STOP_FILE, { force: true });
 }
 
-function estado() {
+// Parsea la línea "[resumen] <iso> conectados=X/Y requests=N por status={ ... } sin respuesta=M"
+// que imprime simular-mediciones.js cada 15 s.
+function parseResumen(linea) {
+  if (!linea) return null;
+  const m = linea.match(/^\[resumen\] (\S+) conectados=(\d+)\/(\d+) requests=(\d+) por status=\{ (.*) \} sin respuesta=(\d+)/);
+  if (!m) return null;
+  return {
+    ts: m[1], conectados: Number(m[2]), total: Number(m[3]),
+    requests: Number(m[4]), statusDetalle: m[5], sinRespuesta: Number(m[6]),
+  };
+}
+
+function fmtDuracion(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (hh > 0) return `${hh}h ${mm}m ${ss}s`;
+  if (mm > 0) return `${mm}m ${ss}s`;
+  return `${ss}s`;
+}
+
+// Devuelve false si ya no hay nada encendido (para que --watch corte solo).
+function imprimirEstado() {
   const pid = pidActivo();
   if (!pid) {
     console.log('APAGADA.');
+    return false;
+  }
+
+  let desde = null;
+  try { desde = fs.statSync(PID_FILE).birthtime; } catch { /* sin info de inicio */ }
+  console.log(`ENCENDIDA (PID ${pid})${desde ? ` — activa hace ${fmtDuracion(Date.now() - desde.getTime())}` : ''}`);
+
+  const ultimo = parseResumen(ultimasLineas(50, '[resumen]').pop());
+  if (ultimo) {
+    const antiguedad = Math.round((Date.now() - new Date(ultimo.ts).getTime()) / 1000);
+    console.log(`Conectados: ${ultimo.conectados}/${ultimo.total}`);
+    console.log(`Requests: ${ultimo.requests} enviados, ${ultimo.sinRespuesta} sin respuesta del backend   |   por status: { ${ultimo.statusDetalle || '-'} }`);
+    console.log(`Último resumen: hace ${antiguedad}s (se actualiza cada 15s)`);
+  } else {
+    console.log('Todavía sin resumen (recién está arrancando; el backend de Render puede tardar ~30s en despertar).');
+  }
+
+  const problemas = ultimasLineas(300).filter((l) => /^\[.*\] HTTP|AVISO|sin respuesta del backend/.test(l));
+  if (problemas.length) {
+    console.log(`Problemas detectados (${problemas.length}):\n  ${[...new Set(problemas)].slice(-8).join('\n  ')}`);
+  } else {
+    console.log('Sin problemas detectados.');
+  }
+  return true;
+}
+
+function estado(extra) {
+  if (!extra.includes('--watch') && !extra.includes('-w')) {
+    imprimirEstado();
     return;
   }
-  console.log(`ENCENDIDA (PID ${pid}).`);
-  for (const l of ultimasLineas(3, '[resumen]')) console.log(l);
-  const problemas = ultimasLineas(200).filter((l) => /^\[.*\] HTTP|AVISO|sin respuesta del backend/.test(l));
-  if (problemas.length) console.log('Problemas detectados:\n  ' + [...new Set(problemas)].slice(-8).join('\n  '));
+  console.log('Actualizando cada 3s — Ctrl+C para salir.\n');
+  const intervalo = setInterval(() => {
+    console.clear();
+    console.log(`SafePlace — simulación de carga   ${new Date().toLocaleTimeString('es-AR')}\n`);
+    if (!imprimirEstado()) {
+      clearInterval(intervalo);
+      process.exit(0);
+    }
+  }, 3000);
 }
 
 async function main() {
   const [cmd, ...extra] = process.argv.slice(2);
   if (cmd === 'on') await encender(extra);
   else if (cmd === 'off') await apagar();
-  else if (cmd === 'status') estado();
+  else if (cmd === 'status') estado(extra);
   else {
     console.log('Uso: node carga.js <on|off|status>   (o: npm run on / off / status)');
     process.exit(cmd ? 1 : 0);
