@@ -692,46 +692,46 @@ html, body {
 .op-avatar img { display:block; width:100%; height:100%; object-fit:contain; object-position:center bottom; mix-blend-mode:multiply; }
 .op-chip { display:inline-flex; margin-top:5px; align-items:center; gap:6px; padding:3px 9px; border:1px solid var(--border); border-radius:999px; background:rgba(12,12,12,.75); color:var(--text-primary); font-size:.68rem; font-weight:600; }
 .op-chip i { width:7px; height:7px; border-radius:50%; background:var(--estado); box-shadow:0 0 0 3px color-mix(in srgb, var(--estado) 20%, transparent); }
-/* EMERGENCIA ("super alerta"): rojo intenso titilando; en el grid va primero (rank más bajo). */
-.op-card--emergencia { border-color:#ef4444; animation:op-emergencia-card 1s ease-in-out infinite; }
+/* EMERGENCIA ("super alerta"): naranja intenso titilando; en el grid va primero (rank más bajo). */
+.op-card--emergencia { border-color:#ff6a00; animation:op-emergencia-card 1s ease-in-out infinite; }
 .op-card--emergencia .op-avatar { animation:op-emergencia-avatar .9s ease-in-out infinite; }
-.op-card--emergencia .op-chip { border-color:#ef4444; background:#b91c1c; color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase; animation:op-emergencia-chip 1s ease-in-out infinite; }
+.op-card--emergencia .op-chip { border-color:#ff6a00; background:#c2410c; color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase; animation:op-emergencia-chip 1s ease-in-out infinite; }
 .op-card--emergencia .op-chip i { background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.3); }
 @keyframes op-emergencia-card {
-  0%,100% { background:#2a0b0b; box-shadow:0 0 0 0 rgba(239,68,68,.7), 0 0 14px rgba(239,68,68,.45); }
-  50% { background:#5a1212; box-shadow:0 0 0 7px rgba(239,68,68,0), 0 0 34px rgba(239,68,68,.95); }
+  0%,100% { background:#2e1200; box-shadow:0 0 0 0 rgba(255,106,0,.7), 0 0 14px rgba(255,106,0,.45); }
+  50% { background:#6b2a00; box-shadow:0 0 0 7px rgba(255,106,0,0), 0 0 34px rgba(255,106,0,.95); }
 }
 @keyframes op-emergencia-avatar {
-  0%,100% { background:#ff2d2d; filter:drop-shadow(0 0 12px rgba(255,45,45,.95)); }
-  50% { background:#7f1d1d; filter:drop-shadow(0 0 0 rgba(255,45,45,0)); }
+  0%,100% { background:#ff6a00; filter:drop-shadow(0 0 12px rgba(255,106,0,.95)); }
+  50% { background:#7c2d12; filter:drop-shadow(0 0 0 rgba(255,106,0,0)); }
 }
-@keyframes op-emergencia-chip { 0%,100% { background:#b91c1c; } 50% { background:#ef4444; } }
-/* SÚPER EMERGENCIA (más de dos emergencias): mismo tamaño que el resto de las tarjetas, en violeta neón y
+@keyframes op-emergencia-chip { 0%,100% { background:#c2410c; } 50% { background:#ff6a00; } }
+/* SÚPER EMERGENCIA (más de dos emergencias): mismo tamaño que el resto de las tarjetas, en rojo intenso y
    parpadeando más rápido que la EMERGENCIA (0,4 s por ciclo = 2,5 destellos/s, bajo el límite de 3/s). */
-.op-card--super-emergencia { border-width:2px; border-color:#b026ff; animation:op-super-card .4s ease-in-out infinite; z-index:1; }
+.op-card--super-emergencia { border-width:2px; border-color:#ff1a1a; animation:op-super-card .4s ease-in-out infinite; z-index:1; }
 .op-card--super-emergencia .op-avatar { animation:op-super-avatar .4s ease-in-out infinite; }
-.op-card--super-emergencia .op-chip { border-color:#b026ff; background:#7e22ce; color:#fff; font-weight:900; letter-spacing:.08em; text-transform:uppercase; animation:op-super-chip .4s ease-in-out infinite; }
+.op-card--super-emergencia .op-chip { border-color:#ff1a1a; background:#b91c1c; color:#fff; font-weight:900; letter-spacing:.08em; text-transform:uppercase; animation:op-super-chip .4s ease-in-out infinite; }
 .op-card--super-emergencia .op-chip i { background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.35); }
 @keyframes op-super-card {
-  0%,100% { background:#2a0045; box-shadow:0 0 0 0 rgba(176,38,255,.85), 0 0 22px rgba(176,38,255,.6); }
-  50% { background:#5b0a94; box-shadow:0 0 0 12px rgba(176,38,255,0), 0 0 56px rgba(176,38,255,1); }
+  0%,100% { background:#3d0000; box-shadow:0 0 0 0 rgba(255,26,26,.85), 0 0 22px rgba(255,26,26,.6); }
+  50% { background:#8f0000; box-shadow:0 0 0 12px rgba(255,26,26,0), 0 0 56px rgba(255,26,26,1); }
 }
 @keyframes op-super-avatar {
-  0%,100% { background:#b026ff; filter:drop-shadow(0 0 18px rgba(176,38,255,1)); }
-  50% { background:#3b0764; filter:drop-shadow(0 0 0 rgba(176,38,255,0)); }
+  0%,100% { background:#ff1a1a; filter:drop-shadow(0 0 18px rgba(255,26,26,1)); }
+  50% { background:#5c0000; filter:drop-shadow(0 0 0 rgba(255,26,26,0)); }
 }
-@keyframes op-super-chip { 0%,100% { background:#7e22ce; } 50% { background:#b026ff; } }
+@keyframes op-super-chip { 0%,100% { background:#b91c1c; } 50% { background:#ff1a1a; } }
 /* Contenedor de la súper emergencia: la tarjeta (mismo tamaño que las demás) y debajo el botón de atender. */
 .op-super { display:flex; flex-direction:column; gap:8px; min-width:0; }
-.op-super__atender { padding:14px 18px; border:2px solid #b026ff; border-radius:12px; background:#b026ff; color:#fff; font:inherit; font-size:1rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
-.op-super__atender:hover:not(:disabled) { background:#c77dff; }
+.op-super__atender { padding:14px 18px; border:2px solid #ff1a1a; border-radius:12px; background:#ff1a1a; color:#fff; font:inherit; font-size:1rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
+.op-super__atender:hover:not(:disabled) { background:#ff4d4d; }
 .op-super__atender:disabled { opacity:.65; cursor:wait; }
 .op-super__atender:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 @media (prefers-reduced-motion: reduce) {
   .op-card--emergencia,.op-card--emergencia .op-avatar,.op-card--emergencia .op-chip,
   .op-card--super-emergencia,.op-card--super-emergencia .op-avatar,.op-card--super-emergencia .op-chip { animation:none; }
-  .op-card--emergencia { background:#3b0d0d; box-shadow:0 0 0 2px #ef4444, 0 0 22px rgba(239,68,68,.6); }
-  .op-card--super-emergencia { background:#3b0764; box-shadow:0 0 0 3px #b026ff, 0 0 34px rgba(176,38,255,.8); }
+  .op-card--emergencia { background:#3d1800; box-shadow:0 0 0 2px #ff6a00, 0 0 22px rgba(255,106,0,.6); }
+  .op-card--super-emergencia { background:#5c0000; box-shadow:0 0 0 3px #ff1a1a, 0 0 34px rgba(255,26,26,.8); }
 }
 .op-card__lectura { position:absolute; top:10px; right:12px; text-align:right; }
 .op-card__fc { display:flex; align-items:baseline; justify-content:flex-end; gap:4px; color:#fff; font-weight:800; text-shadow:0 2px 6px rgba(0,0,0,.6); }

@@ -10,8 +10,8 @@ const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmplead
 // Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
 const ESTADOS = {
-  super_emergencia: { label: 'Súper emergencia', color: '#b026ff', grupo: 'critico', rank: -2 },
-  emergencia: { label: 'Emergencia', color: '#ef4444', grupo: 'critico', rank: -1 },
+  super_emergencia: { label: 'Súper emergencia', color: '#ff1a1a', grupo: 'critico', rank: -2 },
+  emergencia: { label: 'Emergencia', color: '#ff6a00', grupo: 'critico', rank: -1 },
   sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
   fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
   inactividad: { label: 'Inactividad prolongada', color: '#60a5fa', grupo: 'advertencia', rank: 2 },
