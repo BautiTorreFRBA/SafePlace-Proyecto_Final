@@ -10,7 +10,7 @@ const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmplead
 // Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
 const ESTADOS = {
-  super_emergencia: { label: 'Super emergencia', color: '#ff1a1a', grupo: 'critico', rank: -2 },
+  super_emergencia: { label: 'Súper emergencia', color: '#ff1a1a', grupo: 'critico', rank: -2 },
   emergencia: { label: 'Emergencia', color: '#ef4444', grupo: 'critico', rank: -1 },
   sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
   fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
@@ -93,10 +93,10 @@ function hora(value) {
   return Number.isNaN(fecha.getTime()) ? '--:--' : fmtARHora(fecha, { hour: '2-digit', minute: '2-digit' });
 }
 
-async function apiFetch(path) {
+async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
   if (!token) { window.location.href = 'InicioSesion.html'; throw new Error('Sesión expirada'); }
-  const response = await fetch(`${API_BASE_URL}${path}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || payload.message || 'No se pudo cargar el panel.');
   return payload;
@@ -207,6 +207,107 @@ function renderAll() {
   document.getElementById('currentDate').textContent = `Actualizado ${fmtARHora(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 }
 
+// ---- Modal de SÚPER EMERGENCIA ------------------------------------------------
+// Aparece grande en el centro mientras haya una SUPER_EMERGENCIA activa en el alcance del
+// rol, para atenderla ahí mismo (PATCH /alertas/:id -> 'Atendida'). "Posponer" la oculta un
+// minuto; si sigue activa, vuelve a aparecer.
+const POSPONER_SUPER_MS = 60000;
+const superPospuestas = new Map(); // id de alerta -> timestamp hasta el que queda oculta
+let superMostrada = null; // id de la alerta con el modal abierto
+
+function superOverlay() {
+  let overlay = document.getElementById('superModal');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'superModal';
+  overlay.className = 'super-modal';
+  overlay.hidden = true;
+  overlay.setAttribute('role', 'alertdialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'superModalTitulo');
+  overlay.innerHTML = `<div class="super-modal__panel">
+    <p class="super-modal__pendientes" id="superModalPendientes" hidden></p>
+    <h2 class="super-modal__titulo" id="superModalTitulo">Súper emergencia</h2>
+    <p class="super-modal__nombre" id="superModalNombre"></p>
+    <p class="super-modal__area" id="superModalArea"></p>
+    <div class="super-modal__fc"><strong id="superModalFc">—</strong> <small>BPM</small></div>
+    <p class="super-modal__texto">Más de dos emergencias en la última hora. Requiere atención inmediata.</p>
+    <p class="super-modal__error" id="superModalError" role="status" hidden></p>
+    <div class="super-modal__acciones">
+      <button type="button" class="super-modal__btn super-modal__btn--atender" id="superModalAtender">Atender alerta</button>
+      <a class="super-modal__btn super-modal__btn--link" id="superModalHistorial" href="#">Ver historial</a>
+      <button type="button" class="super-modal__btn super-modal__btn--posponer" id="superModalPosponer">Posponer 1 min</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#superModalAtender').addEventListener('click', atenderSuper);
+  overlay.querySelector('#superModalPosponer').addEventListener('click', posponerSuper);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !overlay.hidden) posponerSuper();
+  });
+  return overlay;
+}
+
+function cerrarSuper() {
+  const overlay = superOverlay();
+  overlay.hidden = true;
+  document.body.classList.remove('super-modal-abierto');
+  superMostrada = null;
+}
+
+function posponerSuper() {
+  if (superMostrada != null) superPospuestas.set(superMostrada, Date.now() + POSPONER_SUPER_MS);
+  cerrarSuper();
+}
+
+async function atenderSuper() {
+  const id = superMostrada;
+  if (id == null) return;
+  const overlay = superOverlay();
+  const boton = overlay.querySelector('#superModalAtender');
+  const error = overlay.querySelector('#superModalError');
+  boton.disabled = true;
+  error.hidden = true;
+  try {
+    await apiFetch(`/alertas/${id}`, { method: 'PATCH', body: JSON.stringify({ estado: 'Atendida' }) });
+    cerrarSuper();
+    await cargarHome();
+  } catch (err) {
+    error.textContent = err.message || 'No se pudo atender la alerta.';
+    error.hidden = false;
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+function actualizarModalSuper(alertas) {
+  const ahora = Date.now();
+  const candidatas = alertas
+    .filter((alerta) => String(alerta.tipo_alerta || '').toUpperCase() === 'SUPER_EMERGENCIA')
+    .map((alerta) => ({ alerta, trabajador: trabajadores.find((item) => String(item.id_trabajador) === String(alerta.id_trabajador)) }))
+    .filter(({ alerta, trabajador }) => trabajador && (superPospuestas.get(alerta.id) || 0) <= ahora);
+  if (!candidatas.length) { if (superMostrada != null) cerrarSuper(); return; }
+
+  const { alerta, trabajador } = candidatas[0];
+  const overlay = superOverlay();
+  const reciente = tieneLecturaReciente(trabajador) && trabajador.frecuencia_cardiaca != null;
+  overlay.querySelector('#superModalFc').textContent = reciente ? trabajador.frecuencia_cardiaca : '—';
+  const pendientes = overlay.querySelector('#superModalPendientes');
+  pendientes.textContent = `+${candidatas.length - 1} súper emergencia${candidatas.length - 1 === 1 ? '' : 's'} más`;
+  pendientes.hidden = candidatas.length < 2;
+
+  if (superMostrada === alerta.id) return; // mismo caso: sólo se refrescó la FC, sin robar el foco
+  superMostrada = alerta.id;
+  overlay.querySelector('#superModalNombre').textContent = nombreCompleto(trabajador);
+  overlay.querySelector('#superModalArea').textContent = [trabajador.legajo, trabajador.area].filter(Boolean).join(' · ') || 'Operario';
+  overlay.querySelector('#superModalHistorial').href = `${HISTORIAL_URL}?empleado=${encodeURIComponent(trabajador.id_trabajador)}`;
+  overlay.querySelector('#superModalError').hidden = true;
+  overlay.hidden = false;
+  document.body.classList.add('super-modal-abierto');
+  overlay.querySelector('#superModalAtender').focus();
+}
+
 async function cargarHome() {
   try {
     const [estadoResult, alertasResult] = await Promise.allSettled([apiFetch('/estado/trabajadores-activos'), apiFetch('/alertas/activas')]);
@@ -226,6 +327,7 @@ async function cargarHome() {
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador) }));
     renderAll();
+    actualizarModalSuper(alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : []);
   } catch (error) {
     console.error(error);
     document.getElementById('workerGrid').innerHTML = `<div class="supervisor-empty supervisor-empty--error">${escapeHtml(error.message)}</div>`;

@@ -4570,3 +4570,32 @@ select.cfg-input {
 
 /* Gestión de Empleados: con el filtro de área son tres controles; que bajen de línea en pantallas angostas */
 .emp-toolbar { flex-wrap: wrap; }
+
+/* Modal de SÚPER EMERGENCIA: grande, en el centro, con la acción de atender. */
+.super-modal { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(40,0,0,.86); backdrop-filter:blur(3px); animation:super-modal-fondo 1s ease-in-out infinite; }
+.super-modal[hidden] { display:none; }
+.super-modal-abierto { overflow:hidden; }
+.super-modal__panel { position:relative; width:min(780px,100%); max-height:100%; overflow:auto; padding:40px 36px 34px; border:4px solid #ff1a1a; border-radius:26px; background:#1a0505; color:#fff; text-align:center; animation:super-modal-panel .5s ease-in-out infinite; }
+.super-modal__pendientes { position:absolute; top:14px; right:20px; margin:0; padding:3px 12px; border-radius:999px; background:#ff1a1a; color:#fff; font-size:.78rem; font-weight:800; }
+.super-modal__pendientes[hidden],.super-modal__error[hidden] { display:none; }
+.super-modal__titulo { margin:0 0 14px; color:#ff4d4d; font-size:clamp(2rem,6vw,3.4rem); font-weight:900; letter-spacing:.06em; line-height:1.05; text-transform:uppercase; }
+.super-modal__nombre { margin:0; font-size:clamp(1.6rem,4.5vw,2.4rem); font-weight:800; text-transform:uppercase; }
+.super-modal__area { margin:4px 0 0; color:#fca5a5; font-size:1rem; font-weight:600; }
+.super-modal__fc { margin:18px 0 6px; font-weight:900; }
+.super-modal__fc strong { font-size:clamp(3.4rem,11vw,6rem); line-height:1; }
+.super-modal__fc small { font-size:1.3rem; }
+.super-modal__texto { margin:8px 0 22px; color:#fecaca; font-size:1.05rem; }
+.super-modal__error { margin:0 0 14px; padding:8px 12px; border-radius:10px; background:#450a0a; color:#fecaca; font-size:.9rem; }
+.super-modal__acciones { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; }
+.super-modal__btn { padding:14px 26px; border:2px solid #ff1a1a; border-radius:14px; background:transparent; color:#fff; font:inherit; font-size:1.05rem; font-weight:800; text-decoration:none; cursor:pointer; }
+.super-modal__btn--atender { padding:18px 44px; background:#ff1a1a; font-size:1.35rem; letter-spacing:.04em; text-transform:uppercase; }
+.super-modal__btn--atender:hover:not(:disabled) { background:#ff4d4d; }
+.super-modal__btn:disabled { opacity:.6; cursor:wait; }
+.super-modal__btn:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+.super-modal__btn--link:hover,.super-modal__btn--posponer:hover { background:rgba(255,26,26,.2); }
+@keyframes super-modal-fondo { 0%,100% { background:rgba(40,0,0,.86); } 50% { background:rgba(90,0,0,.9); } }
+@keyframes super-modal-panel {
+  0%,100% { box-shadow:0 0 0 0 rgba(255,26,26,.8), 0 0 40px rgba(255,26,26,.55); }
+  50% { box-shadow:0 0 0 14px rgba(255,26,26,0), 0 0 90px rgba(255,26,26,1); }
+}
+@media (prefers-reduced-motion: reduce) { .super-modal,.super-modal__panel { animation:none; } .super-modal__panel { box-shadow:0 0 0 4px #ff1a1a, 0 0 50px rgba(255,26,26,.7); } }
