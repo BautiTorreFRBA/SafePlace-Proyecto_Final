@@ -1567,6 +1567,11 @@ select.cfg-input {
   width: min(640px, 100%);
   max-height: min(80vh, 760px);
   overflow: hidden;
+  /* Por encima del backdrop (que es absolute): sin esto el fondo tapa el panel y no deja scrollear ni tocar. */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
   border-radius: 20px;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94));
@@ -1579,6 +1584,7 @@ select.cfg-input {
 }
 
 .notif-modal__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -1614,7 +1620,9 @@ select.cfg-input {
   display: grid;
   gap: 12px;
   overflow: auto;
-  max-height: calc(min(80vh, 760px) - 84px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .notif-preview {
