@@ -129,17 +129,20 @@ const alertMark = (tipo) => ALERT_MARKS[String(tipo || '').toUpperCase()] || { l
 const CHART_BOX = { width: 760, height: 280, left: 44, right: 18, top: 22, bottom: 40 };
 const PLOT_W = CHART_BOX.width - CHART_BOX.left - CHART_BOX.right;
 const ZOOM_MIN_MS = 10 * 60_000; // ventana mínima: 10 minutos (los puntos son de 1 minuto)
-const VENTANA_INICIAL_MS = 24 * 3600_000; // vista principal: las últimas 24 h reales (hasta ahora)
+const VENTANA_MINIMA_MS = 24 * 3600_000; // el gráfico siempre puede recorrer al menos las últimas 24 h, aunque el período sea más corto
+const VISTA_INICIAL_MS = 3600_000; // vista principal: la última hora real (se puede alejar para ver más)
+const LIVE_REFRESH_MS = 30_000; // cada cuánto se corre la ventana (y se piden lecturas nuevas) mientras sigue a "ahora"
 const MAX_DRAWN_POINTS = 700; // por encima se promedia por columna para no dibujar miles de nodos
-const GAP_MS = 15 * 60_000; // más de 15 min sin lecturas corta la línea (no se unen tramos sin datos)
-const X_TICKS = 7; // cantidad de marcas del eje X (en 24 h: una cada 4 h, la última = ahora)
+const GAP_MS = 5 * 60_000; // más de 5 min sin lecturas corta la línea (no se unen tramos sin datos)
+const X_TICKS = 7; // cantidad de marcas del eje X (en 1 h: una cada 10 min, la última = ahora)
 const TICK_STEPS = [10, 15, 30, 60, 120, 240, 360, 720, 1440, 2880, 10080].map((min) => min * 60_000);
 const TZ_AR = 'America/Argentina/Buenos_Aires';
 
-// "23/9, 07:36 p. m." en hora argentina.
-function formatTick(t) {
-  return new Date(t).toLocaleString('es-AR', { timeZone: TZ_AR, day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+// "23/9, 07:36 p. m." en hora argentina; sin fecha queda "07:36 p. m.".
+function formatTick(t, withDate = true) {
+  return new Date(t).toLocaleString('es-AR', { timeZone: TZ_AR, ...(withDate ? { day: 'numeric', month: 'numeric' } : {}), hour: '2-digit', minute: '2-digit', hour12: true });
 }
+const diaAR = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ_AR });
 // Marcas uniformes ancladas al borde derecho: en la vista inicial la última es "ahora".
 function xTicksFor(v0, v1) {
   const span = v1 - v0; const step = TICK_STEPS.find((candidate) => candidate * (X_TICKS - 1) >= span) || span / (X_TICKS - 1);
@@ -154,28 +157,32 @@ function clampWindow(start, span, t0, t1) {
 }
 
 // El gráfico no depende del Desde/Hasta para su ventana: arranca siempre en
-// (ahora − 24 h, ahora). Puede recorrerse hacia atrás hasta el inicio del período;
-// al salir de las últimas 24 h se pide el resto del período (onNeedFull).
-function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull, fatigue = 130, overexertion = 160 }) {
+// (ahora − 1 h, ahora) y, mientras el usuario no haga zoom ni arrastre, la ventana
+// se corre sola con "now". Puede alejarse o recorrerse hacia atrás hasta el inicio
+// del período; al salir de la última hora se pide el resto del período (onNeedFull).
+function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull, fatigue = 130, overexertion = 160, gapMs = GAP_MS }) {
   const series = useMemo(() => points.map((point) => ({ ...point, t: new Date(point.ts).getTime() })).filter((point) => !Number.isNaN(point.t)).sort((a, b) => a.t - b.t), [points]);
   const marks = useMemo(() => alerts.map((alert) => ({ id: alert.id, t: new Date(alert.fecha_hora).getTime(), estado: alert.estado, ...alertMark(alert.tipo_alerta) })).filter((mark) => !Number.isNaN(mark.t)), [alerts]);
   const t1 = now;
-  const t0 = Math.min(domainStart, now - VENTANA_INICIAL_MS);
+  const t0 = Math.min(domainStart, now - VENTANA_MINIMA_MS, lastReading ? lastReading - VISTA_INICIAL_MS : Infinity);
 
-  const initialView = () => ({ v0: now - VENTANA_INICIAL_MS, v1: now });
-  const [view, setView] = useState(initialView);
+  // following = la vista es "la última hora" y se desliza con now; manualView = la ventana que eligió el usuario.
+  const [following, setFollowing] = useState(true);
+  const [manualView, setManualView] = useState(null);
+  const view = following || !manualView ? { v0: now - VISTA_INICIAL_MS, v1: now } : manualView;
   const viewRef = useRef(view); viewRef.current = view;
   const containerRef = useRef(null); const svgRef = useRef(null); const dragRef = useRef(null);
+  const setView = (next) => { setFollowing(false); setManualView(next); };
 
-  // Salir de las últimas 24 h dispara la carga del resto del período (una sola vez, la decide el padre).
-  useEffect(() => { if (view.v0 < now - VENTANA_INICIAL_MS - 1000) onNeedFull?.(); }, [view.v0]);
+  // Salir de la última hora dispara la carga del resto del período (una sola vez, la decide el padre).
+  useEffect(() => { if (!following && view.v0 < now - VISTA_INICIAL_MS - 1000) onNeedFull?.(); }, [following, view.v0]);
 
   const zoom = (factor, center) => {
     const { v0, v1 } = viewRef.current; const span = v1 - v0; const c = center ?? (v0 + v1) / 2;
     const next = span * factor; setView(clampWindow(c - ((c - v0) / span) * next, next, t0, t1));
   };
-  const reset = () => setView(initialView());
-  const verUltimaActividad = () => { onNeedFull?.(); setView(clampWindow(lastReading - VENTANA_INICIAL_MS + 60_000, VENTANA_INICIAL_MS, t0, t1)); };
+  const reset = () => { setFollowing(true); setManualView(null); };
+  const verUltimaActividad = () => { onNeedFull?.(); setView(clampWindow(lastReading - VISTA_INICIAL_MS + 60_000, VISTA_INICIAL_MS, t0, t1)); };
   const timeAt = (clientX) => {
     const rect = svgRef.current.getBoundingClientRect(); const { v0, v1 } = viewRef.current;
     const ratio = Math.min(1, Math.max(0, (((clientX - rect.left) / rect.width) * CHART_BOX.width - CHART_BOX.left) / PLOT_W));
@@ -211,12 +218,12 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
   const visible = segment.filter((point) => point.t >= v0 && point.t <= v1);
 
   // Con muchos puntos (rangos de varios días) se promedia por columna de pantalla.
-  let drawn = segment; let gap = GAP_MS;
+  let drawn = segment; let gap = gapMs;
   if (segment.length > MAX_DRAWN_POINTS) {
     const colMs = span / MAX_DRAWN_POINTS; const cols = new Map();
     segment.forEach((point) => { const key = Math.floor((point.t - v0) / colMs); const col = cols.get(key) || { t: 0, sum: 0, lecturas: 0, n: 0, fcMin: Infinity, fcMax: -Infinity }; col.t += point.t; col.sum += point.fcPromedio; col.n += 1; col.lecturas += point.lecturas; col.fcMin = Math.min(col.fcMin, point.fcMin ?? point.fcPromedio); col.fcMax = Math.max(col.fcMax, point.fcMax ?? point.fcPromedio); cols.set(key, col); });
     drawn = [...cols.values()].map((col) => ({ t: col.t / col.n, fcPromedio: Math.round(col.sum / col.n), lecturas: col.lecturas, fcMin: col.fcMin, fcMax: col.fcMax })).sort((a, b) => a.t - b.t);
-    gap = Math.max(GAP_MS, colMs * 2.5);
+    gap = Math.max(gapMs, colMs * 2.5);
   }
 
   const values = (visible.length ? visible : segment).map((point) => point.fcPromedio);
@@ -232,16 +239,19 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
   const aislados = drawnVisible.length > 400 ? drawn.filter((point, index) => point.t >= v0 && point.t <= v1 && !(index > 0 && point.t - drawn[index - 1].t <= gap) && !(index < drawn.length - 1 && drawn[index + 1].t - point.t <= gap)) : [];
   const radius = drawnVisible.length <= 150 ? 4 : 2.5;
   const visibleMarks = marks.filter((mark) => mark.t >= v0 && mark.t <= v1);
-  const full = v0 <= t0 && v1 >= t1; const atInitial = Math.abs(v0 - (now - VENTANA_INICIAL_MS)) < 1000 && Math.abs(v1 - now) < 1000; const atMin = span <= Math.min(ZOOM_MIN_MS, t1 - t0) + 1;
+  const full = v0 <= t0 && v1 >= t1; const atMin = span <= Math.min(ZOOM_MIN_MS, t1 - t0) + 1;
   const tipos = [...new Map(marks.map((mark) => [mark.cls, mark])).values()];
-  const sinLecturas24h = atInitial && visible.length === 0;
+  const sinLecturasVista = following && visible.length === 0;
+  // La fecha "d/M" solo aparece en los ticks si la ventana cruza medianoche (hora argentina).
+  const tickConFecha = diaAR(v0) !== diaAR(v1);
 
   return <div className="empleado-chart-zoom" ref={containerRef} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
     <div className="empleado-chart-toolbar">
-      <span className="empleado-chart-toolbar__range">{atInitial ? `Últimas 24 h · ${formatTick(v0)} – ${formatTick(v1)}` : `${formatTick(v0)} – ${formatTick(v1)}`}</span>
+      <span className="empleado-chart-toolbar__range">{following ? `Última hora · ${formatTick(v0, tickConFecha)} – ${formatTick(v1, tickConFecha)}` : `${formatTick(v0)} – ${formatTick(v1)}`}</span>
       <span className="empleado-chart-toolbar__hint">Rueda del mouse para hacer zoom · arrastrá para moverte · doble clic para restablecer</span>
-      <div className="empleado-chart-toolbar__zoom" role="group" aria-label="Zoom del gráfico"><button type="button" onClick={() => zoom(2)} disabled={full} aria-label="Alejar">−</button><button type="button" onClick={() => zoom(0.5)} disabled={atMin} aria-label="Acercar">+</button><button type="button" onClick={reset} disabled={atInitial} title="Volver a las últimas 24 h">Restablecer</button></div>
+      <div className="empleado-chart-toolbar__zoom" role="group" aria-label="Zoom del gráfico"><button type="button" onClick={() => zoom(2)} disabled={full} aria-label="Alejar">−</button><button type="button" onClick={() => zoom(0.5)} disabled={atMin} aria-label="Acercar">+</button><button type="button" onClick={reset} disabled={following} title="Volver a la última hora">Restablecer</button></div>
     </div>
+    {!following && <div className="empleado-chart-paused"><span>Vista fija: no se actualiza en vivo.</span><button type="button" onClick={reset}>Volver a la última hora</button></div>}
     <div className="empleado-chart-frame">
     <svg ref={svgRef} className="empleado-chart empleado-chart--zoomable" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolución de frecuencia cardíaca" onPointerDown={onPointerDown} onDoubleClick={reset}>
       <defs><clipPath id="empleadoChartClip"><rect x={left} y="0" width={PLOT_W} height={height} /></clipPath></defs>
@@ -253,60 +263,82 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
         {drawnVisible.length <= 400 && drawnVisible.map((point) => <circle className="empleado-chart__point" key={point.t} cx={x(point.t)} cy={y(point.fcPromedio)} r={radius} fill="var(--teal-400)"><title>{`${point.fcPromedio} BPM · ${formatDate(point.t)} · ${point.lecturas} lectura(s)`}</title></circle>)}
         {aislados.map((point) => <circle className="empleado-chart__point" key={`solo-${point.t}`} cx={x(point.t)} cy={y(point.fcPromedio)} r={2.5} fill="var(--teal-400)" />)}
       </g>
-      {xTicks.map((t, index) => <text className="empleado-chart__date" key={`tick-${t}`} x={x(t)} y={height - 13} textAnchor={index === xTicks.length - 1 ? 'end' : x(t) - left < 40 ? 'start' : 'middle'}>{formatTick(t)}</text>)}
+      {xTicks.map((t, index) => <text className="empleado-chart__date" key={`tick-${t}`} x={x(t)} y={height - 13} textAnchor={index === xTicks.length - 1 ? 'end' : x(t) - left < 40 ? 'start' : 'middle'}>{formatTick(t, tickConFecha)}</text>)}
       <text className="empleado-chart__label empleado-chart__label--fatigue" x={left + 5} y={y(fatigue) - 5}>Fatiga {fatigue}</text><text className="empleado-chart__label empleado-chart__label--critical" x={left + 5} y={y(overexertion) - 5}>Sobreesfuerzo {overexertion}</text>
     </svg>
-    {sinLecturas24h && <div className="empleado-chart-empty"><p>Sin lecturas en las últimas 24 h</p>{lastReading && <button type="button" onClick={verUltimaActividad}>Ver última actividad</button>}</div>}
+    {sinLecturasVista && <div className="empleado-chart-empty"><p>Sin lecturas en la última hora</p>{lastReading && <button type="button" onClick={verUltimaActividad}>Ver última actividad</button>}</div>}
     </div>
     {marks.length > 0 && <div className="empleado-chart-legend">{tipos.map((mark) => <span key={mark.cls} className={`empleado-chart-legend__item empleado-chart-legend__item--${mark.cls}`}><i></i>{mark.label}</span>)}<span className="empleado-chart-legend__count">{visibleMarks.length} de {marks.length} alertas en pantalla</span></div>}
   </div>;
 }
 
 function DetailView({ employee, filters, onBack }) {
-  const [detail, setDetail] = useState({ loading: true, series: [], alerts: [], chartAlerts: [], error: '' });
-  // "Ahora" se fija al entrar a la pantalla: la ventana inicial del gráfico es (now − 24 h, now).
-  const [now] = useState(() => Date.now());
-  const inicio24h = now - VENTANA_INICIAL_MS;
+  const [detail, setDetail] = useState({ loading: true, alerts: [], error: '' });
+  // "Ahora" avanza cada LIVE_REFRESH_MS: la vista inicial del gráfico es (now − 1 h, now) y se desliza con él.
+  const [now, setNow] = useState(() => Date.now());
   const periodStart = new Date(`${filters.desde}T00:00:00-03:00`).getTime();
   const hastaFin = new Date(`${filters.hasta}T23:59:59.999-03:00`).getTime();
-  // El backend filtra por día (YYYY-MM-DD, hora argentina): se piden los días que cubren las 24 h y se recorta acá.
-  const diaAR = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ_AR });
+  const lastReading = employee.ultima ? new Date(employee.ultima).getTime() : null;
+  // Inicio del recorrido del gráfico: el período, al menos las últimas 24 h, y la última lectura registrada.
+  const chartStart = Math.min(periodStart, now - VENTANA_MINIMA_MS, lastReading ? lastReading - VISTA_INICIAL_MS : Infinity);
+  // Lecturas y alertas del gráfico, indexadas por ts / id para poder sumar lo que llega en vivo sin duplicar.
+  const [liveSeries, setLiveSeries] = useState(() => new Map());
+  const [chartAlerts, setChartAlerts] = useState(() => new Map());
   const [fullSeries, setFullSeries] = useState({ state: 'idle', data: [] });
   const fullRequested = useRef(false);
+  const id = encodeURIComponent(employee.id); const name = encodeURIComponent(fullName(employee));
+  const ownAlerts = (payload) => (payload.data || []).filter((alert) => String(alert.id_trabajador) === String(employee.id)); // el filtro por nombre del backend es parcial (ILIKE)
+  const mergeById = (prev, list) => { const next = new Map(prev); list.forEach((alert) => next.set(alert.id, alert)); return next; };
+
+  // El backend filtra por día (YYYY-MM-DD, hora argentina): se piden los días que cubren la última hora y se recorta acá.
+  const fetchUltimaHora = (at) => apiFetch(`/mediciones?desde=${diaAR(at - VISTA_INICIAL_MS)}&hasta=${diaAR(at)}&id_trabajador=${id}&bucket=1m`)
+    .then((payload) => (payload.data || []).filter((point) => new Date(point.ts).getTime() >= at - VISTA_INICIAL_MS));
+  const mergeSeries = (list) => setLiveSeries((prev) => { const next = new Map(prev); list.forEach((point) => next.set(point.ts, point)); return next; });
+
   useEffect(() => {
-    let cancelled = false; const name = encodeURIComponent(fullName(employee)); const id = encodeURIComponent(employee.id);
-    const alertasDesde = diaAR(Math.min(periodStart, inicio24h));
+    let cancelled = false; const at = Date.now();
+    setDetail({ loading: true, alerts: [], error: '' }); setNow(at);
+    fullRequested.current = false; setFullSeries({ state: 'idle', data: [] });
     Promise.all([
-      apiFetch(`/mediciones?desde=${diaAR(inicio24h)}&hasta=${diaAR(now)}&id_trabajador=${id}&bucket=1m`),
-      apiFetch(`/alertas/historico?desde=${alertasDesde}&empleado=${name}`),
+      fetchUltimaHora(at),
+      apiFetch(`/alertas/historico?desde=${diaAR(Math.min(periodStart, at - VENTANA_MINIMA_MS))}&empleado=${name}`),
     ]).then(([series, alerts]) => {
       if (cancelled) return;
-      // El filtro por nombre del backend es parcial (ILIKE): se acota por id.
-      const own = (alerts.data || []).filter((alert) => String(alert.id_trabajador) === String(employee.id));
-      const time = (alert) => new Date(alert.fecha_hora).getTime();
-      setDetail({
-        loading: false,
-        series: (series.data || []).filter((point) => new Date(point.ts).getTime() >= inicio24h),
-        // Historial de alertas: el período Desde/Hasta. Gráfico: desde el inicio del período (o las últimas 24 h) hasta ahora.
-        alerts: own.filter((alert) => time(alert) >= periodStart && time(alert) <= hastaFin),
-        chartAlerts: own,
-        error: '',
-      });
-    }).catch((error) => { if (!cancelled) setDetail({ loading: false, series: [], alerts: [], chartAlerts: [], error: error.message }); });
+      const own = ownAlerts(alerts); const time = (alert) => new Date(alert.fecha_hora).getTime();
+      setLiveSeries(new Map(series.map((point) => [point.ts, point])));
+      // Gráfico: todas las alertas cargadas (se filtran por la ventana visible). Historial de alertas: solo el período Desde/Hasta.
+      setChartAlerts(new Map(own.map((alert) => [alert.id, alert])));
+      setDetail({ loading: false, alerts: own.filter((alert) => time(alert) >= periodStart && time(alert) <= hastaFin), error: '' });
+    }).catch((error) => { if (!cancelled) setDetail({ loading: false, alerts: [], error: error.message }); });
     return () => { cancelled = true; };
   }, [employee, filters.desde, filters.hasta]);
-  // Resto del período para el gráfico: se pide recién cuando el usuario sale de las últimas 24 h.
+
+  // En vivo: avanza "now" y suma las lecturas / alertas nuevas de la última hora.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const at = Date.now(); setNow(at);
+      fetchUltimaHora(at).then(mergeSeries).catch(() => {});
+      apiFetch(`/alertas/historico?desde=${diaAR(at - VISTA_INICIAL_MS)}&empleado=${name}`).then((payload) => setChartAlerts((prev) => mergeById(prev, ownAlerts(payload)))).catch(() => {});
+    }, LIVE_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [employee]);
+
+  // Resto del período para el gráfico: se pide recién cuando el usuario sale de la última hora.
   const loadFull = () => {
     if (fullRequested.current) return;
     fullRequested.current = true;
     setFullSeries({ state: 'loading', data: [] });
-    apiFetch(`/mediciones?desde=${diaAR(Math.min(periodStart, inicio24h))}&hasta=${diaAR(now)}&id_trabajador=${encodeURIComponent(employee.id)}&bucket=1m`)
+    apiFetch(`/mediciones?desde=${diaAR(chartStart)}&hasta=${diaAR(now)}&id_trabajador=${id}&bucket=1m`)
       .then((payload) => setFullSeries({ state: 'done', data: payload.data || [] }))
       .catch(() => { fullRequested.current = false; setFullSeries({ state: 'idle', data: [] }); });
   };
-  const chartPoints = fullSeries.state === 'done' ? fullSeries.data : detail.series;
-  const lastReading = employee.ultima ? new Date(employee.ultima).getTime() : null;
-  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={detail.chartAlerts} now={now} domainStart={periodStart} lastReading={lastReading} onNeedFull={loadFull} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div></div>}</div></Layout>;
+  const chartPoints = useMemo(() => {
+    const merged = new Map((fullSeries.state === 'done' ? fullSeries.data : []).map((point) => [point.ts, point]));
+    liveSeries.forEach((point, ts) => merged.set(ts, point));
+    return [...merged.values()];
+  }, [fullSeries, liveSeries]);
+  const chartAlertList = useMemo(() => [...chartAlerts.values()], [chartAlerts]);
+  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={chartAlertList} now={now} domainStart={chartStart} lastReading={lastReading} onNeedFull={loadFull} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div></div>}</div></Layout>;
 }
 
 function App() {
