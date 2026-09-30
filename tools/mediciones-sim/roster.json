@@ -1,0 +1,228 @@
+{
+  "descripcion": "Flota de simulación de carga. Las MAC coinciden con sql/sembrar-carga.sql. perfil = FC (bpm) que emite cada operario; los que no traen nota trabajan normal, por debajo de sus umbrales.",
+  "dispositivos": [
+    {
+      "legajo": "SIM-01",
+      "nombre": "Mateo Gómez",
+      "mac": "02:5E:ED:00:00:01",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-02",
+      "nombre": "Lucía Fernández",
+      "mac": "02:5E:ED:00:00:02",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-03",
+      "nombre": "Tomás Rodríguez",
+      "mac": "02:5E:ED:00:00:03",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-04",
+      "nombre": "Camila Sosa",
+      "mac": "02:5E:ED:00:00:04",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-05",
+      "nombre": "Nicolás Benítez",
+      "mac": "02:5E:ED:00:00:05",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-06",
+      "nombre": "Valeria Acosta",
+      "mac": "02:5E:ED:00:00:06",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-07",
+      "nombre": "Federico Paz",
+      "mac": "02:5E:ED:00:00:07",
+      "perfil": {
+        "nota": "Fatiga: FC sostenida sobre el umbral global (130)",
+        "base": 140,
+        "jitter": 4,
+        "min": 132,
+        "max": 148
+      }
+    },
+    {
+      "legajo": "SIM-08",
+      "nombre": "Julieta Romero",
+      "mac": "02:5E:ED:00:00:08",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-09",
+      "nombre": "Gonzalo Díaz",
+      "mac": "02:5E:ED:00:00:09",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-10",
+      "nombre": "Martina Ruiz",
+      "mac": "02:5E:ED:00:00:0A",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-11",
+      "nombre": "Ramiro Castro",
+      "mac": "02:5E:ED:00:00:0B",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-12",
+      "nombre": "Agustina Vega",
+      "mac": "02:5E:ED:00:00:0C",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-13",
+      "nombre": "Leandro Molina",
+      "mac": "02:5E:ED:00:00:0D",
+      "perfil": {
+        "nota": "Sobreesfuerzo: FC >= 160 con actividad alta",
+        "base": 172,
+        "jitter": 6,
+        "min": 162,
+        "max": 185
+      }
+    },
+    {
+      "legajo": "SIM-14",
+      "nombre": "Paula Ibarra",
+      "mac": "02:5E:ED:00:00:0E",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-15",
+      "nombre": "Damián Herrera",
+      "mac": "02:5E:ED:00:00:0F",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-16",
+      "nombre": "Florencia Luna",
+      "mac": "02:5E:ED:00:00:10",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-17",
+      "nombre": "Sebastián Ortiz",
+      "mac": "02:5E:ED:00:00:11",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-18",
+      "nombre": "Rocío Méndez",
+      "mac": "02:5E:ED:00:00:12",
+      "perfil": {
+        "nota": "Fatiga: FC sostenida sobre su umbral particular (126)",
+        "base": 136,
+        "jitter": 4,
+        "min": 128,
+        "max": 144
+      }
+    },
+    {
+      "legajo": "SIM-19",
+      "nombre": "Hernán Silva",
+      "mac": "02:5E:ED:00:00:13",
+      "perfil": {
+        "base": 84,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    },
+    {
+      "legajo": "SIM-20",
+      "nombre": "Natalia Cabrera",
+      "mac": "02:5E:ED:00:00:14",
+      "perfil": {
+        "base": 91,
+        "jitter": 8,
+        "min": 65,
+        "max": 112
+      }
+    }
+  ]
+}

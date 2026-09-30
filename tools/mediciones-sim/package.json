@@ -1,0 +1,12 @@
+{
+  "name": "safeplace-mediciones-sim",
+  "private": true,
+  "description": "Simulación de carga sin BLE: 20 operarios conectados contra el backend",
+  "scripts": {
+    "on": "node carga.js on",
+    "off": "node carga.js off",
+    "status": "node carga.js status",
+    "dry-run": "node simular-mediciones.js --roster roster.json --dry-run --intervalo 1 --duracion 3"
+  },
+  "engines": { "node": ">=18" }
+}
