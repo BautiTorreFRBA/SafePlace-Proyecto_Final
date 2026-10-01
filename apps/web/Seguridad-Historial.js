@@ -148,7 +148,7 @@ function renderEstadoInicial(mensaje) {
   actualizarContador(0);
   tableBody.innerHTML = `
     <tr>
-      <td colspan="5" style="padding: 18px 20px; color: #9ca3af;">
+      <td colspan="4" style="padding: 18px 20px; color: #9ca3af;">
         ${escapeHtml(mensaje)}
       </td>
     </tr>
@@ -167,12 +167,7 @@ function renderTabla() {
   tableBody.innerHTML = historicoAlertas
     .map((a) => `
       <tr>
-        <td>
-          <span class="hist-badge-severidad hist-badge-${a.severidad.clase}">
-            ${escapeHtml(a.severidad.texto)}
-          </span>
-        </td>
-        <td class="hist-td-tipo hist-td-tipo--${a.tipoClase}">${escapeHtml(a.tipo)}</td>
+        <td class="hist-td-tipo hist-td-tipo--${a.tipoClase}"><span class="hist-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</td>
         <td class="hist-td-empleado">${escapeHtml(a.empleado)}</td>
         <td class="hist-td-fecha">${escapeHtml(a.fecha)}</td>
         <td>
@@ -305,7 +300,7 @@ async function cargarHistorial() {
     return {
       severidad,
       tipo: a.tipo_alerta || 'Alerta',
-      tipoClase: ({ FATIGA: 'fatiga', SOBREESFUERZO: 'sobreesfuerzo', INACTIVIDAD_PROLONGADA: 'inactividad' }[String(a.tipo_alerta || '').trim().toUpperCase()] || ''),
+      tipoClase: ({ FATIGA: 'fatiga', SOBREESFUERZO: 'sobreesfuerzo', INACTIVIDAD_PROLONGADA: 'inactividad', EMERGENCIA: 'emergencia', SUPER_EMERGENCIA: 'super-emergencia' }[String(a.tipo_alerta || '').trim().toUpperCase()] || ''),
       empleado: nombreEmpleado || '--',
       fecha: formatearFecha(a.fecha_hora),
       estado,

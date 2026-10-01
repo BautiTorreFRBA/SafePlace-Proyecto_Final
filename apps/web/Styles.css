@@ -3970,6 +3970,12 @@ select.cfg-input {
 .hist-td-tipo--fatiga { color: var(--green); }
 .hist-td-tipo--sobreesfuerzo { color: var(--violet); }
 .hist-td-tipo--inactividad { color: var(--celeste); }
+.hist-tipo-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 10px; vertical-align: middle; background: #9ca3af; }
+.hist-td-tipo--fatiga .hist-tipo-dot { background: #4ade80; }
+.hist-td-tipo--sobreesfuerzo .hist-tipo-dot { background: #a78bfa; }
+.hist-td-tipo--inactividad .hist-tipo-dot { background: #38bdf8; }
+.hist-td-tipo--emergencia .hist-tipo-dot { background: #ffd60a; }
+.hist-td-tipo--super-emergencia .hist-tipo-dot { background: #ff1a1a; }
 
 /* Celda de empleado */
 .hist-td-empleado {
