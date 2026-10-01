@@ -191,6 +191,7 @@ const turnosAbiertosManual = new Map(); // "área|turno" -> true/false elegido p
 const turnoDe = (item) => String(item.turno || '').trim().toLowerCase() || 'sin turno';
 const areaDe = (item) => item.area || 'Sin área';
 const ordenTurno = (turno) => (ORDEN_TURNOS.includes(turno) ? ORDEN_TURNOS.indexOf(turno) : ORDEN_TURNOS.length);
+const etiquetaTurno = (turno) => turno.charAt(0).toLocaleUpperCase('es') + turno.slice(1);
 const plural = (n, singular, pluralTexto = `${singular}s`) => `${n} ${n === 1 ? singular : pluralTexto}`;
 
 function agruparPor(items, clave) {
@@ -214,7 +215,7 @@ function renderGrupoArea(area, items, actual) {
         const criticos = operarios.filter((item) => ESTADOS[item.estado].grupo === 'critico').length;
         return `<details class="grupo-area-turno" data-clave="${escapeHtml(clave)}"${abierto ? ' open' : ''}>
           <summary class="grupo-area-turno__header">
-            <h4>Turno ${escapeHtml(turno)}${turno === actual ? ' <span class="grupo-area-turno__actual">Turno actual</span>' : ''}${criticos ? ` <span class="grupo-area-turno__critico">${plural(criticos, 'crítico')}</span>` : ''}</h4>
+            <h4>${escapeHtml(etiquetaTurno(turno))}${turno === actual ? ' <span class="grupo-area-turno__actual">Turno actual</span>' : ''}${criticos ? ` <span class="grupo-area-turno__critico">${plural(criticos, 'crítico')}</span>` : ''}</h4>
             <span>${plural(operarios.length, 'operario')}</span>
           </summary>
           <div class="op-grid">${operarios.map(renderCard).join('')}</div>
@@ -238,10 +239,42 @@ function renderGrid() {
     return;
   }
   const actual = turnoActual();
+  // Clases de Gestión de Empleados (flechita desplegable, "Turno actual"); se ponen
+  // acá también por si el HTML en caché todavía no las tiene.
+  grid.classList.add('op-groups', 'emp-grupos');
   grid.innerHTML = [...agruparPor(filtrados, areaDe)]
     .sort(([a], [b]) => (a === 'Sin área') - (b === 'Sin área') || a.localeCompare(b, 'es'))
     .map(([area, items]) => renderGrupoArea(area, items, actual))
     .join('');
+}
+
+// Sección fija arriba de todo con los operarios en EMERGENCIA o SÚPER EMERGENCIA
+// (súper primero). No depende de filtros ni de la búsqueda; cuando no queda
+// ninguna emergencia sin resolver, la sección se quita.
+function renderEmergencias() {
+  const enEmergencia = trabajadores
+    .filter((item) => ['super_emergencia', 'emergencia'].includes(item.estado))
+    .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
+  let seccion = document.getElementById('emergenciasPanel');
+  if (!enEmergencia.length) {
+    seccion?.remove();
+    return;
+  }
+  if (!seccion) {
+    seccion = document.createElement('section');
+    seccion.id = 'emergenciasPanel';
+    seccion.className = 'supervisor-panel op-emergencias';
+    seccion.setAttribute('aria-live', 'assertive');
+    seccion.addEventListener('click', atenderDesdeTarjeta);
+    document.querySelector('.supervisor-welcome').before(seccion);
+  }
+  const supers = enEmergencia.filter((item) => item.estado === 'super_emergencia').length;
+  seccion.classList.toggle('op-emergencias--super', supers > 0);
+  seccion.innerHTML = `<div class="supervisor-panel__header">
+      <div><h3><span class="op-emergencias__dot" aria-hidden="true"></span>Emergencias en curso · ${plural(enEmergencia.length, 'operario')}</h3>
+      <p>${supers ? `${plural(supers, 'súper emergencia', 'súper emergencias')} · ` : ''}Atendé cada caso desde su tarjeta. La sección desaparece cuando no quedan emergencias.</p></div>
+    </div>
+    <div class="op-grid">${enEmergencia.map(renderCard).join('')}</div>`;
 }
 
 function renderAlerts() {
@@ -263,6 +296,7 @@ function renderConnectivity() {
 
 function renderAll() {
   renderSummary();
+  renderEmergencias();
   renderGrid();
   renderAlerts();
   renderConnectivity();
@@ -304,7 +338,8 @@ document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEv
   document.querySelectorAll('.supervisor-filter').forEach((item) => item.classList.toggle('is-active', item === button));
   renderGrid();
 }));
-document.getElementById('workerGrid').addEventListener('click', async (event) => {
+// Botón "Atender (súper) emergencia" de las tarjetas: está en la grilla y en la sección de emergencias.
+async function atenderDesdeTarjeta(event) {
   const boton = event.target.closest('.op-super__atender');
   if (!boton) return;
   const operario = trabajadores.find((item) => [item.id_alerta_super, item.id_alerta_emergencia].some((id) => id != null && String(id) === String(boton.dataset.alerta)));
@@ -321,7 +356,8 @@ document.getElementById('workerGrid').addEventListener('click', async (event) =>
     boton.disabled = false;
     boton.textContent = 'No se pudo atender · reintentar';
   }
-});
+}
+document.getElementById('workerGrid').addEventListener('click', atenderDesdeTarjeta);
 // Se escucha el clic en el encabezado (no "toggle", que también salta al redibujar
 // con el atributo open) para recordar sólo lo que eligió el usuario.
 document.getElementById('workerGrid').addEventListener('click', (event) => {

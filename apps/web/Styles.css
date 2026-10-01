@@ -688,9 +688,15 @@ html, body {
 /* Home: operarios agrupados por área y turno, con el mismo estilo que Gestión de Empleados (.emp-grupos). */
 .op-groups.emp-grupos { display:flex; flex-direction:column; gap:14px; padding:16px 20px 20px; }
 .op-groups .grupo-area-turno__critico { padding:1px 8px; border-radius:999px; color:#fecaca; background:rgba(239,68,68,.16); font-size:.66rem; font-weight:600; }
-.op-groups .grupo-area-turno__header h4 { text-transform:capitalize; }
-.op-groups .grupo-area-turno__header h4 span { text-transform:none; }
 .op-groups .grupo-area-turno .op-grid { padding:14px; }
+/* Home: sección de emergencias en curso, arriba de todo; se quita sola cuando no quedan. */
+.op-emergencias { margin-top:20px; border-color:rgba(255,214,10,.55); box-shadow:0 0 0 1px rgba(255,214,10,.18), 0 0 24px rgba(255,214,10,.12); }
+.op-emergencias--super { border-color:rgba(255,26,26,.6); box-shadow:0 0 0 1px rgba(255,26,26,.2), 0 0 24px rgba(255,26,26,.15); }
+.op-emergencias .supervisor-panel__header h3 { display:flex; align-items:center; gap:10px; }
+.op-emergencias__dot { width:10px; height:10px; border-radius:50%; background:#ffd60a; animation:op-emergencias-pulso 1.2s ease-in-out infinite; }
+.op-emergencias--super .op-emergencias__dot { background:#ff1a1a; }
+@keyframes op-emergencias-pulso { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.4; transform:scale(.75); } }
+@media (prefers-reduced-motion:reduce) { .op-emergencias__dot { animation:none; } }
 .op-card { position:relative; display:block; min-height:250px; overflow:hidden; border:1px solid var(--border); border-left:4px solid var(--estado); border-radius:16px; background:#171717; color:inherit; text-decoration:none; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
 .op-card:hover,.op-card:focus-visible { transform:translateY(-3px); border-color:color-mix(in srgb, var(--estado) 55%, var(--border)); border-left-color:var(--estado); box-shadow:0 10px 24px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--estado) 25%, transparent); outline:none; }
 /* El dibujo ocupa toda la tarjeta y los datos se escriben encima (FC arriba a la derecha, nombre abajo). */
