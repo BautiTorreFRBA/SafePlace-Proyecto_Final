@@ -47,6 +47,19 @@
 
       <div class="emp-header">
         <div>
+          <h2 class="emp-header__title">Crear wearable</h2>
+        </div>
+      </div>
+
+      <div class="emp-toolbar">
+        <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoMarcaInput">MARCA</label><input class="modal__input" id="nuevoMarcaInput" type="text" placeholder="ej. Garmin" /></div>
+        <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoModeloInput">MODELO</label><input class="modal__input" id="nuevoModeloInput" type="text" placeholder="ej. Forerunner 55" /></div>
+        <div class="modal__field" style="flex:1; min-width:220px;"><label class="modal__label" for="nuevoMacInput">DIRECCIÓN MAC BLE (opcional)</label><input class="modal__input" id="nuevoMacInput" type="text" placeholder="AA:BB:CC:DD:EE:FF" /></div>
+        <button class="btn-nuevo" id="btnNuevoDispositivo" style="align-self:flex-end;">Nuevo dispositivo</button>
+      </div>
+
+      <div class="emp-header">
+        <div>
           <h2 class="emp-header__title">Asociar wearable a trabajador</h2>
           <p class="emp-header__count" id="asocCount">0 asociaciones creadas en esta sesión</p>
         </div>
@@ -84,13 +97,6 @@
           </thead>
           <tbody id="asocTableBody"></tbody>
         </table>
-      </div>
-
-      <div class="emp-toolbar" style="margin-top:24px;">
-        <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoMarcaInput">MARCA</label><input class="modal__input" id="nuevoMarcaInput" type="text" placeholder="ej. Garmin" /></div>
-        <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoModeloInput">MODELO</label><input class="modal__input" id="nuevoModeloInput" type="text" placeholder="ej. Forerunner 55" /></div>
-        <div class="modal__field" style="flex:1; min-width:220px;"><label class="modal__label" for="nuevoMacInput">DIRECCIÓN MAC BLE (opcional)</label><input class="modal__input" id="nuevoMacInput" type="text" placeholder="AA:BB:CC:DD:EE:FF" /></div>
-        <button class="btn-nuevo" id="btnNuevoDispositivo" style="align-self:flex-end;">Nuevo dispositivo</button>
       </div>
 
       <div class="modal-overlay" id="modalOverlay">
