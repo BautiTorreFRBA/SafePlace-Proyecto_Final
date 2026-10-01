@@ -92,6 +92,14 @@ function applySessionUI() {
   if (welcomeTitle) {
     welcomeTitle.textContent = `Bienvenido/a, ${firstName}`;
   }
+
+  // Administración reúne asociación y estado en la misma pantalla de
+  // Wearables. Así los menús existentes no duplican accesos mientras las
+  // páginas estáticas se actualizan progresivamente.
+  const wearableLink = document.querySelector('.sidebar__nav a[href="Admin-AsociarWearable.html"]');
+  const estadoDispositivosLink = document.querySelector('.sidebar__nav a[href="Admin-EstadoDispositivos.html"]');
+  if (wearableLink) wearableLink.childNodes[wearableLink.childNodes.length - 1].textContent = ' Wearables';
+  estadoDispositivosLink?.remove();
 }
 
 applySessionUI();

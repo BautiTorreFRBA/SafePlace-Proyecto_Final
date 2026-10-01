@@ -238,6 +238,14 @@ function renderGrid() {
     grid.innerHTML = '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
     return;
   }
+  // En el Home del supervisor las tarjetas se muestran directamente: el área y
+  // el turno ya son parte de su alcance, por lo que no se repiten encabezados
+  // como "Producción · 6 operarios" o "Noche · Turno actual".
+  if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
+    grid.classList.remove('op-groups', 'emp-grupos');
+    grid.innerHTML = filtrados.map(renderCard).join('');
+    return;
+  }
   const actual = turnoActual();
   // Clases de Gestión de Empleados (flechita desplegable, "Turno actual"); se ponen
   // acá también por si el HTML en caché todavía no las tiene.

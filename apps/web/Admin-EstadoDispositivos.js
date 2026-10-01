@@ -1,3 +1,4 @@
+(() => {
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
 const tableBody = document.getElementById('estadoDispositivosTableBody');
@@ -190,3 +191,5 @@ cargarDispositivos().catch((err) => {
   estadoDispositivosCount.textContent = 'No se pudieron cargar los dispositivos';
   tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los estados de conexi&oacute;n</td></tr>';
 });
+window.addEventListener('wearables:actualizados', () => cargarDispositivos().catch((err) => console.error(err)));
+})();

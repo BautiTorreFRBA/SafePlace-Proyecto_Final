@@ -1,3 +1,4 @@
+(() => {
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 
 const trabajadorSelect = document.getElementById('trabajadorSelect');
@@ -217,6 +218,7 @@ async function asociarWearable() {
     asociaciones.unshift(normalizarAsociacion(payload, trabajador, wearable));
     renderTable();
     await cargarOpciones();
+    window.dispatchEvent(new Event('wearables:actualizados'));
   } catch (error) {
     alert(error.message);
   } finally {
@@ -317,3 +319,4 @@ cargarOpciones()
     wearableSelect.innerHTML = '<option value="">Error cargando wearables</option>';
     tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No se pudieron cargar los datos para asociar wearables</td></tr>';
   });
+})();
