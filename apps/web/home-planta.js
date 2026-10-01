@@ -182,13 +182,16 @@ function renderTarjeta(item) {
   </a>`;
 }
 
-// Grupos por turno y, dentro de cada turno, por área. El turno en curso arranca
-// desplegado y el resto plegado; un turno con una (súper) emergencia se despliega
-// solo para que no quede escondida. Lo que el usuario abre/cierra a mano se
-// recuerda entre refrescos (el polling vuelve a dibujar todo).
+// Grupos por área y, dentro de cada área, por turno (como Gestión de Empleados).
+// El turno en curso arranca desplegado y el resto plegado; un turno con una (súper)
+// emergencia se despliega solo para que no quede escondida. Lo que el usuario
+// abre/cierra a mano se recuerda entre refrescos (el polling vuelve a dibujar todo).
 const ORDEN_TURNOS = ['mañana', 'tarde', 'noche'];
-const turnosAbiertosManual = new Map(); // turno -> true/false elegido por el usuario
+const turnosAbiertosManual = new Map(); // "área|turno" -> true/false elegido por el usuario
 const turnoDe = (item) => String(item.turno || '').trim().toLowerCase() || 'sin turno';
+const areaDe = (item) => item.area || 'Sin área';
+const ordenTurno = (turno) => (ORDEN_TURNOS.includes(turno) ? ORDEN_TURNOS.indexOf(turno) : ORDEN_TURNOS.length);
+const plural = (n, singular, pluralTexto = `${singular}s`) => `${n} ${n === 1 ? singular : pluralTexto}`;
 
 function agruparPor(items, clave) {
   return items.reduce((acc, item) => {
@@ -199,24 +202,26 @@ function agruparPor(items, clave) {
   }, new Map());
 }
 
-function renderGrupoTurno(turno, items, actual) {
-  const tieneEmergencia = items.some((item) => ['emergencia', 'super_emergencia'].includes(item.estado));
-  const abierto = busquedaActual ? true : turnosAbiertosManual.get(turno) ?? (turno === actual || tieneEmergencia);
-  const criticos = items.filter((item) => ESTADOS[item.estado].grupo === 'critico').length;
-  const areas = [...agruparPor(items, (item) => item.area || 'Sin área')]
-    .sort(([a], [b]) => a.localeCompare(b, 'es'));
-  return `<details class="op-turno" data-turno="${escapeHtml(turno)}"${abierto ? ' open' : ''}>
-    <summary class="op-turno__header">
-      <span class="op-turno__titulo">Turno ${escapeHtml(turno)}</span>
-      ${turno === actual ? '<span class="op-turno__badge op-turno__badge--actual">En curso</span>' : ''}
-      <span class="op-turno__badge">${items.length} ${items.length === 1 ? 'operario' : 'operarios'}</span>
-      ${criticos ? `<span class="op-turno__badge op-turno__badge--critico">${criticos} ${criticos === 1 ? 'crítico' : 'críticos'}</span>` : ''}
-    </summary>
-    ${areas.map(([area, operarios]) => `<section class="op-area">
-      <h5 class="op-area__titulo">${escapeHtml(area)} <span>${operarios.length}</span></h5>
-      <div class="op-grid">${operarios.map(renderCard).join('')}</div>
-    </section>`).join('')}
-  </details>`;
+function renderGrupoArea(area, items, actual) {
+  const turnos = [...agruparPor(items, turnoDe)].sort(([a], [b]) => ordenTurno(a) - ordenTurno(b));
+  return `<section class="area-turno-seccion">
+    <h3 class="area-turno-seccion__titulo">${escapeHtml(area)} <small>${plural(items.length, 'operario')}</small></h3>
+    <div class="emp-grupos__turnos">
+      ${turnos.map(([turno, operarios]) => {
+        const clave = `${area}|${turno}`;
+        const tieneEmergencia = operarios.some((item) => ['emergencia', 'super_emergencia'].includes(item.estado));
+        const abierto = busquedaActual ? true : turnosAbiertosManual.get(clave) ?? (turno === actual || tieneEmergencia);
+        const criticos = operarios.filter((item) => ESTADOS[item.estado].grupo === 'critico').length;
+        return `<details class="grupo-area-turno" data-clave="${escapeHtml(clave)}"${abierto ? ' open' : ''}>
+          <summary class="grupo-area-turno__header">
+            <h4>Turno ${escapeHtml(turno)}${turno === actual ? ' <span class="grupo-area-turno__actual">Turno actual</span>' : ''}${criticos ? ` <span class="grupo-area-turno__critico">${plural(criticos, 'crítico')}</span>` : ''}</h4>
+            <span>${plural(operarios.length, 'operario')}</span>
+          </summary>
+          <div class="op-grid">${operarios.map(renderCard).join('')}</div>
+        </details>`;
+      }).join('')}
+    </div>
+  </section>`;
 }
 
 function renderGrid() {
@@ -232,12 +237,10 @@ function renderGrid() {
     grid.innerHTML = '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
     return;
   }
-  // El turno en curso va primero; después el resto en orden mañana → tarde → noche.
   const actual = turnoActual();
-  const posicion = (turno) => (turno === actual ? -1 : ORDEN_TURNOS.indexOf(turno) === -1 ? ORDEN_TURNOS.length : ORDEN_TURNOS.indexOf(turno));
-  grid.innerHTML = [...agruparPor(filtrados, turnoDe)]
-    .sort(([a], [b]) => posicion(a) - posicion(b))
-    .map(([turno, items]) => renderGrupoTurno(turno, items, actual))
+  grid.innerHTML = [...agruparPor(filtrados, areaDe)]
+    .sort(([a], [b]) => (a === 'Sin área') - (b === 'Sin área') || a.localeCompare(b, 'es'))
+    .map(([area, items]) => renderGrupoArea(area, items, actual))
     .join('');
 }
 
@@ -322,10 +325,10 @@ document.getElementById('workerGrid').addEventListener('click', async (event) =>
 // Se escucha el clic en el encabezado (no "toggle", que también salta al redibujar
 // con el atributo open) para recordar sólo lo que eligió el usuario.
 document.getElementById('workerGrid').addEventListener('click', (event) => {
-  const header = event.target.closest('.op-turno__header');
+  const header = event.target.closest('.grupo-area-turno__header');
   if (!header || busquedaActual) return;
   const grupo = header.parentElement;
-  turnosAbiertosManual.set(grupo.dataset.turno, !grupo.open);
+  turnosAbiertosManual.set(grupo.dataset.clave, !grupo.open);
 });
 document.getElementById('workerSearch').addEventListener('input', (event) => { busquedaActual = event.target.value.trim(); renderGrid(); });
 

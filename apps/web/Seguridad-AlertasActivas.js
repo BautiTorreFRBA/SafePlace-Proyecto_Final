@@ -7,7 +7,6 @@ const POLL_INTERVAL_MS = 20000;
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');
 let alertas = [];
-const severidadesActivas = new Set(['critico', 'advertencia']);
 const tiposActivos = new Set(['FATIGA', 'INACTIVIDAD_PROLONGADA', 'SOBREESFUERZO', 'EMERGENCIA', 'SUPER_EMERGENCIA']);
 
 const ETIQUETA_TIPO_ALERTA = {
@@ -17,6 +16,7 @@ const ETIQUETA_TIPO_ALERTA = {
   EMERGENCIA: 'EMERGENCIA',
   SUPER_EMERGENCIA: 'SÚPER EMERGENCIA',
 };
+const ORDEN_TIPO = { SUPER_EMERGENCIA: 0, EMERGENCIA: 1, SOBREESFUERZO: 2, FATIGA: 3, INACTIVIDAD_PROLONGADA: 4 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
 const claseTipo = (t) => ({
   FATIGA: 'fatiga',
@@ -37,7 +37,6 @@ function normalizarAlerta(a) {
   const estadoNormalizado = String(estado).toLowerCase();
   return {
     id: a.id,
-    prioridad: (a.prioridad || '').toLowerCase().includes('cr') ? 'critico' : 'advertencia',
     tipoAlerta: String(a.tipo_alerta || '').trim().toUpperCase(),
     tipo: etiquetaTipo(a.tipo_alerta),
     claseTipo: claseTipo(a.tipo_alerta),
@@ -88,10 +87,9 @@ async function apiFetch(path, options = {}) {
 
 async function cargarAlertas() {
   const payload = await apiFetch('/alertas/activas');
-  alertas = (payload.data || []).map(normalizarAlerta).sort((a, b) => {
-    const prioridad = { critico: 0, advertencia: 1 };
-    return prioridad[a.prioridad] - prioridad[b.prioridad];
-  });
+  // Sin columna de prioridad: las emergencias quedan arriba y, dentro de cada tipo, la más reciente primero.
+  alertas = (payload.data || []).map(normalizarAlerta).sort((a, b) => (ORDEN_TIPO[a.tipoAlerta] ?? 9) - (ORDEN_TIPO[b.tipoAlerta] ?? 9)
+    || new Date(b.fechaHora) - new Date(a.fechaHora));
   actualizarContador();
   renderTabla();
 }
@@ -103,20 +101,18 @@ function actualizarContador() {
 
 function renderTabla() {
   const filtrados = alertas.filter((a) => {
-    const coincideSeveridad = severidadesActivas.has(a.prioridad);
     const coincideTipo = tiposActivos.has(a.tipoAlerta);
     const coincideEstado = a.estadoClase !== 'cerrada';
-    return coincideSeveridad && coincideTipo && coincideEstado;
+    return coincideTipo && coincideEstado;
   });
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
-      <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Crítica' : 'Media'}</span></td>
       <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}"><span class="alert-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estadoClase}">${escapeHtml(a.estado)}</span></td>
       <td class="alert-td-acciones">${a.estadoClase === 'cerrada' ? '<span class="alert-action-done">Resuelta</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="6" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 
 async function cambiarEstado(id, estado) {
@@ -432,19 +428,6 @@ fcModalAtender.addEventListener('click', async () => {
   await cambiarEstado(id, 'Atendida');
 });
 
-document.querySelectorAll('.alert-severity-filter').forEach((button) => {
-  button.addEventListener('click', () => {
-    const severidad = button.dataset.severidad;
-    if (severidadesActivas.has(severidad)) {
-      severidadesActivas.delete(severidad);
-    } else {
-      severidadesActivas.add(severidad);
-    }
-    button.classList.toggle('is-active', severidadesActivas.has(severidad));
-    button.setAttribute('aria-pressed', String(severidadesActivas.has(severidad)));
-    renderTabla();
-  });
-});
 // Tocar un tipo deja sólo ese tipo; tocarlo de nuevo (cuando es el único) vuelve a mostrar todos.
 const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
 const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
@@ -465,6 +448,6 @@ botonesTipo.forEach((button) => {
 
 cargarAlertas().catch((error) => {
   console.error(error);
-  tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
 });
 setInterval(() => cargarAlertas().catch((error) => console.error(error)), POLL_INTERVAL_MS);
