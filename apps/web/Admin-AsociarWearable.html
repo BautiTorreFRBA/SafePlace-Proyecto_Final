@@ -72,12 +72,13 @@
         <table class="emp-table">
           <thead>
             <tr>
+              <th>WEARABLE</th>
               <th>TRABAJADOR</th>
               <th>LEGAJO</th>
-              <th>WEARABLE</th>
-              <th>FECHA DESDE</th>
-              <th>FECHA HASTA</th>
-              <th>ESTADO</th>
+              <th>MAC BLE</th>
+              <th>CONEXIÓN</th>
+              <th>ÚLTIMA ACTIVIDAD</th>
+              <th>ASIGNACIÓN</th>
               <th>ACCIONES</th>
             </tr>
           </thead>
@@ -85,22 +86,11 @@
         </table>
       </div>
 
-      <div class="emp-header" style="margin-top:32px;">
-        <div>
-          <h2 class="emp-header__title">Dispositivos y conexión</h2>
-          <p class="emp-header__count" id="estadoDispositivosCount">Cargando dispositivos...</p>
-        </div>
-      </div>
-
-      <div class="emp-toolbar">
+      <div class="emp-toolbar" style="margin-top:24px;">
         <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoMarcaInput">MARCA</label><input class="modal__input" id="nuevoMarcaInput" type="text" placeholder="ej. Garmin" /></div>
         <div class="modal__field" style="flex:1; min-width:160px;"><label class="modal__label" for="nuevoModeloInput">MODELO</label><input class="modal__input" id="nuevoModeloInput" type="text" placeholder="ej. Forerunner 55" /></div>
         <div class="modal__field" style="flex:1; min-width:220px;"><label class="modal__label" for="nuevoMacInput">DIRECCIÓN MAC BLE (opcional)</label><input class="modal__input" id="nuevoMacInput" type="text" placeholder="AA:BB:CC:DD:EE:FF" /></div>
         <button class="btn-nuevo" id="btnNuevoDispositivo" style="align-self:flex-end;">Nuevo dispositivo</button>
-      </div>
-
-      <div class="emp-table-wrap">
-        <table class="emp-table"><thead><tr><th>MARCA / MODELO</th><th>DIRECCIÓN MAC BLE</th><th>ESTADO DE CONEXIÓN</th><th>ÚLTIMA ACTIVIDAD</th></tr></thead><tbody id="estadoDispositivosTableBody"></tbody></table>
       </div>
 
       <div class="modal-overlay" id="modalOverlay">
@@ -127,6 +117,5 @@
   <script src="session-ui.js"></script>
   <script src="operario-autocomplete.js"></script>
   <script src="Admin-AsociarWearable.js"></script>
-  <script src="Admin-EstadoDispositivos.js"></script>
 </body>
 </html>

@@ -15,6 +15,7 @@ const fechaHastaInput = document.getElementById('fechaHastaInput');
 let trabajadores = [];
 let wearables = [];
 let asociaciones = [];
+let dispositivosEstado = [];
 let editingId = null;
 
 function escapeHtml(value) {
@@ -111,8 +112,12 @@ async function cargarOpciones() {
 // expone /dashboard/devices) para que se puedan ver y desasignar sin salir
 // de esta pantalla.
 async function cargarAsociacionesVigentes() {
-  const payload = await apiFetch('/dashboard/devices');
+  const [payload, estadosPayload] = await Promise.all([
+    apiFetch('/dashboard/devices'),
+    apiFetch('/dispositivos/estado-conexion'),
+  ]);
   const dispositivos = payload.data || [];
+  dispositivosEstado = estadosPayload.data || [];
   const legajoPorOperario = new Map(trabajadores.map((t) => [Number(t.id), t.legajo]));
 
   const idsYaListados = new Set(asociaciones.map((asoc) => asoc.id));
@@ -140,31 +145,40 @@ async function cargarAsociacionesVigentes() {
 
 function renderTable() {
   const activas = asociaciones.filter((asoc) => !asoc.finalizada);
-  asocCount.textContent = `${activas.length} asociaci${activas.length === 1 ? 'ón activa' : 'ones activas'}`;
+  asocCount.textContent = `${activas.length} asociaci${activas.length === 1 ? 'ón activa' : 'ones activas'} · ${dispositivosEstado.length} dispositivo${dispositivosEstado.length === 1 ? '' : 's'}`;
 
-  tableBody.innerHTML = asociaciones.length === 0
-    ? '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay asociaciones vigentes</td></tr>'
-    : asociaciones.map((asoc) => rowHTML(asoc)).join('');
+  const porDispositivo = new Map(asociaciones.map((asoc) => [String(asoc.idDispositivo), asoc]));
+  tableBody.innerHTML = dispositivosEstado.length === 0
+    ? '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay dispositivos registrados</td></tr>'
+    : dispositivosEstado.map((dispositivo) => rowHTML(dispositivo, porDispositivo.get(String(dispositivo.id)))).join('');
 }
 
-function rowHTML(asoc) {
-  const estadoBadge = asoc.finalizada
+function badgeConexion(estado) {
+  if (estado === 'CONECTADO') return '<span class="badge badge--normal">Conectado</span>';
+  if (estado === 'ERROR_CONEXION') return '<span class="badge badge--critical">Error de conexión</span>';
+  if (estado === 'DESCONECTADO') return '<span class="badge badge--neutral">Desconectado</span>';
+  return '<span class="badge badge--neutral">Sin datos</span>';
+}
+
+function rowHTML(dispositivo, asoc) {
+  const asignacion = !asoc ? '<span class="badge badge--neutral">Sin asignar</span>' : asoc.finalizada
     ? '<span class="badge badge--neutral">Finalizada</span>'
     : '<span class="badge badge--normal">Vigente</span>';
-  const acciones = asoc.finalizada
+  const acciones = asoc?.finalizada
     ? '<span style="color:var(--text-muted); font-size:0.82rem;">Sin acciones</span>'
-    : `<div class="emp-actions">
+    : asoc ? `<div class="emp-actions">
         <button class="emp-actions__edit" data-action="modificar" data-id="${asoc.id}">Modificar fecha</button>
         <button class="emp-actions__deactivate" data-action="finalizar" data-id="${asoc.id}">Finalizar</button>
-      </div>`;
+      </div>` : '<span style="color:var(--text-muted); font-size:0.82rem;">Usá el formulario para asociar</span>';
 
   return `<tr>
-      <td><div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(asoc.iniciales)}</div><span class="emp-name__text">${escapeHtml(asoc.trabajadorNombre)}</span></div></td>
-      <td class="emp-id">${escapeHtml(asoc.legajo)}</td>
-      <td style="color:var(--text-secondary)">${escapeHtml(asoc.wearableNombre)}</td>
-      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(formatDate(asoc.fechaDesde))}</td>
-      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(formatDate(asoc.fechaHasta))}</td>
-      <td>${estadoBadge}</td>
+      <td style="color:var(--text-secondary)">${escapeHtml(descripcionWearable(dispositivo))}</td>
+      <td>${asoc ? `<div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(asoc.iniciales)}</div><span class="emp-name__text">${escapeHtml(asoc.trabajadorNombre)}</span></div>` : '<span style="color:var(--text-muted)">Sin asignar</span>'}</td>
+      <td class="emp-id">${asoc ? escapeHtml(asoc.legajo) : '--'}</td>
+      <td><div class="emp-actions" style="gap:6px;"><input class="modal__input" data-mac-input="${dispositivo.id}" type="text" value="${escapeHtml(dispositivo.direccion_mac || '')}" placeholder="AA:BB:CC:DD:EE:FF" style="min-width:145px;" /><button class="modal__btn modal__btn--save" data-action="guardar-mac" data-id="${dispositivo.id}" style="padding:8px 10px;">Guardar</button></div></td>
+      <td>${badgeConexion(dispositivo.estado_conexion)}</td>
+      <td style="color:var(--text-muted); font-size:0.82rem">${escapeHtml(formatDate(dispositivo.ultima_actividad))}</td>
+      <td>${asignacion}</td>
       <td>${acciones}</td>
     </tr>`;
 }
@@ -216,13 +230,50 @@ async function asociarWearable() {
     });
 
     asociaciones.unshift(normalizarAsociacion(payload, trabajador, wearable));
-    renderTable();
-    await cargarOpciones();
-    window.dispatchEvent(new Event('wearables:actualizados'));
+    await Promise.all([cargarOpciones(), cargarAsociacionesVigentes()]);
   } catch (error) {
     alert(error.message);
   } finally {
     btnAsociar.disabled = false;
+  }
+}
+
+async function guardarMac(id, button) {
+  const input = tableBody.querySelector(`[data-mac-input="${String(id)}"]`);
+  const direccionMac = input?.value.trim() || '';
+  if (!direccionMac) {
+    alert('Ingresá la dirección MAC BLE.');
+    return;
+  }
+  try {
+    button.disabled = true;
+    await apiFetch(`/wearables/${id}`, { method: 'PATCH', body: JSON.stringify({ direccionMac }) });
+    await cargarAsociacionesVigentes();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function crearDispositivo() {
+  const marca = document.getElementById('nuevoMarcaInput').value.trim();
+  const modelo = document.getElementById('nuevoModeloInput').value.trim();
+  const direccionMac = document.getElementById('nuevoMacInput').value.trim();
+  if (!marca || !modelo) {
+    alert('Marca y modelo son obligatorios.');
+    return;
+  }
+  const boton = document.getElementById('btnNuevoDispositivo');
+  try {
+    boton.disabled = true;
+    await apiFetch('/wearables', { method: 'POST', body: JSON.stringify({ marca, modelo, direccionMac: direccionMac || undefined }) });
+    ['nuevoMarcaInput', 'nuevoModeloInput', 'nuevoMacInput'].forEach((id) => { document.getElementById(id).value = ''; });
+    await Promise.all([cargarOpciones(), cargarAsociacionesVigentes()]);
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    boton.disabled = false;
   }
 }
 
@@ -296,10 +347,14 @@ tableBody.addEventListener('click', (e) => {
 
   if (button.dataset.action === 'finalizar') {
     finalizarAsociacion(button.dataset.id);
+    return;
   }
+
+  if (button.dataset.action === 'guardar-mac') guardarMac(button.dataset.id, button);
 });
 
 btnAsociar.addEventListener('click', asociarWearable);
+document.getElementById('btnNuevoDispositivo').addEventListener('click', crearDispositivo);
 modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
