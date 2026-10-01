@@ -78,6 +78,10 @@ function formatearEstado(estado = '') {
     return { clase: 'enrevision', texto: capitalizar(estado) || 'En revision' };
   }
 
+  if (normalizado.includes('atend')) {
+    return { clase: 'atendida', texto: capitalizar(estado) || 'Atendida' };
+  }
+
   if (normalizado.includes('act')) {
     return { clase: 'activo', texto: capitalizar(estado) || 'Activo' };
   }

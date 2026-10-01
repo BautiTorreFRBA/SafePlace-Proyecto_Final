@@ -182,6 +182,43 @@ function renderTarjeta(item) {
   </a>`;
 }
 
+// Grupos por turno y, dentro de cada turno, por área. El turno en curso arranca
+// desplegado y el resto plegado; un turno con una (súper) emergencia se despliega
+// solo para que no quede escondida. Lo que el usuario abre/cierra a mano se
+// recuerda entre refrescos (el polling vuelve a dibujar todo).
+const ORDEN_TURNOS = ['mañana', 'tarde', 'noche'];
+const turnosAbiertosManual = new Map(); // turno -> true/false elegido por el usuario
+const turnoDe = (item) => String(item.turno || '').trim().toLowerCase() || 'sin turno';
+
+function agruparPor(items, clave) {
+  return items.reduce((acc, item) => {
+    const k = clave(item);
+    if (!acc.has(k)) acc.set(k, []);
+    acc.get(k).push(item);
+    return acc;
+  }, new Map());
+}
+
+function renderGrupoTurno(turno, items, actual) {
+  const tieneEmergencia = items.some((item) => ['emergencia', 'super_emergencia'].includes(item.estado));
+  const abierto = busquedaActual ? true : turnosAbiertosManual.get(turno) ?? (turno === actual || tieneEmergencia);
+  const criticos = items.filter((item) => ESTADOS[item.estado].grupo === 'critico').length;
+  const areas = [...agruparPor(items, (item) => item.area || 'Sin área')]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'));
+  return `<details class="op-turno" data-turno="${escapeHtml(turno)}"${abierto ? ' open' : ''}>
+    <summary class="op-turno__header">
+      <span class="op-turno__titulo">Turno ${escapeHtml(turno)}</span>
+      ${turno === actual ? '<span class="op-turno__badge op-turno__badge--actual">En curso</span>' : ''}
+      <span class="op-turno__badge">${items.length} ${items.length === 1 ? 'operario' : 'operarios'}</span>
+      ${criticos ? `<span class="op-turno__badge op-turno__badge--critico">${criticos} ${criticos === 1 ? 'crítico' : 'críticos'}</span>` : ''}
+    </summary>
+    ${areas.map(([area, operarios]) => `<section class="op-area">
+      <h5 class="op-area__titulo">${escapeHtml(area)} <span>${operarios.length}</span></h5>
+      <div class="op-grid">${operarios.map(renderCard).join('')}</div>
+    </section>`).join('')}
+  </details>`;
+}
+
 function renderGrid() {
   const grid = document.getElementById('workerGrid');
   const busqueda = busquedaActual.toLocaleLowerCase();
@@ -191,9 +228,17 @@ function renderGrid() {
     .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank
       || (Number(b.frecuencia_cardiaca) || 0) - (Number(a.frecuencia_cardiaca) || 0)
       || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
-  grid.innerHTML = filtrados.length
-    ? filtrados.map(renderCard).join('')
-    : '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
+  if (!filtrados.length) {
+    grid.innerHTML = '<div class="supervisor-empty">No hay operarios que coincidan con el filtro seleccionado.</div>';
+    return;
+  }
+  // El turno en curso va primero; después el resto en orden mañana → tarde → noche.
+  const actual = turnoActual();
+  const posicion = (turno) => (turno === actual ? -1 : ORDEN_TURNOS.indexOf(turno) === -1 ? ORDEN_TURNOS.length : ORDEN_TURNOS.indexOf(turno));
+  grid.innerHTML = [...agruparPor(filtrados, turnoDe)]
+    .sort(([a], [b]) => posicion(a) - posicion(b))
+    .map(([turno, items]) => renderGrupoTurno(turno, items, actual))
+    .join('');
 }
 
 function renderAlerts() {
@@ -273,6 +318,14 @@ document.getElementById('workerGrid').addEventListener('click', async (event) =>
     boton.disabled = false;
     boton.textContent = 'No se pudo atender · reintentar';
   }
+});
+// Se escucha el clic en el encabezado (no "toggle", que también salta al redibujar
+// con el atributo open) para recordar sólo lo que eligió el usuario.
+document.getElementById('workerGrid').addEventListener('click', (event) => {
+  const header = event.target.closest('.op-turno__header');
+  if (!header || busquedaActual) return;
+  const grupo = header.parentElement;
+  turnosAbiertosManual.set(grupo.dataset.turno, !grupo.open);
 });
 document.getElementById('workerSearch').addEventListener('input', (event) => { busquedaActual = event.target.value.trim(); renderGrid(); });
 

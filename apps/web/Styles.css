@@ -685,6 +685,22 @@ html, body {
 /* ── HOME ADMIN: grilla de operarios con avatar coloreado según estado ── */
 .op-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:14px; padding:16px 20px 20px; }
 .op-grid > .supervisor-empty { grid-column:1 / -1; }
+/* Home: operarios agrupados por turno (desplegable) y, dentro, por área. */
+.op-turno { border-bottom:1px solid var(--border); }
+.op-turno:last-child { border-bottom:0; }
+.op-turno__header { display:flex; align-items:center; gap:10px; padding:16px 20px; cursor:pointer; list-style:none; user-select:none; }
+.op-turno__header::-webkit-details-marker { display:none; }
+.op-turno__header::before { content:''; width:7px; height:7px; border-right:2px solid var(--text-secondary); border-bottom:2px solid var(--text-secondary); transform:rotate(-45deg); transition:transform .15s ease; }
+.op-turno[open] > .op-turno__header::before { transform:rotate(45deg); }
+.op-turno__header:hover .op-turno__titulo { color:var(--teal-400); }
+.op-turno__titulo { color:var(--text-primary); font-size:.95rem; font-weight:700; text-transform:capitalize; }
+.op-turno__badge { padding:2px 9px; border:1px solid var(--border); border-radius:999px; color:var(--text-secondary); font-size:.7rem; font-weight:600; }
+.op-turno__badge--actual { color:var(--teal-400); border-color:var(--teal-500); background:var(--teal-dim); }
+.op-turno__badge--critico { color:#fecaca; border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.16); }
+.op-area { padding-bottom:4px; }
+.op-area__titulo { margin:0; padding:4px 20px 0 37px; color:var(--text-secondary); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.op-area__titulo span { margin-left:6px; color:var(--text-muted); font-weight:600; }
+.op-area .op-grid { padding-top:10px; }
 .op-card { position:relative; display:block; min-height:250px; overflow:hidden; border:1px solid var(--border); border-left:4px solid var(--estado); border-radius:16px; background:#171717; color:inherit; text-decoration:none; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
 .op-card:hover,.op-card:focus-visible { transform:translateY(-3px); border-color:color-mix(in srgb, var(--estado) 55%, var(--border)); border-left-color:var(--estado); box-shadow:0 10px 24px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--estado) 25%, transparent); outline:none; }
 /* El dibujo ocupa toda la tarjeta y los datos se escriben encima (FC arriba a la derecha, nombre abajo). */
@@ -3411,11 +3427,23 @@ select.cfg-input {
   cursor: pointer;
 }
 
+/* Mismos colores que el gráfico "Alertas por tipo" del historial. */
 .alert-type-filter.is-active {
-  color: var(--teal-400);
-  border-color: var(--teal-500);
-  background: var(--teal-dim);
+  color: var(--alert-tipo-color, var(--teal-400));
+  border-color: color-mix(in srgb, var(--alert-tipo-color, var(--teal-500)) 55%, transparent);
+  background: color-mix(in srgb, var(--alert-tipo-color, var(--teal-500)) 16%, transparent);
 }
+
+.alert-type-filter[data-tipo="FATIGA"],
+.alert-tipo--fatiga { --alert-tipo-color: #4ade80; }
+.alert-type-filter[data-tipo="SOBREESFUERZO"],
+.alert-tipo--sobreesfuerzo { --alert-tipo-color: #a78bfa; }
+.alert-type-filter[data-tipo="INACTIVIDAD_PROLONGADA"],
+.alert-tipo--inactividad { --alert-tipo-color: #38bdf8; }
+.alert-type-filter[data-tipo="EMERGENCIA"],
+.alert-tipo--emergencia { --alert-tipo-color: #ffd60a; }
+.alert-type-filter[data-tipo="SUPER_EMERGENCIA"],
+.alert-tipo--super-emergencia { --alert-tipo-color: #ff1a1a; }
 
 .alert-select {
   padding: 8px 12px;
@@ -3554,6 +3582,15 @@ select.cfg-input {
 .alert-tipo--sobreesfuerzo,
 .alert-tipo--inactividad { color: var(--text-primary); }
 
+.alert-tipo-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--alert-tipo-color, #9ca3af);
+}
+
 /* Celda de empleado */
 .alert-td-empleado {
   width: 160px;
@@ -3587,8 +3624,8 @@ select.cfg-input {
 }
 
 .alert-badge-activo {
-  background: rgba(74, 222, 128, 0.18);
-  color: var(--green);
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
 }
 
 .alert-badge-enrevision {
@@ -4003,6 +4040,11 @@ select.cfg-input {
 }
 
 .hist-badge-activo {
+  background: rgba(251, 146, 60, 0.18);
+  color: var(--orange);
+}
+
+.hist-badge-atendida {
   background: rgba(74, 222, 128, 0.18);
   color: var(--green);
 }

@@ -22,8 +22,8 @@ const claseTipo = (t) => ({
   FATIGA: 'fatiga',
   SOBREESFUERZO: 'sobreesfuerzo',
   INACTIVIDAD_PROLONGADA: 'inactividad',
-  EMERGENCIA: 'sobreesfuerzo',
-  SUPER_EMERGENCIA: 'sobreesfuerzo',
+  EMERGENCIA: 'emergencia',
+  SUPER_EMERGENCIA: 'super-emergencia',
 }[String(t || '').toUpperCase()] || '');
 
 function escapeHtml(value) {
@@ -110,7 +110,7 @@ function renderTabla() {
   });
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-prioridad"><span class="alert-badge-prioridad alert-badge-${a.prioridad}">${a.prioridad === 'critico' ? 'Crítica' : 'Media'}</span></td>
-      <td class="alert-td-tipo"><div class="alert-tipo">${escapeHtml(a.tipo)}</div></td>
+      <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}"><span class="alert-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
@@ -133,16 +133,29 @@ async function cambiarEstado(id, estado) {
 
 // Atender o cerrar una EMERGENCIA / SÚPER EMERGENCIA pide confirmación ("¿Está mejor <operario>?").
 const TIPOS_CON_CONFIRMACION = new Set(['EMERGENCIA', 'SUPER_EMERGENCIA']);
-async function confirmarSiEmergencia(id) {
+async function confirmarSiEmergencia(id, texto) {
   const alerta = alertas.find((a) => String(a.id) === String(id));
   if (!alerta || !TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta)) return true;
   const nombre = alerta.empleado === '--' ? '' : alerta.empleado;
   const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
-  return confirmar(nombre);
+  return confirmar(nombre, texto);
+}
+
+// Cerrar siempre pide confirmación. En una (súper) emergencia esa confirmación es
+// el "¿Está mejor <operario>?", así no se pregunta dos veces.
+async function confirmarCierre(id) {
+  const alerta = alertas.find((a) => String(a.id) === String(id));
+  if (alerta && TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta)) {
+    return confirmarSiEmergencia(id, 'Al confirmar, la alerta se cierra.');
+  }
+  const titulo = '¿Estás seguro que querés cerrar esta alerta?';
+  if (!window.confirmarAccion) return window.confirm(titulo);
+  const detalle = alerta ? `${alerta.tipo} · ${alerta.empleado} · ${alerta.fecha} ${alerta.hora}` : '';
+  return window.confirmarAccion({ titulo, texto: detalle, ok: 'Confirmar' });
 }
 
 window.cerrarAlerta = async (id) => {
-  if (await confirmarSiEmergencia(id)) await cambiarEstado(id, 'Cerrada');
+  if (await confirmarCierre(id)) await cambiarEstado(id, 'Cerrada');
 };
 
 // ── Modal "Revisar": FC del día del empleado ──────────────────────────────
@@ -432,16 +445,20 @@ document.querySelectorAll('.alert-severity-filter').forEach((button) => {
     renderTabla();
   });
 });
-document.querySelectorAll('.alert-type-filter').forEach((button) => {
+// Tocar un tipo deja sólo ese tipo; tocarlo de nuevo (cuando es el único) vuelve a mostrar todos.
+const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
+const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
+botonesTipo.forEach((button) => {
   button.addEventListener('click', () => {
     const tipo = button.dataset.tipo;
-    if (tiposActivos.has(tipo)) {
-      tiposActivos.delete(tipo);
-    } else {
-      tiposActivos.add(tipo);
-    }
-    button.classList.toggle('is-active', tiposActivos.has(tipo));
-    button.setAttribute('aria-pressed', String(tiposActivos.has(tipo)));
+    const soloEste = tiposActivos.size === 1 && tiposActivos.has(tipo);
+    tiposActivos.clear();
+    (soloEste ? todosLosTipos : [tipo]).forEach((t) => tiposActivos.add(t));
+    botonesTipo.forEach((b) => {
+      const activo = tiposActivos.has(b.dataset.tipo);
+      b.classList.toggle('is-active', activo);
+      b.setAttribute('aria-pressed', String(activo));
+    });
     renderTabla();
   });
 });
