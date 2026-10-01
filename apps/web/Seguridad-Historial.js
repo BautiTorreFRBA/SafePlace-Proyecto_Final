@@ -7,11 +7,9 @@ const filterTipo = document.getElementById('filterTipo');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 const chartTipoCanvas = document.getElementById('chartTipo');
-const chartSeveridadCanvas = document.getElementById('chartSeveridad');
 
 let historicoAlertas = [];
 let chartTipo = null;
-let chartSeveridad = null;
 let debounceTimer = null;
 
 function getAuthHeaders() {
@@ -143,11 +141,6 @@ function destruirGraficas() {
     chartTipo.destroy();
     chartTipo = null;
   }
-
-  if (chartSeveridad) {
-    chartSeveridad.destroy();
-    chartSeveridad = null;
-  }
 }
 
 function renderEstadoInicial(mensaje) {
@@ -193,22 +186,9 @@ function renderTabla() {
 
 function renderGraficas() {
   const conteoPorTipo = {};
-  const conteoPorSeveridad = {
-    Crítica: 0,
-    Media: 0,
-    Info: 0,
-  };
 
   historicoAlertas.forEach((a) => {
     conteoPorTipo[a.tipo] = (conteoPorTipo[a.tipo] || 0) + 1;
-
-    if (a.severidad.clase === 'critico') {
-      conteoPorSeveridad.Crítica += 1;
-    } else if (a.severidad.clase === 'advertencia') {
-      conteoPorSeveridad.Media += 1;
-    } else {
-      conteoPorSeveridad.Info += 1;
-    }
   });
 
   destruirGraficas();
@@ -219,7 +199,7 @@ function renderGraficas() {
       labels: Object.keys(conteoPorTipo),
       datasets: [{
         data: Object.values(conteoPorTipo),
-        backgroundColor: Object.keys(conteoPorTipo).map((tipo) => ({ FATIGA: '#4ade80', SOBREESFUERZO: '#a78bfa', INACTIVIDAD_PROLONGADA: '#38bdf8' }[String(tipo).trim().toUpperCase()] || '#9ca3af')),
+        backgroundColor: Object.keys(conteoPorTipo).map((tipo) => ({ FATIGA: '#4ade80', SOBREESFUERZO: '#a78bfa', INACTIVIDAD_PROLONGADA: '#38bdf8', EMERGENCIA: '#ffd60a', SUPER_EMERGENCIA: '#ff1a1a' }[String(tipo).trim().toUpperCase()] || '#9ca3af')),
         borderColor: '#111827',
         borderWidth: 2,
       }],
@@ -232,27 +212,6 @@ function renderGraficas() {
           position: 'bottom',
           labels: { color: '#cbd5e1', boxWidth: 14, boxHeight: 14 },
         },
-      },
-    },
-  });
-
-  chartSeveridad = new Chart(chartSeveridadCanvas, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(conteoPorSeveridad),
-      datasets: [{
-        data: Object.values(conteoPorSeveridad),
-        backgroundColor: ['#ef4444', '#fb923c', '#60a5fa'],
-        borderRadius: 10,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
-        y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.12)' } },
       },
     },
   });

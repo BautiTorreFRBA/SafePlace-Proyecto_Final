@@ -50,6 +50,11 @@
 
 /* Historial de empleados agrupado por área y turno (mismo esquema que Gestión de Empleados) */
 .empleados-grupos { padding:0; }
+.empleados-grupos .area-turno-seccion__titulo { cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:6px; user-select:none; }
+.empleados-grupos .area-turno-seccion__titulo::-webkit-details-marker { display:none; }
+.empleados-grupos .area-turno-seccion__titulo::before { content:'▸'; color:var(--text-muted); transition:transform .15s; display:inline-block; }
+.empleados-grupos .area-turno-seccion[open] > .area-turno-seccion__titulo::before { transform:rotate(90deg); }
+.empleados-grupos .area-turno-seccion:not([open]) > .area-turno-seccion__titulo { margin-bottom:0; }
 .empleados-grupos .area-turno-seccion__titulo small { margin-left:6px; color:var(--text-muted); font-size:.74rem; font-weight:500; }
 .empleados-grupos .area-turno-seccion__turnos { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:start; }
 .empleados-grupo__cards { gap:10px; padding:10px; }
