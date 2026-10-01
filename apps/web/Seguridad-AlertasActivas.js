@@ -431,6 +431,27 @@ fcModalAtender.addEventListener('click', async () => {
 // Tocar un tipo deja sólo ese tipo; tocarlo de nuevo (cuando es el único) vuelve a mostrar todos.
 const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
 const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
+
+// "Pendientes" es el acceso para volver a la bandeja completa. Además de
+// consultar otra vez al servidor, restablece los filtros de tipo que el
+// supervisor pudiera haber aplicado antes.
+const botonPendientes = document.querySelector('[data-filter="pendientes"]');
+botonPendientes?.addEventListener('click', async () => {
+  tiposActivos.clear();
+  todosLosTipos.forEach((tipo) => tiposActivos.add(tipo));
+  botonesTipo.forEach((boton) => {
+    boton.classList.add('is-active');
+    boton.setAttribute('aria-pressed', 'true');
+  });
+
+  try {
+    await cargarAlertas();
+  } catch (error) {
+    console.error(error);
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas pendientes</td></tr>';
+  }
+});
+
 botonesTipo.forEach((button) => {
   button.addEventListener('click', () => {
     const tipo = button.dataset.tipo;

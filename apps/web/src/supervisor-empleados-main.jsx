@@ -10,6 +10,7 @@ const toISODate = (date) => date.toISOString().slice(0, 10);
 const today = new Date();
 const defaultHasta = toISODate(today);
 const defaultDesde = toISODate(new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000));
+const UMBRALES_FC_POR_DEFECTO = { fatiga: 130, sobreesfuerzo: 160 };
 
 async function apiFetch(path) {
   const token = sessionStorage.getItem('authToken');
@@ -42,6 +43,18 @@ function dentroDelAlcance(worker) {
 }
 function formatDate(value) { if (!value) return 'Sin datos'; const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Sin datos' : date.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 function formatDateShort(value) { if (!value) return '--'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }); }
+function resolverUmbralesFc(idOperario, globalPayload, particularesPayload) {
+  const global = globalPayload?.data || {};
+  const particular = (particularesPayload?.data || []).find((item) => String(item.id_operario) === String(idOperario));
+  const valor = (particularValue, globalValue, fallback) => {
+    const elegido = particularValue ?? globalValue;
+    return Number.isFinite(Number(elegido)) ? Number(elegido) : fallback;
+  };
+  return {
+    fatiga: valor(particular?.fc_fatiga, global.fc_fatiga, UMBRALES_FC_POR_DEFECTO.fatiga),
+    sobreesfuerzo: valor(particular?.fc_sobreesfuerzo, global.fc_sobreesfuerzo, UMBRALES_FC_POR_DEFECTO.sobreesfuerzo),
+  };
+}
 
 function MenuIcon({ type }) {
   const paths = {
@@ -67,7 +80,7 @@ const NAV_LINKS = {
   supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Empleados', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']],
   // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
   admin: [['home', 'Home', 'Admin-Home.html', true], ['employees', 'Empleados', 'Admin-Empleados.html', false], ['wearable', 'Asociar Wearable', 'Admin-AsociarWearable.html', false], ['wearable', 'Estado Dispositivos', 'Admin-EstadoDispositivos.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['broadcast', 'Configuración', 'Admin-Configuracion.html', false], ['clock', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
-  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['team', 'Empleados', 'Seguridad-Empleados.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
+  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Empleados', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
 };
 
 function Sidebar() {
@@ -284,6 +297,7 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
 
 function DetailView({ employee, filters, onBack }) {
   const [detail, setDetail] = useState({ loading: true, alerts: [], error: '' });
+  const [umbralesFc, setUmbralesFc] = useState(UMBRALES_FC_POR_DEFECTO);
   // "Ahora" avanza cada LIVE_REFRESH_MS: la vista inicial del gráfico es (now − 1 h, now) y se desliza con él.
   const [now, setNow] = useState(() => Date.now());
   const periodStart = new Date(`${filters.desde}T00:00:00-03:00`).getTime();
@@ -312,8 +326,13 @@ function DetailView({ employee, filters, onBack }) {
     Promise.all([
       fetchUltimaHora(at),
       apiFetch(`/alertas/historico?desde=${diaAR(Math.min(periodStart, at - VENTANA_MINIMA_MS))}&empleado=${name}`),
-    ]).then(([series, alerts]) => {
+      Promise.allSettled([apiFetch('/umbrales'), apiFetch('/umbrales-operario')]),
+    ]).then(([series, alerts, umbrales]) => {
       if (cancelled) return;
+      const [global, particulares] = umbrales;
+      if (global.status === 'fulfilled' && particulares.status === 'fulfilled') {
+        setUmbralesFc(resolverUmbralesFc(employee.id, global.value, particulares.value));
+      }
       const own = ownAlerts(alerts); const time = (alert) => new Date(alert.fecha_hora).getTime();
       setLiveSeries(new Map(series.map((point) => [point.ts, point])));
       // Gráfico: todas las alertas cargadas (se filtran por la ventana visible). Historial de alertas: solo el período Desde/Hasta.
@@ -348,7 +367,7 @@ function DetailView({ employee, filters, onBack }) {
     return [...merged.values()];
   }, [fullSeries, liveSeries]);
   const chartAlertList = useMemo(() => [...chartAlerts.values()], [chartAlerts]);
-  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={chartAlertList} now={now} domainStart={chartStart} lastReading={lastReading} onNeedFull={loadFull} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div></div>}</div></Layout>;
+  return <Layout selected={employee} onBack={onBack}><div className="empleado-detail"><div className="empleado-detail__heading"><div className="empleado-avatar empleado-detail__avatar">{initials(fullName(employee))}</div><div><h1>{fullName(employee)}</h1><p>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'}{employee.turno ? ` · Turno ${employee.turno}` : ''}</p></div></div><div className="empleado-detail__range"><label>Desde<input type="date" value={filters.desde} readOnly /></label><label>Hasta<input type="date" value={filters.hasta} readOnly /></label><span className="empleado-card__tag">Período seleccionado</span></div><div className="empleado-stats"><div className="empleado-stat"><span>Promedio FC</span><strong>{employee.fcPromedio ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Mínimo</span><strong>{employee.fcMin ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Máximo</span><strong>{employee.fcMax ?? '--'} <small>BPM</small></strong></div><div className="empleado-stat"><span>Lecturas</span><strong>{employee.lecturas || 0}</strong></div><div className="empleado-stat"><span>Alertas</span><strong>{employee.alertasTotal || 0}</strong></div></div>{detail.loading && <div className="empleado-empty">Cargando historial...</div>}{detail.error && <div className="empleado-error">{detail.error}</div>}{!detail.loading && !detail.error && <div className="empleado-detail-grid"><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Evolución de frecuencia cardíaca</h2><span>Umbrales y alertas marcados</span></div><Chart points={chartPoints} alerts={chartAlertList} now={now} domainStart={chartStart} lastReading={lastReading} onNeedFull={loadFull} fatigue={umbralesFc.fatiga} overexertion={umbralesFc.sobreesfuerzo} /></div><div className="empleado-detail-card"><div className="empleado-detail-card__header"><h2>Historial de alertas</h2><span>{detail.alerts.length} registradas</span></div><div className="empleado-alerts">{detail.alerts.length ? detail.alerts.slice(0, 8).map((alert) => <div className="empleado-alert" key={alert.id}><span className="empleado-alert__dot"></span><div><strong>{alert.tipo_alerta || 'Alerta'}</strong><span>{formatDate(alert.fecha_hora)} · {alert.estado || 'Registrada'}</span></div></div>) : <div className="empleado-empty">No hay alertas en el período.</div>}</div></div></div>}</div></Layout>;
 }
 
 function App() {

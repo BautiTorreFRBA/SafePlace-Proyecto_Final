@@ -19,6 +19,8 @@ let chartDetalle = null;
 let detalleBucket = '1m';
 let detallePagina = 0;
 const DETALLE_PAGE_SIZE = 20;
+const UMBRALES_FC_POR_DEFECTO = { fatiga: 130, sobreesfuerzo: 160 };
+let umbralesFcPromise = null;
 
 // Motivos de descarte del Servicio de Validación de Datos (errores.js MOTIVOS).
 // SIN_CONSENTIMIENTO no aparece: ese descarte ocurre en memoria y no se audita
@@ -42,6 +44,34 @@ const ALERTA_LABEL = {
 function getAuthHeaders() {
   const token = sessionStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Los límites del gráfico dependen del operario: una configuración particular
+// reemplaza el valor general sólo para ese operario.
+async function obtenerUmbralesFc(idOperario) {
+  if (!umbralesFcPromise) {
+    umbralesFcPromise = Promise.all([
+      fetch(`${API_BASE_URL}/umbrales`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE_URL}/umbrales-operario`, { headers: getAuthHeaders() }),
+    ]).then(async ([globalRes, particularesRes]) => {
+      if (!globalRes.ok || !particularesRes.ok) throw new Error('umbrales no disponibles');
+      const [global, particulares] = await Promise.all([globalRes.json(), particularesRes.json()]);
+      return { global: global.data || {}, particulares: particulares.data || [] };
+    }).catch((error) => {
+      umbralesFcPromise = null;
+      throw error;
+    });
+  }
+  const { global, particulares } = await umbralesFcPromise;
+  const particular = particulares.find((item) => String(item.id_operario) === String(idOperario));
+  const valor = (individual, general, fallback) => {
+    const elegido = individual ?? general;
+    return Number.isFinite(Number(elegido)) ? Number(elegido) : fallback;
+  };
+  return {
+    fatiga: valor(particular?.fc_fatiga, global.fc_fatiga, UMBRALES_FC_POR_DEFECTO.fatiga),
+    sobreesfuerzo: valor(particular?.fc_sobreesfuerzo, global.fc_sobreesfuerzo, UMBRALES_FC_POR_DEFECTO.sobreesfuerzo),
+  };
 }
 
 function escapeHtml(value = '') {
@@ -350,6 +380,9 @@ async function cargarSerieDetalle(idx) {
     if (!res.ok) throw new Error(`serie ${res.status}`);
     const json = await res.json();
     const serie = Array.isArray(json.data) ? json.data : [];
+    // No impedir el historial si los umbrales no están disponibles: el gráfico
+    // conserva un valor de respaldo mientras se recupera la configuración.
+    const umbrales = await obtenerUmbralesFc(fila.idTrabajador).catch(() => UMBRALES_FC_POR_DEFECTO);
 
     destruirChartDetalle();
     chartDetalle = new Chart(canvas.getContext('2d'), {
@@ -370,6 +403,14 @@ async function cargarSerieDetalle(idx) {
           {
             label: 'promedio', data: serie.map((p) => p.fcPromedio), borderColor: '#2dd4bf',
             borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false,
+          },
+          {
+            label: `Fatiga (${umbrales.fatiga} BPM)`, data: serie.map(() => umbrales.fatiga), borderColor: '#f59e0b',
+            borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false,
+          },
+          {
+            label: `Sobreesfuerzo (${umbrales.sobreesfuerzo} BPM)`, data: serie.map(() => umbrales.sobreesfuerzo), borderColor: '#ef4444',
+            borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false,
           },
         ],
       },
