@@ -38,6 +38,15 @@
  *                   3 veces para acumular las EMERGENCIAS que disparan
  *                   SUPER_EMERGENCIA.
  *
+ * Comandos interactivos (mientras el simulador corre):
+ *   alert fatiga [N]         — inyecta mediciones FC alta en dispositivo N (random si omitís N)
+ *   alert sobreesfuerzo [N]  — ídem con actividad 1.0
+ *   alert emergencia [N]     — inyecta FC alta + desconecta → cadena hasta EMERGENCIA
+ *   alert inactividad [N]    — desconecta el dispositivo N
+ *   status                   — resumen rápido
+ *   help                     — lista de comandos
+ *   quit                     — detener el simulador
+ *
  * NOTA sobre EMERGENCIA/SUPER_EMERGENCIA:
  *   El backend las genera automáticamente (no hay endpoint directo).
  *   Para verlas en < 2 min, bajá "Minutos de inactividad" a 1 en
@@ -46,6 +55,8 @@
  *
  * La clave NUNCA va en el código: sólo por $env:GATEWAY_API_KEY.
  */
+
+import { createInterface } from 'readline';
 
 // ── Parseo de argumentos ──────────────────────────────────────────────────────
 const args = Object.fromEntries(
@@ -72,13 +83,16 @@ const PCT = {
 };
 
 // ── Duración de la fase "emitiendo" para perfiles de emergencia ───────────────
-// Tiene que ser suficiente para que el motor detecte FATIGA (minutos_fatiga * 60 s).
-// Con umbral global 0.5 min → 30 s bastan; ponemos 90 s de margen.
 const EMISION_EMERGENCIA_MS = 90_000;
-// Cuántas veces repite el ciclo super_emergencia (necesita ≥3 EMERGENCIAs cerradas)
 const CICLOS_SUPER = 4;
-// Espera entre ciclos de super_emergencia (para que el backend procese la anterior)
 const PAUSA_CICLO_MS = 20_000;
+
+// ── Inyección on-demand ───────────────────────────────────────────────────────
+// Mediciones históricas a inyectar para disparar una alerta instantáneamente.
+// La ventana cubre minutos_fatiga (0.5 min = 30 s por defecto); con 45 s de
+// margen el motor de reglas siempre encuentra suficientes muestras.
+const INYECCION_COUNT      = 12;
+const INYECCION_VENTANA_MS = 45_000;
 
 if (!KEY && !DRY) {
   console.error('Falta GATEWAY_API_KEY en el entorno.\n  PowerShell: $env:GATEWAY_API_KEY = "<clave>"');
@@ -135,7 +149,7 @@ function fcPara(d) {
   switch (d.perfilActual || d.perfil) {
     case 'fatiga':
     case 'emergencia':
-    case 'super_emergencia': return Math.round(185 + Math.sin(t / 20) * 3 + ruido); // alto → dispara FATIGA + SOBREESFUERZO
+    case 'super_emergencia': return Math.round(185 + Math.sin(t / 20) * 3 + ruido);
     case 'sobreesfuerzo':    return Math.round(185 + Math.sin(t / 20) * 3 + ruido);
     default:                 return Math.round(80  + Math.sin(t / 45 + d.fase) * 10 + ruido);
   }
@@ -150,15 +164,81 @@ function marcarEstado(d, e, logSilencioso = false) {
   });
 }
 
+// ── Inyección histórica para alertas on-demand ────────────────────────────────
+// Envía INYECCION_COUNT mediciones con timestamps en el pasado (últimos
+// INYECCION_VENTANA_MS ms), todos únicos. El motor de reglas los detecta como
+// actividad sostenida y genera la alerta en el próximo ciclo.
+async function inyectarHistorico(d, { fc, actividad = undefined }) {
+  const ahora    = Date.now();
+  const interval = INYECCION_VENTANA_MS / INYECCION_COUNT;
+  let ok = 0; let skip = 0; let err = 0;
+  for (let i = 0; i < INYECCION_COUNT; i++) {
+    const ts      = new Date(ahora - INYECCION_VENTANA_MS + i * interval).toISOString();
+    const payload = { idDispositivo: d.id, timestamp: ts, frecuenciaCardiaca: fc };
+    if (actividad != null) payload.nivelActividad = actividad;
+    const r = await http('POST', '/api/v1/mediciones', payload, 1);
+    if (r.status === 201 || r.status === 200) ok++;
+    else if (r.status === 409) skip++;
+    else { err++; if (err <= 2) console.warn(`  [inyec] dev ${d.id}: HTTP ${r.status} ${r.txt.slice(0, 80)}`); }
+  }
+  return { ok, skip, err };
+}
+
+// ── Disparar alerta on-demand ─────────────────────────────────────────────────
+async function dispararAlerta(tipo, nDispositivo, activos) {
+  let d;
+  if (nDispositivo != null) {
+    d = activos.find((x) => x.n === nDispositivo);
+    if (!d) { console.log(`  [alert] No existe dispositivo ${nDispositivo} en esta corrida (rango: 1–${activos.length}).`); return; }
+    if (!d.id) { console.log(`  [alert] Dispositivo ${nDispositivo} no tiene id (lookup fallido al inicio).`); return; }
+  } else {
+    const elegibles = activos.filter((x) => x.id != null);
+    if (!elegibles.length) { console.log('  [alert] Sin dispositivos disponibles.'); return; }
+    d = elegibles[Math.floor(Math.random() * elegibles.length)];
+  }
+
+  console.log(`\n[on-demand] ${tipo.toUpperCase()} → dispositivo ${d.n} (id=${d.id}, perfil=${d.perfil})`);
+
+  switch (tipo.toLowerCase()) {
+    case 'fatiga': {
+      const r = await inyectarHistorico(d, { fc: 185 });
+      console.log(`  Inyectadas ${r.ok} mediciones FC=185 (${r.skip} ya existían).`);
+      console.log(`  El backend creará FATIGA en el próximo ciclo del motor de reglas.`);
+      break;
+    }
+    case 'sobreesfuerzo': {
+      const r = await inyectarHistorico(d, { fc: 185, actividad: 1.0 });
+      console.log(`  Inyectadas ${r.ok} mediciones FC=185 + act=1.0 (${r.skip} ya existían).`);
+      console.log(`  El backend creará SOBREESFUERZO (y FATIGA si aún no existe).`);
+      break;
+    }
+    case 'emergencia': {
+      // Sobreesfuerzo + desconexión → cadena INACTIVIDAD → EMERGENCIA automática
+      const r = await inyectarHistorico(d, { fc: 185, actividad: 1.0 });
+      await marcarEstado(d, 'DESCONECTADO');
+      console.log(`  Inyectadas ${r.ok} mediciones + dispositivo ${d.n} marcado DESCONECTADO.`);
+      console.log(`  Cadena: FATIGA + SOBREESFUERZO → INACTIVIDAD_PROLONGADA → EMERGENCIA.`);
+      console.log(`  Tiempo estimado: ~minutos_inactividad + 10 s.`);
+      console.log(`  Con umbral = 1 min (Admin → Configuración): visible en ~70 s.`);
+      break;
+    }
+    case 'inactividad': {
+      await marcarEstado(d, 'DESCONECTADO');
+      console.log(`  Dispositivo ${d.n} marcado DESCONECTADO.`);
+      console.log(`  INACTIVIDAD_PROLONGADA aparecerá al vencer minutos_inactividad.`);
+      break;
+    }
+    default:
+      console.log(`  Tipo desconocido: "${tipo}". Válidos: fatiga | sobreesfuerzo | emergencia | inactividad`);
+  }
+  console.log('');
+}
+
 // ── Ciclo de emergencia (para perfiles emergencia / super_emergencia) ─────────
-// Fase 1: emite FC alta 90 s → SOBREESFUERZO + FATIGA en el backend
-// Fase 2: marca DESCONECTADO y espera → INACTIVIDAD → EMERGENCIA automática
-// Para super_emergencia repite CICLOS_SUPER veces para acumular EMERGENCIAs.
 async function cicloEmergencia(d, parar) {
   const repeticiones = d.perfil === 'super_emergencia' ? CICLOS_SUPER : 1;
 
   for (let c = 0; c < repeticiones && !parar(); c++) {
-    // --- fase emisión ---
     d.perfilActual = 'emergencia';
     d.inicioFase   = Date.now();
     await marcarEstado(d, 'CONECTADO');
@@ -169,7 +249,7 @@ async function cicloEmergencia(d, parar) {
         idDispositivo: d.id,
         timestamp: new Date().toISOString(),
         frecuenciaCardiaca: fcPara(d),
-        nivelActividad: 1.0,  // activa SOBREESFUERZO desde la primera medición
+        nivelActividad: 1.0,
       };
       const r = await http('POST', '/api/v1/mediciones', payload, 1);
       if (r.status === 201 || r.status === 200) d.ok++;
@@ -177,14 +257,11 @@ async function cicloEmergencia(d, parar) {
       await sleep(Math.min(INTERVALO_MS, fin - Date.now()));
     }
 
-    // --- fase desconexión: el backend detecta inactividad → EMERGENCIA ---
     await marcarEstado(d, 'DESCONECTADO');
     d.perfilActual = 'desconectado';
     d.conectado    = false;
     console.log(`  [emerg cycle ${c + 1}/${repeticiones}] dev ${d.id} desconectado → esperando INACTIVIDAD del backend`);
 
-    // Para super_emergencia: pausa entre ciclos para que el backend tenga tiempo
-    // de crear y registrar la EMERGENCIA antes de la siguiente ronda.
     if (c < repeticiones - 1 && !parar()) {
       console.log(`  [emerg cycle ${c + 1}/${repeticiones}] dev ${d.id} pausa ${PAUSA_CICLO_MS / 1000} s antes del ciclo siguiente`);
       await sleep(PAUSA_CICLO_MS);
@@ -199,14 +276,14 @@ async function cicloEmergencia(d, parar) {
     n: i + 1,
     mac: mac(i + 1),
     perfil: perfiles[i],
-    perfilActual: null,     // null = usa perfil principal
+    perfilActual: null,
     id: null,
     fase: Math.random() * 6.28,
     inicio: Date.now(),
     inicioFase: Date.now(),
     ok: 0, err: 0,
     conectado: false,
-    cicloTerminado: false,  // para emergencia/super: cuando terminó el ciclo
+    cicloTerminado: false,
   }));
 
   const resumen = disp.reduce((a, d) => ((a[d.perfil] = (a[d.perfil] || 0) + 1), a), {});
@@ -222,7 +299,7 @@ async function cicloEmergencia(d, parar) {
 
   // ── Resolución de MACs ──────────────────────────────────────────────────────
   console.log('Resolviendo MAC → id de dispositivo (puede tardar si Render está dormido)...');
-  await http('GET', '/api/v1/dispositivos/lookup?mac=' + encodeURIComponent(disp[0].mac)); // despertar
+  await http('GET', '/api/v1/dispositivos/lookup?mac=' + encodeURIComponent(disp[0].mac));
   await enLotes(disp, async (d) => {
     const r = await http('GET', '/api/v1/dispositivos/lookup?mac=' + encodeURIComponent(d.mac));
     d.id = r.status === 200 ? r.json?.data?.id ?? null : null;
@@ -248,23 +325,76 @@ async function cicloEmergencia(d, parar) {
   process.on('SIGINT', cerrar);
   if (DURACION_S > 0) setTimeout(cerrar, DURACION_S * 1000);
 
-  // ── Lanzar ciclos de emergencia en paralelo (no bloquean el loop principal) ─
+  // ── Lanzar ciclos de emergencia en paralelo ─────────────────────────────────
   const emergentes = activos.filter((d) => ['emergencia', 'super_emergencia'].includes(d.perfil));
   for (const d of emergentes) {
     cicloEmergencia(d, () => parar).then(() => { d.cicloTerminado = true; });
   }
+
+  // ── Modo interactivo ────────────────────────────────────────────────────────
+  const rl = createInterface({ input: process.stdin, terminal: false });
+  console.log('Comandos disponibles mientras el simulador corre:');
+  console.log('  alert <tipo> [N]   — fatiga | sobreesfuerzo | emergencia | inactividad  (N = número de dispositivo, random si omitís)');
+  console.log('  status             — resumen rápido');
+  console.log('  help               — lista de comandos');
+  console.log('  quit               — detener\n');
+
+  rl.on('line', async (line) => {
+    const parts = line.trim().split(/\s+/);
+    const cmd   = parts[0]?.toLowerCase();
+    if (!cmd) return;
+
+    if (cmd === 'quit' || cmd === 'exit' || cmd === 'q') {
+      rl.close();
+      await cerrar();
+      return;
+    }
+
+    if (cmd === 'status') {
+      const ok  = activos.reduce((s, d) => s + d.ok,  0);
+      const err = activos.reduce((s, d) => s + d.err, 0);
+      const con = activos.filter((d) => d.conectado).length;
+      console.log(`\n[status] Conectados: ${con}/${activos.length}  ok=${ok} err=${err}\n`);
+      return;
+    }
+
+    if (cmd === 'help' || cmd === '?') {
+      console.log('\nComandos:');
+      console.log('  alert fatiga [N]         — inyecta mediciones FC alta → FATIGA');
+      console.log('  alert sobreesfuerzo [N]  — inyecta FC alta + actividad → SOBREESFUERZO');
+      console.log('  alert emergencia [N]     — FC alta + desconecta → cadena hasta EMERGENCIA');
+      console.log('  alert inactividad [N]    — desconecta el dispositivo → INACTIVIDAD');
+      console.log('  status                   — estado actual');
+      console.log('  quit                     — detener el simulador\n');
+      return;
+    }
+
+    if (cmd === 'alert' || cmd === 'alerta') {
+      const tipo = parts[1];
+      const n    = parts[2] ? Number(parts[2]) : null;
+      if (!tipo) {
+        console.log('  Uso: alert <tipo> [N]  — tipos: fatiga | sobreesfuerzo | emergencia | inactividad');
+        return;
+      }
+      await dispararAlerta(tipo, n, activos);
+      return;
+    }
+
+    console.log(`  Comando desconocido: "${cmd}". Escribí "help" para ver los disponibles.`);
+  });
+
+  rl.on('close', () => { if (!parar) cerrar(); });
 
   // ── Loop principal ──────────────────────────────────────────────────────────
   let tick = 0;
   while (!parar) {
     const t0 = Date.now();
 
-    // Dispositivos que emiten esta vuelta (excluye emergencia/super que tienen su propio loop)
     const emisores = activos.filter((d) => {
       if (['emergencia', 'super_emergencia'].includes(d.perfil)) return false;
       if (d.perfil === 'inactividad') {
         if ((Date.now() - d.inicio) / 1000 < 30) return true;
-        if (d.conectado) marcarEstado(d, 'DESCONECTADO', true); // silencioso: ya se desconectó
+        if (d.conectado) marcarEstado(d, 'DESCONECTADO', true);
         return false;
       }
       return true;

@@ -89,6 +89,26 @@ Los dispositivos simulados tienen MAC `02:5E:ED:00:00:01` … `02:5E:ED:00:00:96
 (SafePlace Sim Carga-01 … Carga-150), que deben estar registrados en la base y
 con operarios asignados para que las mediciones se procesen.
 
+## Alertas on-demand (modo interactivo)
+
+Con el simulador corriendo, podés escribir comandos para disparar alertas inmediatamente en cualquier dispositivo:
+
+```
+alert fatiga [N]         — inyecta mediciones FC alta → FATIGA
+alert sobreesfuerzo [N]  — inyecta FC alta + actividad → SOBREESFUERZO
+alert emergencia [N]     — FC alta + desconecta → cadena hasta EMERGENCIA
+alert inactividad [N]    — desconecta el dispositivo → INACTIVIDAD_PROLONGADA
+status                   — resumen de dispositivos conectados y contadores
+help                     — lista de comandos
+quit                     — detener el simulador
+```
+
+`N` es el número de dispositivo (1–150). Si lo omitís, se elige uno al azar.
+
+**Cómo funciona la inyección:** los comandos `fatiga` y `sobreesfuerzo` envían 12 mediciones con timestamps en los últimos 45 s (todos únicos), de modo que el motor de reglas las detecta como actividad sostenida y crea la alerta en el próximo ciclo. El comando `emergencia` hace lo mismo más marcar el dispositivo `DESCONECTADO`; la cadena FATIGA + SOBREESFUERZO → INACTIVIDAD → EMERGENCIA se completa automáticamente cuando vence `minutos_inactividad`.
+
+**Para ver EMERGENCIA en ~70 s:** bajá `Minutos de inactividad` a **1** en Admin → Configuración antes de correr el simulador y luego ejecutá `alert emergencia`.
+
 ## Nota de seguridad
 
 La `GATEWAY_API_KEY` va **solo por variable de entorno**, nunca en el código ni en archivos commiteados.
