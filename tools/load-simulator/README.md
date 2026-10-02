@@ -32,9 +32,11 @@ Cortalo con **Ctrl+C** — marca todos los dispositivos como DESCONECTADO antes 
 | `--intervalo S` | 5 | Segundos entre mediciones por dispositivo |
 | `--duracion S` | 0 (infinito) | Segundos totales de corrida |
 | `--url URL` | backend de producción | URL base del backend |
-| `--pct-fatiga N` | 10 | % de dispositivos con perfil FATIGA (~150 BPM) |
-| `--pct-sobreesfuerzo N` | 5 | % con perfil SOBREESFUERZO (~185 BPM + actividad 1.0) |
-| `--pct-inactividad N` | 5 | % que emiten 30 s y se desconectan |
+| `--pct-fatiga N` | 8 | % de dispositivos con perfil FATIGA (~185 BPM) |
+| `--pct-sobreesfuerzo N` | 3 | % con perfil SOBREESFUERZO (~185 BPM + actividad 1.0) |
+| `--pct-inactividad N` | 3 | % que emiten 30 s y se desconectan |
+| `--pct-emergencia N` | 2 | % con perfil EMERGENCIA (ver más abajo) |
+| `--pct-super-emergencia N` | 1 | % con perfil SUPER_EMERGENCIA (ver más abajo) |
 | `--dry-run` | — | Valida la configuración sin enviar nada |
 
 ## Ejemplos
@@ -58,9 +60,19 @@ node tools/load-simulator/simulador-carga.mjs --dry-run
 | Perfil | FC | Actividad | Alerta esperada |
 |---|---|---|---|
 | `normal` | 68–92 BPM con variación suave | derivada de FC | Ninguna |
-| `fatiga` | ~150 BPM sostenida | derivada de FC | FATIGA (Media) |
+| `fatiga` | ~185 BPM sostenida | derivada de FC | FATIGA (Media) |
 | `sobreesfuerzo` | ~185 BPM | 1.0 (fijo) | SOBREESFUERZO (Crítica) |
 | `inactividad` | normal 30 s → desconexión | — | INACTIVIDAD_PROLONGADA (~15 min después) |
+| `emergencia` | ~185 BPM + act 1.0 por 90 s → desconecta | 1.0 | FATIGA + SOBREESFUERZO → INACTIVIDAD → **EMERGENCIA** automática |
+| `super_emergencia` | igual a `emergencia`, repite 4 ciclos | 1.0 | Acumula ≥3 EMERGENCIAS → **SUPER_EMERGENCIA** automática |
+
+### ⚡ Para ver EMERGENCIA en < 2 minutos
+
+Por defecto `Minutos de inactividad` es 15. Bajalo a **1** desde
+**Admin → Configuración → Guardar cambios** antes de correr el simulador.
+Así la cadena FATIGA+SOBREESFUERZO → INACTIVIDAD → EMERGENCIA ocurre en ~2 min.
+
+Con 15 minutos tarda ~17 min desde que el dispositivo se desconecta.
 
 Los perfiles se asignan al azar al inicio de cada corrida y son fijos durante ella.
 
