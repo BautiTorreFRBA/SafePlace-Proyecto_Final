@@ -148,6 +148,21 @@
         </div>
         </div>
 
+        <!-- Arranque del simulador de carga -->
+        <div class="emp-header" style="margin-top:24px;">
+            <div>
+                <h2 class="emp-header__title" style="font-size:1.05rem;">Arranque</h2>
+                <p class="emp-header__count">Control del simulador de carga (10 operarios por turno)</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <span class="status-dot" id="simStatusBadge">
+                    <span class="dot dot--gray" id="simStatusDot"></span>
+                    <span id="simStatusText">Cargando…</span>
+                </span>
+                <button class="btn-nuevo" id="btnToggleSim" disabled>…</button>
+            </div>
+        </div>
+
         <!-- Configuración particular: FC de fatiga y sobreesfuerzo propias de
              un operario (operario."FC_Fatiga" / "FC_Sobreesfuerzo"). Todos los
              demás usan los umbrales globales de arriba. -->

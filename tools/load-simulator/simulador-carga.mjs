@@ -68,7 +68,7 @@ const args = Object.fromEntries(
 
 const BASE         = (args.url || process.env.BACKEND_URL || 'https://safeplace-backend-9vhx.onrender.com').replace(/\/$/, '');
 const KEY          = process.env.GATEWAY_API_KEY;
-const CANTIDAD     = Number(args.cantidad     || 150);
+const CANTIDAD     = Number(args.cantidad     || 10);
 const INTERVALO_MS = Number(args.intervalo    || 5) * 1000;
 const DURACION_S   = Number(args.duracion     || 0);
 const DRY          = Boolean(args['dry-run']);
@@ -93,6 +93,25 @@ const PAUSA_CICLO_MS = 20_000;
 // margen el motor de reglas siempre encuentra suficientes muestras.
 const INYECCION_COUNT      = 12;
 const INYECCION_VENTANA_MS = 45_000;
+
+// ── Control remoto (Admin → Configuración → Arranque) ─────────────────────────
+const POLL_ESTADO_MS = 15_000;
+let simulacionActiva = false;
+let lastPoll         = 0;
+
+async function pollEstadoSimulacion() {
+  try {
+    const r = await http('GET', '/api/v1/simulacion', null, 1);
+    if (r.status === 200 && r.json?.data?.activa !== undefined) {
+      const nueva = r.json.data.activa;
+      if (nueva !== simulacionActiva) {
+        simulacionActiva = nueva;
+        console.log(simulacionActiva ? '\n▶ Simulación ACTIVADA desde la UI' : '\n⏸ Simulación PAUSADA desde la UI');
+      }
+    }
+  } catch { /* red caída, se reintenta en el próximo poll */ }
+  lastPoll = Date.now();
+}
 
 if (!KEY && !DRY) {
   console.error('Falta GATEWAY_API_KEY en el entorno.\n  PowerShell: $env:GATEWAY_API_KEY = "<clave>"');
@@ -292,6 +311,14 @@ async function cicloEmergencia(d, parar) {
   console.log('Perfiles  :', resumen);
   console.log('');
 
+  // Verificar estado inicial antes de arrancar
+  await pollEstadoSimulacion();
+  if (!simulacionActiva) {
+    console.log('⏸ Simulación INACTIVA — esperando activación desde Admin → Configuración → Arranque');
+    console.log('  (el simulador sondea el backend cada', POLL_ESTADO_MS / 1000, 's)');
+    console.log('');
+  }
+
   if (DRY) {
     console.log('--dry-run: configuración validada, no se envía nada.');
     return;
@@ -309,9 +336,9 @@ async function cicloEmergencia(d, parar) {
   console.log(`Resueltos: ${activos.length}/${CANTIDAD}\n`);
   if (!activos.length) { console.error('Sin dispositivos. Abortando.'); process.exit(1); }
 
-  // ── Conexión inicial ────────────────────────────────────────────────────────
+  // ── Conexión inicial (solo si ya está activo) ───────────────────────────────
   const normales = activos.filter((d) => !['emergencia', 'super_emergencia'].includes(d.perfil));
-  await enLotes(normales, (d) => marcarEstado(d, 'CONECTADO'));
+  if (simulacionActiva) await enLotes(normales, (d) => marcarEstado(d, 'CONECTADO'));
 
   // ── Cierre limpio ───────────────────────────────────────────────────────────
   let parar = false;
@@ -388,6 +415,24 @@ async function cicloEmergencia(d, parar) {
   // ── Loop principal ──────────────────────────────────────────────────────────
   let tick = 0;
   while (!parar) {
+    // Poll remoto periódico
+    if (Date.now() - lastPoll >= POLL_ESTADO_MS) {
+      const eraActiva = simulacionActiva;
+      await pollEstadoSimulacion();
+      if (!eraActiva && simulacionActiva) {
+        // Recién activado: conectar todos los normales
+        await enLotes(normales, (d) => marcarEstado(d, 'CONECTADO'));
+      } else if (eraActiva && !simulacionActiva) {
+        // Recién pausado: desconectar
+        await enLotes(activos.filter((d) => d.conectado), (d) => marcarEstado(d, 'DESCONECTADO'));
+      }
+    }
+
+    if (!simulacionActiva) {
+      await sleep(2_000);
+      continue;
+    }
+
     const t0 = Date.now();
 
     const emisores = activos.filter((d) => {

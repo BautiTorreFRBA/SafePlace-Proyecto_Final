@@ -22,6 +22,7 @@ const reglaAlertaRoutes = require('./routes/reglaAlerta.routes');
 const trabajoRoutes = require('./routes/trabajo.routes');
 const umbralOperarioRoutes = require('./routes/umbralOperario.routes');
 const notificacionesRoutes = require('./routes/notificaciones.routes');
+const simulacionRoutes = require('./routes/simulacion.routes');
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use(`${API_PREFIX}/reglas-alerta`, reglaAlertaRoutes);
 app.use(`${API_PREFIX}/trabajos`, trabajoRoutes);
 app.use(`${API_PREFIX}/umbrales-operario`, umbralOperarioRoutes);
 app.use(`${API_PREFIX}/notificaciones`, notificacionesRoutes);
+app.use(`${API_PREFIX}/simulacion`, simulacionRoutes);
 app.use('/health', healthRoutes);
 
 // Error Handling Middleware

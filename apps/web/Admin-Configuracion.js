@@ -212,3 +212,55 @@ particularModalSave.addEventListener('click', guardarParticular);
 cargarConfiguracion().catch((error) => alert(`No se pudo cargar la configuración: ${error.message}`));
 cargarParticulares().catch((error) => alert(`No se pudieron cargar las configuraciones particulares: ${error.message}`));
 cargarOperarios().catch((error) => console.error(error));
+
+// ---- Simulación (/simulacion) ----
+
+let simActiva = false;
+
+function actualizarBtnSim() {
+  const btn = document.getElementById('btnToggleSim');
+  const dot = document.getElementById('simStatusDot');
+  const txt = document.getElementById('simStatusText');
+  if (!btn) return;
+  btn.disabled = false;
+  if (simActiva) {
+    btn.textContent = 'Detener simulación';
+    btn.style.background = '#ef4444';
+    dot.className = 'dot dot--green';
+    txt.textContent = 'Activa';
+  } else {
+    btn.textContent = 'Iniciar simulación';
+    btn.style.background = '';
+    dot.className = 'dot dot--gray';
+    txt.textContent = 'Inactiva';
+  }
+}
+
+async function cargarEstadoSim() {
+  try {
+    const res = await apiFetch('/simulacion');
+    simActiva = res?.data?.activa ?? false;
+    actualizarBtnSim();
+  } catch {
+    const txt = document.getElementById('simStatusText');
+    if (txt) txt.textContent = 'No disponible';
+  }
+}
+
+document.getElementById('btnToggleSim')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btnToggleSim');
+  btn.disabled = true;
+  try {
+    const res = await apiFetch('/simulacion', {
+      method: 'PUT',
+      body: JSON.stringify({ activa: !simActiva }),
+    });
+    simActiva = res?.data?.activa ?? !simActiva;
+    actualizarBtnSim();
+  } catch (e) {
+    alert('Error al cambiar estado de simulación: ' + e.message);
+    btn.disabled = false;
+  }
+});
+
+cargarEstadoSim();
