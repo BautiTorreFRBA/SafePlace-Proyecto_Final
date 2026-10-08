@@ -14,6 +14,7 @@ const app = require('./app');
 const { getPool } = require('./config/database');
 const estadoDispositivoService = require('./services/estadoDispositivo.service');
 const inactividadProlongadaService = require('./services/inactividadProlongada.service');
+const simulacionBackground = require('./services/simulacionBackground.service');
 
 const PORT = process.env.PORT || 8000;
 // Con tolerancia=0 en umbral_riesgo, este intervalo es el principal
@@ -36,6 +37,8 @@ async function startServer() {
     // H0006 + CP-E2E-04: detección de desconexión (sin datos / pulso
     // congelado) y, sobre esos eventos, alerta de inactividad prolongada
     // cuando la caída ocurre en horario laboral.
+    simulacionBackground.iniciar();
+
     setInterval(async () => {
       try {
         console.log('[Backend API] Chequeo periódico: inicio');
