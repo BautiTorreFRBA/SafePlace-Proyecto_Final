@@ -410,7 +410,9 @@ async function cicloEmergencia(d, parar) {
     console.log(`  Comando desconocido: "${cmd}". Escribí "help" para ver los disponibles.`);
   });
 
-  rl.on('close', () => { if (!parar) cerrar(); });
+  // Solo cerrar por stdin si corremos en terminal interactivo; si no hay TTY
+  // (ejecución desde script / Start-Process) se cierra sólo por --duracion o SIGINT.
+  if (process.stdin.isTTY) rl.on('close', () => { if (!parar) cerrar(); });
 
   // ── Loop principal ──────────────────────────────────────────────────────────
   let tick = 0;
