@@ -16,7 +16,7 @@
  *   node tools/load-simulator/simulador-carga.mjs [opciones]
  *
  * Opciones:
- *   --cantidad N             Dispositivos a simular             (default: 150)
+ *   --cantidad N             Dispositivos a simular             (default: 10)
  *   --intervalo S            Segundos entre mediciones           (default: 5)
  *   --duracion S             Duración total en segundos; 0=∞     (default: 0)
  *   --url URL                URL base del backend                (default: producción)
