@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../config/database');
 
 const obtenerEstado = async () => {
   const { rows } = await db.query(
