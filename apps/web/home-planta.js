@@ -65,6 +65,7 @@ function alcanceDelRol() {
 }
 
 let trabajadores = [];
+let alertasActivas = [];
 let filtroActual = 'todos';
 let busquedaActual = '';
 
@@ -286,11 +287,16 @@ function renderEmergencias() {
 }
 
 function renderAlerts() {
-  const alertas = trabajadores
-    .filter((item) => ['critico', 'advertencia'].includes(ESTADOS[item.estado].grupo))
+  const nombrePorTrabajador = new Map(trabajadores.map((item) => [String(item.id_trabajador), nombreCompleto(item)]));
+  const items = alertasActivas
+    .map((alerta) => {
+      const estado = ALERTA_A_ESTADO[String(alerta.tipo_alerta || '').toUpperCase()];
+      return { ...alerta, estado, nombre: nombrePorTrabajador.get(String(alerta.id_trabajador)) || `Trabajador ${alerta.id_trabajador ?? ''}`.trim() };
+    })
+    .filter((item) => item.estado)
     .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank);
-  document.getElementById('alertList').innerHTML = alertas.length
-    ? alertas.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${ESTADOS[item.estado].grupo === 'critico' ? 'critico' : 'advertencia'}"><span class="status-indicator"></span><div><strong>${escapeHtml(nombreCompleto(item))}</strong><span>${escapeHtml(descripcionEstado(item))}</span></div><time>${escapeHtml(hora(item.alerta_fecha_hora || item.fecha_hora))}</time></div>`).join('')
+  document.getElementById('alertList').innerHTML = items.length
+    ? items.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${ESTADOS[item.estado].grupo === 'critico' ? 'critico' : 'advertencia'}"><span class="status-indicator"></span><div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(ESTADOS[item.estado].label)}</span></div><time>${escapeHtml(hora(item.fecha_hora))}</time></div>`).join('')
     : '<div class="supervisor-empty supervisor-empty--small">No hay alertas activas.</div>';
 }
 
@@ -320,7 +326,8 @@ async function cargarHome() {
     const alertasPorTrabajador = new Map();
     const superPorTrabajador = new Map(); // id_trabajador -> id de su SUPER_EMERGENCIA activa
     const emergenciaPorTrabajador = new Map(); // id_trabajador -> id de su EMERGENCIA activa
-    (alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : []).forEach((alerta) => {
+    alertasActivas = alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : [];
+    alertasActivas.forEach((alerta) => {
       const clave = String(alerta.id_trabajador);
       if (!alertasPorTrabajador.has(clave)) alertasPorTrabajador.set(clave, []);
       alertasPorTrabajador.get(clave).push(alerta.tipo_alerta);
