@@ -169,11 +169,12 @@ function renderTarjeta(item) {
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
   const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong> <small>BPM</small></div>`;
 
-  // El dibujo ocupa toda la tarjeta; encima: FC actual arriba a la derecha y abajo, sobre el
-  // torso, el nombre y el estado. El avatar se pinta con el color del estado (mask +
-  // ilustración con multiply: el relleno blanco toma el color y las líneas quedan negras).
+  const ecgPts = '0,65 55,65 60,68 65,8 70,85 75,65 110,65 120,52 135,47 150,52 165,65 200,65 255,65 260,68 265,8 270,85 275,65 310,65 320,52 335,47 350,52 365,65 400,65';
+  const innerEl = reciente
+    ? `<div class="op-ecg" aria-hidden="true"><svg viewBox="0 0 400 100" preserveAspectRatio="none"><polyline class="op-ecg__line" points="${ecgPts}"/></svg></div>`
+    : `<div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>`;
   return `<a class="op-card${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
-    <div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>
+    ${innerEl}
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
       <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
