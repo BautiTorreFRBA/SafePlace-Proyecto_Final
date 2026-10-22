@@ -320,19 +320,6 @@ function renderAll() {
   document.getElementById('currentDate').textContent = `Actualizado ${fmtARHora(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 }
 
-// El Home funciona como punto de entrada operativo: si hay un caso crítico,
-// se prioriza su ficha por encima de la grilla general. Si hubiera más de uno,
-// abre primero el de mayor severidad.
-function abrirCasoCritico() {
-  const critico = trabajadores
-    .filter((item) => ESTADOS[item.estado]?.grupo === 'critico')
-    .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank)[0];
-  if (!critico) return false;
-
-  window.location.replace(`${HISTORIAL_URL}?empleado=${encodeURIComponent(critico.id_trabajador)}`);
-  return true;
-}
-
 async function cargarHome() {
   try {
     const [estadoResult, alertasResult] = await Promise.allSettled([apiFetch('/estado/trabajadores-activos'), apiFetch('/alertas/activas')]);
@@ -357,7 +344,6 @@ async function cargarHome() {
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));
-    if (abrirCasoCritico()) return;
     renderAll();
   } catch (error) {
     console.error(error);
