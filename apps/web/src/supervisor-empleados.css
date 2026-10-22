@@ -71,3 +71,18 @@
 .empleado-chart-empty p { margin:0; }
 .empleado-chart-empty button { pointer-events:auto; padding:6px 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card-alt); color:var(--teal-400); font:inherit; font-size:.78rem; font-weight:600; cursor:pointer; }
 .empleado-chart-empty button:hover { border-color:var(--teal-500); }
+
+/* Paleta de alertas compartida con el resto de SafePlace. */
+.empleado-chart__threshold { stroke:var(--alert-fatiga); }
+.empleado-chart__threshold--critical { stroke:var(--alert-sobreesfuerzo); }
+.empleado-chart__label--fatigue { fill:var(--alert-fatiga)!important; }
+.empleado-chart__label--critical { fill:var(--alert-sobreesfuerzo)!important; }
+.empleado-chart__alert--fatiga line { stroke:var(--alert-fatiga); }
+.empleado-chart__alert--fatiga text { fill:var(--alert-fatiga)!important; }
+.empleado-chart__alert--sobreesfuerzo line { stroke:var(--alert-sobreesfuerzo); }
+.empleado-chart__alert--sobreesfuerzo text { fill:var(--alert-sobreesfuerzo)!important; }
+.empleado-chart__alert--inactividad line { stroke:var(--alert-inactividad); }
+.empleado-chart__alert--inactividad text { fill:var(--alert-inactividad)!important; }
+.empleado-chart-legend__item--fatiga i { color:var(--alert-fatiga); }
+.empleado-chart-legend__item--sobreesfuerzo i { color:var(--alert-sobreesfuerzo); }
+.empleado-chart-legend__item--inactividad i { color:var(--alert-inactividad); }

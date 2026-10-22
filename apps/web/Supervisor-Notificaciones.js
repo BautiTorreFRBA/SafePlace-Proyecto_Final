@@ -43,7 +43,9 @@ function mapearTipo(tipoAlerta = '', prioridad = '') {
   const tipo = String(tipoAlerta).trim().toUpperCase();
   if (tipo === 'INACTIVIDAD_PROLONGADA') return 'inactividad';
   if (tipo === 'FATIGA') return 'fatiga';
-  if (tipo === 'SOBREESFUERZO' || tipo === 'EMERGENCIA' || tipo === 'SUPER_EMERGENCIA') return 'critico';
+  if (tipo === 'SOBREESFUERZO') return 'sobreesfuerzo';
+  if (tipo === 'EMERGENCIA') return 'emergencia';
+  if (tipo === 'SUPER_EMERGENCIA') return 'super-emergencia';
   return prioridad.toLowerCase().includes('crít') || prioridad.toLowerCase().includes('crit')
     ? 'critico'
     : 'advertencia';
