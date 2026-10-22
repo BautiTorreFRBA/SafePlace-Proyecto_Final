@@ -12,49 +12,50 @@
   color-scheme: dark;
 
   /* Paleta principal */
-  --teal-400:    #2dd4bf;
-  --teal-500:    #14b8a6;
-  --teal-dim:    rgba(45, 212, 191, 0.12);
+  --teal-400:    #3fd8c4;
+  --teal-500:    #20b8a6;
+  --teal-dim:    rgba(63, 216, 196, 0.13);
 
   /* Fondos */
-  --bg-app:      #0a0a0a;
-  --bg-sidebar:  #0f0f0f;
-  --bg-main:     #111111;
-  --bg-card:     #181818;
-  --bg-card-alt: #1c1c1c;
+  /* Grises azulados (slate): menos duros que el negro puro y más cómodos para la vista. */
+  --bg-app:      #0f141a;
+  --bg-sidebar:  #131a22;
+  --bg-main:     #161d26;
+  --bg-card:     #1c2530;
+  --bg-card-alt: #232e3b;
 
   /* Bordes y líneas */
   /* Contornos con contraste suficiente para separar claramente cada bloque. */
-  --border:      #3d3d3d;
-  --border-soft: #303030;
+  --border:      #374454;
+  --border-soft: #2a3542;
 
   /* Texto */
-  --text-primary:   #f0f0f0;
-  --text-secondary: #9ca3af;
-  --text-muted:     #4b5563;
+  --text-primary:   #e8edf3;
+  --text-secondary: #a6b2c0;
+  --text-muted:     #7d8a9a;
 
   /* Colores semánticos */
-  --red:         #ef4444;
-  --red-dim:     rgba(239, 68, 68, 0.16);
-  --orange:      #fb923c;
-  --orange-dim:  rgba(251, 146, 60, 0.12);
-  --yellow:      #fbbf24;
-  --yellow-dim:  rgba(251, 191, 36, 0.12);
-  --blue:        #60a5fa;
-  --blue-dim:    rgba(96, 165, 250, 0.12);
-  --green:       #4ade80;
-  --green-dim:   rgba(74, 222, 128, 0.10);
-  --celeste:     #38bdf8;
-  --celeste-dim: rgba(56, 189, 248, 0.12);
-  --violet:      #a78bfa;
-  --violet-dim:  rgba(167, 139, 250, 0.12);
+  --red:         #f26d6d;
+  --red-dim:     rgba(242, 109, 109, 0.16);
+  --orange:      #f9a15a;
+  --orange-dim:  rgba(249, 161, 90, 0.13);
+  --yellow:      #f2c75c;
+  --yellow-dim:  rgba(242, 199, 92, 0.13);
+  --blue:        #7ab4f5;
+  --blue-dim:    rgba(122, 180, 245, 0.13);
+  --green:       #5fd49a;
+  --green-dim:   rgba(95, 212, 154, 0.11);
+  --celeste:     #4cc3ee;
+  --celeste-dim: rgba(76, 195, 238, 0.13);
+  --violet:      #b3a1f7;
+  --violet-dim:  rgba(179, 161, 247, 0.13);
 
   /* Estados de alerta: usar estos tokens en todas las vistas. */
-  --alert-fatiga: #4ade80;
-  --alert-inactividad: #38bdf8;
-  --alert-sobreesfuerzo: #a78bfa;
+  --alert-fatiga: #5fd49a;
+  --alert-inactividad: #4cc3ee;
+  --alert-sobreesfuerzo: #b3a1f7;
   --alert-emergencia: #ffd60a;
-  --alert-super-emergencia: #ff1a1a;
+  --alert-super-emergencia: #ff3b3b;
 
   /* Sidebar */
   --sidebar-w: 200px;
@@ -74,23 +75,45 @@ html, body {
 /* Modo claro: se apoya en los mismos tokens para conservar la jerarquía visual. */
 html[data-theme="light"] {
   color-scheme: light;
-  --bg-app: #e8e4dc;
-  --bg-sidebar: #f4f0e8;
-  --bg-main: #eeeae2;
-  --bg-card: #faf7f0;
-  --bg-card-alt: #e5dfd4;
-  --border: #c9c0b2;
-  --border-soft: #ddd5c9;
-  --text-primary: #302c25;
-  --text-secondary: #625b50;
-  --text-muted: #81786b;
-  --teal-dim: rgba(20,184,166,.13);
+  /* Fondo gris azulado muy suave con tarjetas blancas; acentos más oscuros para que el texto tenga contraste. */
+  --bg-app: #eef2f6;
+  --bg-sidebar: #f8fafc;
+  --bg-main: #f2f5f9;
+  --bg-card: #ffffff;
+  --bg-card-alt: #e9eff5;
+  --border: #c8d2dd;
+  --border-soft: #dde4ec;
+  --text-primary: #1f2a37;
+  --text-secondary: #4a5868;
+  --text-muted: #667487;
+  --teal-400: #0e9f90;
+  --teal-500: #0b8a7d;
+  --teal-dim: rgba(14,159,144,.12);
+  --red: #dc3b3b;
+  --red-dim: rgba(220,59,59,.12);
+  --orange: #e0680f;
+  --orange-dim: rgba(224,104,15,.12);
+  --yellow: #b7810a;
+  --yellow-dim: rgba(183,129,10,.14);
+  --blue: #2f6fd6;
+  --blue-dim: rgba(47,111,214,.11);
+  --green: #1e9a5a;
+  --green-dim: rgba(30,154,90,.11);
+  --celeste: #0b84bd;
+  --celeste-dim: rgba(11,132,189,.11);
+  --violet: #7656d6;
+  --violet-dim: rgba(118,86,214,.11);
+  --alert-fatiga: #1e9a5a;
+  --alert-inactividad: #0b84bd;
+  --alert-sobreesfuerzo: #7656d6;
+  --alert-emergencia: #e0a800;
+  --alert-super-emergencia: #dc2626;
 }
-html[data-theme="light"] .op-card { background:#faf7f0; }
-html[data-theme="light"] .op-ecg { background:rgba(229,223,212,.8); }
-html[data-theme="light"] .op-chip { background:rgba(250,247,240,.9); }
-html[data-theme="light"] .worker-card { background:linear-gradient(100deg,#faf7f0,#f1ece3); }
-html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#faf7f0,#f1ece3); }
+html[data-theme="light"] .op-card { background:#ffffff; }
+html[data-theme="light"] .op-ecg { background:rgba(233,239,245,.85); }
+html[data-theme="light"] .op-chip { background:rgba(255,255,255,.92); }
+html[data-theme="light"] .worker-card { background:linear-gradient(100deg,#ffffff,#f3f6fa); }
+html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#ffffff,#f3f6fa); }
 
 /* ============================================================
    APP SHELL: sidebar fijo + main scrollable

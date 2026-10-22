@@ -9,18 +9,18 @@
 }
 
 :root {
-  --teal-400: #2dd4bf;
-  --teal-500: #14b8a6;
+  --teal-400: #3fd8c4;
+  --teal-500: #20b8a6;
   --teal-600: #0d9488;
-  --bg-dark: #0d0d0d;
-  --bg-panel: #111111;
-  --bg-surface: #1a1a1a;
-  --bg-code: #1e1e1e;
-  --border: #3d3d3d;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #6b7280;
-  --error: #f87171;
+  --bg-dark: #0f141a;
+  --bg-panel: #161d26;
+  --bg-surface: #1c2530;
+  --bg-code: #232e3b;
+  --border: #374454;
+  --text-primary: #e8edf3;
+  --text-secondary: #a6b2c0;
+  --text-muted: #7d8a9a;
+  --error: #f26d6d;
   --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
