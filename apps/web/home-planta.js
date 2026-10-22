@@ -167,7 +167,7 @@ function renderTarjeta(item) {
   const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
-  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong> <small>BPM</small></div>`;
+  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}">${reciente ? '<span class="op-card__heart" aria-label="Ritmo cardíaco">♥</span>' : ''}<strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong> <small>BPM</small></div>`;
 
   const ecgPts = '0,65 55,65 60,68 65,8 70,85 75,65 110,65 120,52 135,47 150,52 165,65 200,65 255,65 260,68 265,8 270,85 275,65 310,65 320,52 335,47 350,52 365,65 400,65';
   const innerEl = reciente
@@ -245,12 +245,14 @@ function renderGrid() {
   // como "Producción · 6 operarios" o "Noche · Turno actual".
   if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
     grid.classList.remove('op-groups', 'emp-grupos');
+    grid.classList.add('op-grid');
     grid.innerHTML = filtrados.map(renderCard).join('');
     return;
   }
   const actual = turnoActual();
   // Clases de Gestión de Empleados (flechita desplegable, "Turno actual"); se ponen
   // acá también por si el HTML en caché todavía no las tiene.
+  grid.classList.remove('op-grid');
   grid.classList.add('op-groups', 'emp-grupos');
   grid.innerHTML = [...agruparPor(filtrados, areaDe)]
     .sort(([a], [b]) => (a === 'Sin área') - (b === 'Sin área') || a.localeCompare(b, 'es'))
@@ -297,7 +299,7 @@ function renderAlerts() {
     .filter((item) => item.estado)
     .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank);
   document.getElementById('alertList').innerHTML = items.length
-    ? items.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${ESTADOS[item.estado].grupo === 'critico' ? 'critico' : 'advertencia'}"><span class="status-indicator"></span><div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(ESTADOS[item.estado].label)}</span></div><time>${escapeHtml(hora(item.fecha_hora))}</time></div>`).join('')
+    ? items.map((item) => `<div class="supervisor-alert-item supervisor-alert-item--${item.estado}"><span class="status-indicator"></span><div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(ESTADOS[item.estado].label)}</span></div><time>${escapeHtml(hora(item.fecha_hora))}</time></div>`).join('')
     : '<div class="supervisor-empty supervisor-empty--small">No hay alertas activas.</div>';
 }
 
@@ -316,6 +318,19 @@ function renderAll() {
   renderAlerts();
   renderConnectivity();
   document.getElementById('currentDate').textContent = `Actualizado ${fmtARHora(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+}
+
+// El Home funciona como punto de entrada operativo: si hay un caso crítico,
+// se prioriza su ficha por encima de la grilla general. Si hubiera más de uno,
+// abre primero el de mayor severidad.
+function abrirCasoCritico() {
+  const critico = trabajadores
+    .filter((item) => ESTADOS[item.estado]?.grupo === 'critico')
+    .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank)[0];
+  if (!critico) return false;
+
+  window.location.replace(`${HISTORIAL_URL}?empleado=${encodeURIComponent(critico.id_trabajador)}`);
+  return true;
 }
 
 async function cargarHome() {
@@ -342,6 +357,7 @@ async function cargarHome() {
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));
+    if (abrirCasoCritico()) return;
     renderAll();
   } catch (error) {
     console.error(error);
