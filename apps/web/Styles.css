@@ -115,6 +115,27 @@ html[data-theme="light"] .op-chip { background:rgba(255,255,255,.92); }
 html[data-theme="light"] .worker-card { background:linear-gradient(100deg,#ffffff,#f3f6fa); }
 html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#ffffff,#f3f6fa); }
 
+/* Textos con color fijo pensado para fondo oscuro: en modo claro pasan a tonos oscuros.
+   Las tarjetas de emergencia mantienen su fondo oscuro parpadeante, así que conservan el texto blanco. */
+html[data-theme="light"] .op-card:not(.op-card--emergencia):not(.op-card--super-emergencia) .op-card__nombre { color:var(--text-primary); text-shadow:none; }
+html[data-theme="light"] .op-card:not(.op-card--emergencia):not(.op-card--super-emergencia) .op-card__area { color:var(--text-secondary); text-shadow:none; }
+html[data-theme="light"] .op-card:not(.op-card--emergencia):not(.op-card--super-emergencia) .op-card__fc { color:var(--text-primary); text-shadow:none; }
+html[data-theme="light"] .op-card__fc--vacia { color:var(--text-muted); }
+html[data-theme="light"] .supervisor-empty--error { color:var(--red); }
+html[data-theme="light"] .op-groups .grupo-area-turno__critico { color:var(--red); }
+html[data-theme="light"] .notif-empty__title,
+html[data-theme="light"] .notif-card__title { color:var(--text-primary); }
+html[data-theme="light"] .notif-card--critico .notif-card__title-row .notif-card__pill { color:var(--red); }
+html[data-theme="light"] .notif-card--advertencia .notif-card__title-row .notif-card__pill { color:var(--yellow); }
+html[data-theme="light"] .notif-card--info .notif-card__title-row .notif-card__pill { color:var(--blue); }
+html[data-theme="light"] .alert-severity-filter[data-severidad="critico"].is-active,
+html[data-theme="light"] .alert-btn--cerrar { color:var(--red); }
+html[data-theme="light"] .alert-severity-filter[data-severidad="advertencia"].is-active,
+html[data-theme="light"] .alert-btn--revisar { color:var(--orange); }
+html[data-theme="light"] .alert-btn--cerrar:hover { color:#fff; }
+html[data-theme="light"] .alert-btn--revisar:hover:not(:disabled) { color:#231005; }
+html[data-theme="light"] .alert-btn--revisar:disabled:hover { color:var(--text-secondary); }
+
 /* ============================================================
    APP SHELL: sidebar fijo + main scrollable
    ============================================================ */
