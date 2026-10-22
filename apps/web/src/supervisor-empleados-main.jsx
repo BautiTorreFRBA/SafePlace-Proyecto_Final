@@ -83,10 +83,22 @@ const NAV_LINKS = {
   seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Empleados', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
 };
 
+function ThemeToggle() {
+  const [light, setLight] = useState(() => {
+    try { return localStorage.getItem('safeplace-theme') === 'light'; } catch { return false; }
+  });
+  useEffect(() => {
+    const theme = light ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('safeplace-theme', theme); } catch { /* almacenamiento no disponible */ }
+  }, [light]);
+  return <label className="theme-switch" title="Modo oscuro a la izquierda · modo claro a la derecha"><span aria-hidden="true">☾</span><input type="checkbox" checked={light} onChange={(event) => setLight(event.target.checked)} aria-label="Cambiar entre modo oscuro y modo claro" /><span className="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span></label>;
+}
+
 function Sidebar() {
   const user = sessionUser();
   const links = NAV_LINKS[PAGE_ROL] || NAV_LINKS.supervisor;
-  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href, active = label === 'Empleados']) => <a className={`nav-item ${active ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
+  return <aside className="sidebar"><div className="sidebar__brand"><div className="sidebar__icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div className="sidebar__name">SafePlace</div><div className="sidebar__sub">BIOMETRIC MONITOR</div></div></div><nav className="sidebar__nav">{links.map(([icon, label, href, active = label === 'Empleados']) => <a className={`nav-item ${active ? 'nav-item--active' : ''}`} href={href} key={label}><MenuIcon type={icon} /> {label}</a>)}</nav><div className="sidebar__footer"><div className="sidebar__user"><div className="avatar avatar--sm">{user.initials}</div><div><div className="sidebar__user-name">{user.name}</div><div className="sidebar__user-role">{user.role}</div></div></div><ThemeToggle /><a className="sidebar__logout" href="InicioSesion.html"><MenuIcon type="logout" /> Cerrar sesión</a></div></aside>;
 }
 
 function Layout({ children, selected, onBack }) {

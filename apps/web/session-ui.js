@@ -4,6 +4,34 @@
 // una PC mostraba las mediciones ~3h adelantadas). 'es-AR' solo define el
 // formato (DD/MM, coma antes de la hora); no fija la zona horaria.
 const TIMEZONE_AR = 'America/Argentina/Buenos_Aires';
+const THEME_STORAGE_KEY = 'safeplace-theme';
+
+function temaGuardado() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
+}
+
+function aplicarTema(tema) {
+  document.documentElement.dataset.theme = tema;
+  try { localStorage.setItem(THEME_STORAGE_KEY, tema); } catch { /* almacenamiento no disponible */ }
+}
+
+function agregarInterruptorTema() {
+  document.querySelectorAll('.sidebar__footer').forEach((footer) => {
+    if (footer.querySelector('.theme-switch')) return;
+    const control = document.createElement('label');
+    control.className = 'theme-switch';
+    control.title = 'Modo oscuro a la izquierda · modo claro a la derecha';
+    control.innerHTML = '<span aria-hidden="true">☾</span><input type="checkbox" aria-label="Cambiar entre modo oscuro y modo claro"><span class="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span>';
+    const input = control.querySelector('input');
+    input.checked = document.documentElement.dataset.theme === 'light';
+    input.addEventListener('change', () => aplicarTema(input.checked ? 'light' : 'dark'));
+    footer.insertBefore(control, footer.querySelector('.sidebar__logout'));
+  });
+}
 
 function fmtAR(date, opts) {
   return date.toLocaleString('es-AR', { timeZone: TIMEZONE_AR, ...opts });
@@ -68,6 +96,7 @@ function getRoleLabel(role) {
 }
 
 function applySessionUI() {
+  aplicarTema(temaGuardado());
   const rawName = sessionStorage.getItem('userName') || '';
   const rawRole = sessionStorage.getItem('userRole') || '';
 
@@ -100,6 +129,7 @@ function applySessionUI() {
   const estadoDispositivosLink = document.querySelector('.sidebar__nav a[href="Admin-EstadoDispositivos.html"]');
   if (wearableLink) wearableLink.childNodes[wearableLink.childNodes.length - 1].textContent = ' Wearables';
   estadoDispositivosLink?.remove();
+  agregarInterruptorTema();
 }
 
 applySessionUI();
