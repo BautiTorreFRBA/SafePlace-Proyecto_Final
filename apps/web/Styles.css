@@ -74,23 +74,23 @@ html, body {
 /* Modo claro: se apoya en los mismos tokens para conservar la jerarquía visual. */
 html[data-theme="light"] {
   color-scheme: light;
-  --bg-app: #edf2f7;
-  --bg-sidebar: #ffffff;
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-card-alt: #f1f5f9;
-  --border: #cbd5e1;
-  --border-soft: #e2e8f0;
-  --text-primary: #172033;
-  --text-secondary: #526075;
-  --text-muted: #718096;
+  --bg-app: #e8e4dc;
+  --bg-sidebar: #f4f0e8;
+  --bg-main: #eeeae2;
+  --bg-card: #faf7f0;
+  --bg-card-alt: #e5dfd4;
+  --border: #c9c0b2;
+  --border-soft: #ddd5c9;
+  --text-primary: #302c25;
+  --text-secondary: #625b50;
+  --text-muted: #81786b;
   --teal-dim: rgba(20,184,166,.13);
 }
-html[data-theme="light"] .op-card { background:#fff; }
-html[data-theme="light"] .op-ecg { background:rgba(226,232,240,.8); }
-html[data-theme="light"] .op-chip { background:rgba(255,255,255,.88); }
-html[data-theme="light"] .worker-card { background:linear-gradient(100deg,#fff,#f8fafc); }
-html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#fff,#f8fafc); }
+html[data-theme="light"] .op-card { background:#faf7f0; }
+html[data-theme="light"] .op-ecg { background:rgba(229,223,212,.8); }
+html[data-theme="light"] .op-chip { background:rgba(250,247,240,.9); }
+html[data-theme="light"] .worker-card { background:linear-gradient(100deg,#faf7f0,#f1ece3); }
+html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#faf7f0,#f1ece3); }
 
 /* ============================================================
    APP SHELL: sidebar fijo + main scrollable
@@ -260,7 +260,7 @@ html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#fff,#f
 }
 
 /* Interruptor: izquierda = oscuro, derecha = claro. */
-.theme-switch { display:flex; align-items:center; gap:7px; width:max-content; color:var(--text-secondary); font-size:.85rem; cursor:pointer; }
+.theme-switch { display:flex; align-self:center; align-items:center; gap:7px; width:max-content; color:var(--text-secondary); font-size:.85rem; cursor:pointer; }
 .theme-switch input { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; }
 .theme-switch__track { position:relative; width:38px; height:21px; border:1px solid var(--border); border-radius:999px; background:var(--bg-card-alt); transition:background .2s,border-color .2s; }
 .theme-switch__track::after { content:''; position:absolute; top:3px; left:3px; width:13px; height:13px; border-radius:50%; background:var(--text-secondary); box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .2s,background .2s; }
@@ -1090,6 +1090,8 @@ html[data-theme="light"] .notif-card { background:linear-gradient(135deg,#fff,#f
 
 .emp-table tbody tr:last-child { border-bottom: none; }
 .emp-table tbody tr:hover { background: var(--bg-card-alt); }
+.emp-table tbody tr.emp-row--history { cursor:pointer; }
+.emp-table tbody tr.emp-row--history:focus-within { outline:2px solid var(--teal-400); outline-offset:-2px; }
 
 .emp-table td {
   padding: 13px 20px;

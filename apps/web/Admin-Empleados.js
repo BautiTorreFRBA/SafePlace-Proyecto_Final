@@ -341,7 +341,7 @@ function rowHTML(emp) {
     ? '<span class="badge badge--normal">Activo</span>'
     : '<span class="badge badge--neutral">Inactivo</span>';
 
-  return `<tr>
+  return `<tr class="emp-row--history" data-empleado-id="${escapeHtml(emp.id)}" title="Ver historial de ${escapeHtml(emp.nombreCompleto)}">
       <td class="emp-id">${escapeHtml(emp.legajo)}</td>
       <td><div class="emp-name"><div class="avatar avatar--sm">${escapeHtml(emp.iniciales)}</div><span class="emp-name__text">${escapeHtml(emp.nombreCompleto)}</span></div></td>
       <td style="color:var(--text-secondary)">${escapeHtml(emp.rol)}</td>
@@ -469,6 +469,12 @@ empGrupos.addEventListener('click', (e) => {
   const deactivateBtn = e.target.closest('.emp-actions__deactivate');
   if (deactivateBtn) {
     return desactivarEmpleado(deactivateBtn.dataset.id);
+  }
+
+  // Cualquier parte de la fila abre el historial, excepto sus acciones propias.
+  const fila = e.target.closest('.emp-row--history');
+  if (fila?.dataset.empleadoId) {
+    window.location.href = `Admin-HistorialEmpleado.html?empleado=${encodeURIComponent(fila.dataset.empleadoId)}`;
   }
 });
 
