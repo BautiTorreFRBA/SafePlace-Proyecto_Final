@@ -60,7 +60,7 @@
 .empleados-grupos .area-turno-seccion:not([open]) > .area-turno-seccion__titulo { margin-bottom:0; }
 .empleados-grupos .area-turno-seccion__titulo small { margin-left:6px; color:var(--text-muted); font-size:.74rem; font-weight:500; }
 .empleados-grupos .area-turno-seccion__turnos { grid-template-columns:1fr; align-items:start; }
-.empleados-grupo__cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; padding:10px; }
+.empleados-grupo__cards { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; padding:10px; }
 .empleados-grupo__cards .empleado-card { min-height:0; width:100%; }
 /* Estado vacío del gráfico: la ventana de 24 h se dibuja igual, con el aviso encima */
 .empleado-chart-frame { position:relative; }

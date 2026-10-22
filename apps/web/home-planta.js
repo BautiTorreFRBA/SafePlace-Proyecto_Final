@@ -12,9 +12,9 @@ const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmplead
 const ESTADOS = {
   super_emergencia: { label: 'Súper emergencia', color: '#ff1a1a', grupo: 'critico', rank: -2 },
   emergencia: { label: 'Emergencia', color: '#ffd60a', grupo: 'critico', rank: -1 },
-  sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#fb923c', grupo: 'critico', rank: 0 },
-  fatiga: { label: 'Fatiga', color: '#f87171', grupo: 'advertencia', rank: 1 },
-  inactividad: { label: 'Inactividad prolongada', color: '#60a5fa', grupo: 'advertencia', rank: 2 },
+  sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#a78bfa', grupo: 'critico', rank: 0 },
+  fatiga: { label: 'Fatiga', color: '#4ade80', grupo: 'advertencia', rank: 1 },
+  inactividad: { label: 'Inactividad prolongada', color: '#38bdf8', grupo: 'advertencia', rank: 2 },
   normal: { label: 'Normal', color: '#4ade80', grupo: 'normal', rank: 3 },
   sin_datos: { label: 'Sin datos', color: '#9ca3af', grupo: 'sin_datos', rank: 4 },
 };

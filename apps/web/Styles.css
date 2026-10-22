@@ -48,6 +48,13 @@
   --violet:      #a78bfa;
   --violet-dim:  rgba(167, 139, 250, 0.12);
 
+  /* Estados de alerta: usar estos tokens en todas las vistas. */
+  --alert-fatiga: #4ade80;
+  --alert-inactividad: #38bdf8;
+  --alert-sobreesfuerzo: #a78bfa;
+  --alert-emergencia: #ffd60a;
+  --alert-super-emergencia: #ff1a1a;
+
   /* Sidebar */
   --sidebar-w: 200px;
 
@@ -2911,8 +2918,13 @@ select.cfg-input {
 }
 
 .notif-card--inactividad {
-  border-left-color: #38bdf8;
+  border-left-color: var(--alert-inactividad);
 }
+
+.notif-card--fatiga { border-left-color: var(--alert-fatiga); }
+.notif-card--sobreesfuerzo { border-left-color: var(--alert-sobreesfuerzo); }
+.notif-card--emergencia { border-left-color: var(--alert-emergencia); }
+.notif-card--super-emergencia { border-left-color: var(--alert-super-emergencia); }
 
 .notif-card--info {
   border-left-color: #60a5fa;
@@ -2950,6 +2962,12 @@ select.cfg-input {
   background: rgba(96, 165, 250, 0.15);
   color: #60a5fa;
 }
+
+.notif-card--fatiga .notif-card__icon { background:rgba(74,222,128,.15); color:var(--alert-fatiga); }
+.notif-card--inactividad .notif-card__icon { background:rgba(56,189,248,.15); color:var(--alert-inactividad); }
+.notif-card--sobreesfuerzo .notif-card__icon { background:rgba(167,139,250,.15); color:var(--alert-sobreesfuerzo); }
+.notif-card--emergencia .notif-card__icon { background:rgba(255,214,10,.15); color:var(--alert-emergencia); }
+.notif-card--super-emergencia .notif-card__icon { background:rgba(255,26,26,.15); color:var(--alert-super-emergencia); }
 
 /* Contenido de la notificación */
 .notif-card__content {
@@ -3460,15 +3478,15 @@ select.cfg-input {
 }
 
 .alert-type-filter[data-tipo="FATIGA"],
-.alert-tipo--fatiga { --alert-tipo-color: #4ade80; }
+.alert-tipo--fatiga { --alert-tipo-color: var(--alert-fatiga); }
 .alert-type-filter[data-tipo="SOBREESFUERZO"],
-.alert-tipo--sobreesfuerzo { --alert-tipo-color: #a78bfa; }
+.alert-tipo--sobreesfuerzo { --alert-tipo-color: var(--alert-sobreesfuerzo); }
 .alert-type-filter[data-tipo="INACTIVIDAD_PROLONGADA"],
-.alert-tipo--inactividad { --alert-tipo-color: #38bdf8; }
+.alert-tipo--inactividad { --alert-tipo-color: var(--alert-inactividad); }
 .alert-type-filter[data-tipo="EMERGENCIA"],
-.alert-tipo--emergencia { --alert-tipo-color: #ffd60a; }
+.alert-tipo--emergencia { --alert-tipo-color: var(--alert-emergencia); }
 .alert-type-filter[data-tipo="SUPER_EMERGENCIA"],
-.alert-tipo--super-emergencia { --alert-tipo-color: #ff1a1a; }
+.alert-tipo--super-emergencia { --alert-tipo-color: var(--alert-super-emergencia); }
 
 .alert-select {
   padding: 8px 12px;
@@ -4601,15 +4619,15 @@ select.cfg-input {
 .fc-chart { display: block; width: 100%; height: auto; padding: 12px 15px 6px; box-sizing: border-box; }
 .fc-chart text { fill: var(--text-secondary); font: 10px var(--font); }
 .fc-chart__grid { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
-.fc-chart__threshold { stroke: #f59e0b; stroke-dasharray: 5 4; }
-.fc-chart__threshold--critical { stroke: var(--red); }
+.fc-chart__threshold { stroke: var(--alert-fatiga); stroke-dasharray: 5 4; }
+.fc-chart__threshold--critical { stroke: var(--alert-sobreesfuerzo); }
 .fc-chart__line { fill: none; stroke: var(--teal-400); stroke-width: 2; stroke-linejoin: round; }
 .fc-chart__point { fill: var(--teal-400); cursor: pointer; transition: r 0.15s; }
 .fc-chart__point:hover { r: 5; }
 .fc-chart__alert { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .fc-chart text.fc-chart__hour { fill: var(--text-primary); }
-.fc-chart text.fc-chart__label--fatigue { fill: #f59e0b; font-size: 9px; }
-.fc-chart text.fc-chart__label--critical { fill: var(--red); font-size: 9px; }
+.fc-chart text.fc-chart__label--fatigue { fill: var(--alert-fatiga); font-size: 9px; }
+.fc-chart text.fc-chart__label--critical { fill: var(--alert-sobreesfuerzo); font-size: 9px; }
 .fc-chart text.fc-chart__label--alert { fill: var(--orange); font-size: 9px; }
 @media (max-width: 640px) {
   .fc-modal__stats { grid-template-columns: repeat(2, 1fr); }

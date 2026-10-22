@@ -405,11 +405,11 @@ async function cargarSerieDetalle(idx) {
             borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false,
           },
           {
-            label: `Fatiga (${umbrales.fatiga} BPM)`, data: serie.map(() => umbrales.fatiga), borderColor: '#f59e0b',
+            label: `Fatiga (${umbrales.fatiga} BPM)`, data: serie.map(() => umbrales.fatiga), borderColor: '#4ade80',
             borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false,
           },
           {
-            label: `Sobreesfuerzo (${umbrales.sobreesfuerzo} BPM)`, data: serie.map(() => umbrales.sobreesfuerzo), borderColor: '#ef4444',
+            label: `Sobreesfuerzo (${umbrales.sobreesfuerzo} BPM)`, data: serie.map(() => umbrales.sobreesfuerzo), borderColor: '#a78bfa',
             borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false,
           },
         ],
