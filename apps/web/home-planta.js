@@ -69,6 +69,13 @@ let alertasActivas = [];
 let filtroActual = 'todos';
 let busquedaActual = '';
 
+function seleccionarFiltro(filtro) {
+  filtroActual = filtro;
+  document.querySelectorAll('.supervisor-filter').forEach((item) => {
+    item.classList.toggle('is-active', item.dataset.filter === filtro);
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
@@ -344,6 +351,11 @@ async function cargarHome() {
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));
+    // Un estado crítico siempre se prioriza en el Home: activa la vista de
+    // críticos para que ningún caso urgente quede oculto entre el resto.
+    if (trabajadores.some((item) => ESTADOS[item.estado].grupo === 'critico')) {
+      seleccionarFiltro('critico');
+    }
     renderAll();
   } catch (error) {
     console.error(error);
@@ -352,8 +364,7 @@ async function cargarHome() {
 }
 
 document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEventListener('click', () => {
-  filtroActual = button.dataset.filter;
-  document.querySelectorAll('.supervisor-filter').forEach((item) => item.classList.toggle('is-active', item === button));
+  seleccionarFiltro(button.dataset.filter);
   renderGrid();
 }));
 // Botón "Atender (súper) emergencia" de las tarjetas: está en la grilla y en la sección de emergencias.
