@@ -12,6 +12,7 @@ const btnLeerTodas = document.getElementById('btnLeerTodas');
 let notificaciones = [];
 let filtroActual = 'todas';
 let cantidadSinLeer = 0;
+let tipoSeleccionado = null;
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -38,7 +39,11 @@ async function apiFetch(path, options = {}) {
   return payload;
 }
 
-function mapearTipo(prioridad = '') {
+function mapearTipo(tipoAlerta = '', prioridad = '') {
+  const tipo = String(tipoAlerta).trim().toUpperCase();
+  if (tipo === 'INACTIVIDAD_PROLONGADA') return 'inactividad';
+  if (tipo === 'FATIGA') return 'fatiga';
+  if (tipo === 'SOBREESFUERZO' || tipo === 'EMERGENCIA' || tipo === 'SUPER_EMERGENCIA') return 'critico';
   return prioridad.toLowerCase().includes('crít') || prioridad.toLowerCase().includes('crit')
     ? 'critico'
     : 'advertencia';
@@ -53,7 +58,8 @@ async function cargarNotificaciones() {
   cantidadSinLeer = (pendientesPayload.data || []).length;
   notificaciones = (payload.data || []).map((n) => ({
     id: n.id,
-    tipo: mapearTipo(n.prioridad || ''),
+    tipoAlerta: String(n.tipo_alerta || '').trim().toUpperCase(),
+    tipo: mapearTipo(n.tipo_alerta, n.prioridad || ''),
     titulo: n.tipo_alerta || 'Alerta',
     descripcion: `${n.operario_nombre || ''} ${n.operario_apellido || ''}`.trim() || 'Sin operario asignado',
     hora: fmtAR(new Date(n.fecha_hora)),
@@ -75,7 +81,8 @@ function actualizarContador() {
 }
 
 function renderNotificaciones() {
-  const visibles = notificaciones.filter((n) => filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido));
+  const visibles = notificaciones.filter((n) => (!tipoSeleccionado || n.tipoAlerta === tipoSeleccionado)
+    && (filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido)));
   notifList.innerHTML = visibles.length
     ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
     : '<div class="notif-empty"><div class="notif-empty__title">No hay notificaciones en este filtro</div><div class="notif-empty__desc">Probá con otro filtro para ver más notificaciones.</div></div>';
@@ -101,6 +108,19 @@ document.querySelectorAll('.notif-filter').forEach((button) => {
     filtroActual = button.dataset.filter;
     document.querySelectorAll('.notif-filter').forEach((item) => item.classList.toggle('is-active', item === button));
     cargarNotificaciones().catch((error) => alert(error.message));
+  });
+});
+
+document.querySelectorAll('.notif-type-filter').forEach((button) => {
+  button.addEventListener('click', () => {
+    const tipo = button.dataset.tipo;
+    tipoSeleccionado = tipoSeleccionado === tipo ? null : tipo;
+    document.querySelectorAll('.notif-type-filter').forEach((item) => {
+      const activo = item.dataset.tipo === tipoSeleccionado;
+      item.classList.toggle('is-active', activo);
+      item.setAttribute('aria-pressed', String(activo));
+    });
+    renderNotificaciones();
   });
 });
 

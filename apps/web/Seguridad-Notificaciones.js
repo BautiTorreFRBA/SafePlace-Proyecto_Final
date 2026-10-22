@@ -13,7 +13,7 @@ const btnActualizar = document.getElementById('btnActualizar');
 let notificaciones = [];
 let filtroActual = 'todas';
 let cantidadSinLeer = 0;
-const tiposVisibles = new Set(['FATIGA', 'INACTIVIDAD_PROLONGADA', 'SOBREESFUERZO', 'EMERGENCIA', 'SUPER_EMERGENCIA']);
+let tipoSeleccionado = null;
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -83,7 +83,7 @@ function actualizarContador() {
 
 function renderNotificaciones() {
   if (!notifList) return;
-  const visibles = notificaciones.filter((n) => tiposVisibles.has(n.tipoAlerta)
+  const visibles = notificaciones.filter((n) => (!tipoSeleccionado || n.tipoAlerta === tipoSeleccionado)
     && (filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido)));
   notifList.innerHTML = visibles.length
     ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
@@ -116,9 +116,12 @@ document.querySelectorAll('.notif-filter').forEach((button) => {
 document.querySelectorAll('.notif-type-filter').forEach((button) => {
   button.addEventListener('click', () => {
     const tipo = button.dataset.tipo;
-    if (tiposVisibles.has(tipo)) tiposVisibles.delete(tipo); else tiposVisibles.add(tipo);
-    button.classList.toggle('is-active', tiposVisibles.has(tipo));
-    button.setAttribute('aria-pressed', String(tiposVisibles.has(tipo)));
+    tipoSeleccionado = tipoSeleccionado === tipo ? null : tipo;
+    document.querySelectorAll('.notif-type-filter').forEach((item) => {
+      const activo = item.dataset.tipo === tipoSeleccionado;
+      item.classList.toggle('is-active', activo);
+      item.setAttribute('aria-pressed', String(activo));
+    });
     renderNotificaciones();
   });
 });
