@@ -174,7 +174,10 @@ function renderTarjeta(item) {
   const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
-  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}">${reciente ? '<span class="op-card__heart" aria-label="Ritmo cardíaco">♥</span>' : ''}<strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong> <small>BPM</small></div>`;
+  // El corazón animado reemplaza la unidad BPM para hacer visible que la
+  // lectura cardíaca está llegando en tiempo real.
+  const corazonLatiente = `<svg class="op-card__heart" role="img" aria-label="Ritmo cardíaco activo" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>`;
+  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong>${reciente ? corazonLatiente : ''}</div>`;
 
   const ecgPts = '0,65 55,65 60,68 65,8 70,85 75,65 110,65 120,52 135,47 150,52 165,65 200,65 255,65 260,68 265,8 270,85 275,65 310,65 320,52 335,47 350,52 365,65 400,65';
   const innerEl = reciente
