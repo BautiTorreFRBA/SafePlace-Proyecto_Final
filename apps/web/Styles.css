@@ -24,8 +24,9 @@
   --bg-card-alt: #1c1c1c;
 
   /* Bordes y líneas */
-  --border:      #242424;
-  --border-soft: #1e1e1e;
+  /* Contornos con contraste suficiente para separar claramente cada bloque. */
+  --border:      #3d3d3d;
+  --border-soft: #303030;
 
   /* Texto */
   --text-primary:   #f0f0f0;

@@ -72,6 +72,24 @@
 .empleado-chart-empty button { pointer-events:auto; padding:6px 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card-alt); color:var(--teal-400); font:inherit; font-size:.78rem; font-weight:600; cursor:pointer; }
 .empleado-chart-empty button:hover { border-color:var(--teal-500); }
 
+/* Historial del empleado: separa con más claridad cada bloque de información. */
+.empleado-stat,
+.empleado-detail-card {
+  border-color:#3d3d3d;
+  box-shadow:0 0 0 1px rgba(255,255,255,.035), 0 8px 20px rgba(0,0,0,.16);
+}
+.empleado-detail-card__header { border-bottom-color:#333; }
+.empleado-detail__range input,
+.empleado-detail__range select {
+  border-color:#3d3d3d;
+  box-shadow:0 0 0 1px rgba(255,255,255,.025);
+}
+.empleado-detail__range input:focus,
+.empleado-detail__range select:focus {
+  border-color:var(--teal-400);
+  box-shadow:0 0 0 3px rgba(45,212,191,.16);
+}
+
 /* Paleta de alertas compartida con el resto de SafePlace. */
 .empleado-chart__threshold { stroke:var(--alert-fatiga); }
 .empleado-chart__threshold--critical { stroke:var(--alert-sobreesfuerzo); }
