@@ -93,7 +93,18 @@ function Layout({ children, selected, onBack }) {
   return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del empleado' : 'Empleados'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={PAGE_ROL === 'admin' ? () => { window.location.href = 'Admin-Home.html'; } : onBack}><span>←</span> {PAGE_ROL === 'admin' ? 'Volver al inicio' : 'Volver a empleados'}</button>}{children}</main></div>;
 }
 
-const turnoLabel = (turno) => turno.charAt(0).toUpperCase() + turno.slice(1);
+// El encabezado de cada grupo usa este único mapeo; turnos nuevos conservan su
+// nombre sin emoji hasta que se incorporen aquí.
+const EMOJI_POR_TURNO = {
+  mañana: '🌅',
+  tarde: '🌇',
+  noche: '🌙',
+};
+const turnoLabel = (turno) => {
+  const valor = String(turno || '').trim().toLocaleLowerCase('es');
+  const nombre = valor ? valor.charAt(0).toLocaleUpperCase('es') + valor.slice(1) : 'Sin turno';
+  return EMOJI_POR_TURNO[valor] ? `${EMOJI_POR_TURNO[valor]} ${nombre}` : nombre;
+};
 
 function EmployeeCard({ employee, onClick }) {
   const noData = !employee.lecturas;

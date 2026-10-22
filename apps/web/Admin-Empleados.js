@@ -20,7 +20,17 @@ const mSexo = document.getElementById('mSexo');
 const EMPLOYEES_ENDPOINT = '/dashboard/employees';
 const EMPLOYEE_DEACTIVATE_ENDPOINT = (id) => `/dashboard/employees/${id}/deactivate`;
 const TURNOS = ['mañana', 'tarde', 'noche'];
-const etiquetaTurno = (turno) => (turno ? turno.charAt(0).toUpperCase() + turno.slice(1) : 'Sin turno');
+// Único mapeo visual de los turnos. Los valores desconocidos se muestran sin emoji.
+const EMOJI_POR_TURNO = {
+  mañana: '🌅',
+  tarde: '🌇',
+  noche: '🌙',
+};
+const etiquetaTurno = (turno) => {
+  const valor = String(turno || '').trim().toLocaleLowerCase('es');
+  const nombre = valor ? valor.charAt(0).toLocaleUpperCase('es') + valor.slice(1) : 'Sin turno';
+  return EMOJI_POR_TURNO[valor] ? `${EMOJI_POR_TURNO[valor]} ${nombre}` : nombre;
+};
 // Desplegables de turno que el usuario abrió o cerró a mano (clave "área|turno"),
 // para que no vuelvan al estado inicial cada vez que se filtra u ordena.
 const turnosAbiertos = new Map();
