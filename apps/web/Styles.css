@@ -773,19 +773,6 @@ html, body {
 .op-card__heart { width:24px; height:24px; margin-left:3px; overflow:visible; fill:#fb7185; filter:drop-shadow(0 0 5px rgba(251,113,133,.8)); transform-origin:center; animation:op-heartbeat .9s ease-in-out infinite; }
 @keyframes op-heartbeat { 0%,100% { transform:scale(1); filter:drop-shadow(0 0 4px rgba(251,113,133,.55)); } 15% { transform:scale(1.32); filter:drop-shadow(0 0 11px rgba(251,113,133,1)); } 30% { transform:scale(1); } 45% { transform:scale(1.2); filter:drop-shadow(0 0 9px rgba(251,113,133,.95)); } 60% { transform:scale(1); } }
 @media (prefers-reduced-motion:reduce) { .op-card__heart { animation:none; } }
-
-/* Alertas activas: la prioridad se identifica por una franja lateral, no por un punto. */
-.supervisor-alert-item {
-  position:relative;
-  padding-left:14px;
-  border-left:4px solid var(--border);
-}
-.supervisor-alert-item .status-indicator { display:none; }
-.supervisor-alert-item--fatiga { border-left-color:var(--alert-fatiga); }
-.supervisor-alert-item--inactividad { border-left-color:var(--alert-inactividad); }
-.supervisor-alert-item--sobreesfuerzo { border-left-color:var(--alert-sobreesfuerzo); }
-.supervisor-alert-item--emergencia { border-left-color:var(--alert-emergencia); }
-.supervisor-alert-item--super_emergencia { border-left-color:var(--alert-super-emergencia); }
 .op-card__pie { position:absolute; left:10px; right:10px; bottom:12px; display:flex; flex-direction:column; align-items:center; text-align:center; }
 .op-card__area { margin:1px 0 0; color:#f5f5f5; font-size:.66rem; font-weight:600; letter-spacing:.03em; text-shadow:0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.6); }
 /* Nombre grande sobre el torso, con un sombreado para que se lea sobre cualquier color. */
