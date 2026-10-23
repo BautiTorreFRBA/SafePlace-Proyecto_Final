@@ -174,15 +174,11 @@ function renderTarjeta(item) {
   const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
   const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
-  // El corazón animado reemplaza la unidad BPM para hacer visible que la
-  // lectura cardíaca está llegando en tiempo real.
-  const corazonLatiente = `<svg class="op-card__heart" role="img" aria-label="Ritmo cardíaco activo" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>`;
-  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong>${reciente ? corazonLatiente : ''}</div>`;
+  // Se conserva el valor de FC, pero sin el ícono de corazón. La foto/avatar
+  // del empleado se muestra siempre, aun cuando esté transmitiendo.
+  const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong></div>`;
 
-  const ecgPts = '0,65 55,65 60,68 65,8 70,85 75,65 110,65 120,52 135,47 150,52 165,65 200,65 255,65 260,68 265,8 270,85 275,65 310,65 320,52 335,47 350,52 365,65 400,65';
-  const innerEl = reciente
-    ? `<div class="op-ecg" aria-hidden="true"><svg viewBox="0 0 400 100" preserveAspectRatio="none"><polyline class="op-ecg__line" points="${ecgPts}"/></svg></div>`
-    : `<div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="" /></div>`;
+  const innerEl = `<div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="Foto de ${escapeHtml(nombre)}" /></div>`;
   return `<a class="op-card${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     ${innerEl}
     <div class="op-card__lectura">${lectura}</div>

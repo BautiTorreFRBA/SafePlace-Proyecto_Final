@@ -167,6 +167,29 @@ function nombreCompleto(f) {
   return `${f.nombre || ''} ${f.apellido || ''}`.trim() || `ID ${f.idTrabajador}`;
 }
 
+function datoPersonal(valor, vacio = 'No informado') {
+  return valor === null || valor === undefined || String(valor).trim() === ''
+    ? vacio
+    : escapeHtml(valor);
+}
+
+function fichaPersonal(f) {
+  const nombre = escapeHtml(nombreCompleto(f));
+  return `
+    <section class="med-detalle__perfil" aria-label="Información personal de ${nombre}">
+      <div class="med-detalle__perfil-title">
+        <span class="med-detalle__avatar" aria-hidden="true">${escapeHtml((f.nombre || '?').charAt(0) + (f.apellido || '').charAt(0))}</span>
+        <div><strong>${nombre}</strong><span>Información personal</span></div>
+      </div>
+      <dl class="med-detalle__datos-personales">
+        <div><dt>Legajo</dt><dd>${datoPersonal(f.legajo)}</dd></div>
+        <div><dt>Área</dt><dd>${datoPersonal(f.area)}</dd></div>
+        <div><dt>Turno</dt><dd>${datoPersonal(f.turno)}</dd></div>
+        <div><dt>Correo</dt><dd>${datoPersonal(f.email)}</dd></div>
+      </dl>
+    </section>`;
+}
+
 function renderTabla() {
   actualizarContador(resumen.length);
   detalleAbierto = null;
@@ -189,7 +212,9 @@ function renderTabla() {
       ? `${f.lecturas} <span style="color:var(--text-muted); font-size:0.82rem">(${f.minutosMonitoreados} min)</span>`
       : '<span style="color:var(--text-muted)">0</span>';
     const est = estadoFrescura(f);
-    const expandible = f.lecturas > 0;
+    // La ficha personal se puede consultar aun cuando el empleado no tenga
+    // mediciones en el período; la serie se muestra sólo si hay lecturas.
+    const expandible = true;
 
     return `
       <tr class="med-row${expandible ? ' med-row--expandible' : ''}" data-idx="${i}">
@@ -208,13 +233,16 @@ function renderTabla() {
       <tr class="med-detalle" data-idx="${i}" hidden>
         <td colspan="8">
           <div class="med-detalle__box">
-            <div class="med-detalle__toolbar">
-              <span>Resolución:</span>
-              ${['10s', '1m', '5m'].map((b) => `<button type="button" class="med-bucket-btn${b === detalleBucket ? ' is-active' : ''}" data-bucket="${b}">${b === '10s' ? '10 s' : b === '1m' ? '1 min' : '5 min'}</button>`).join('')}
-            </div>
-            <div class="med-detalle__chart-wrap"><canvas class="med-detalle__chart" height="180"></canvas></div>
-            <div class="med-detalle__tabla"></div>
-            <div class="med-detalle__pager"></div>
+            ${fichaPersonal(f)}
+            ${f.lecturas > 0 ? `
+              <div class="med-detalle__toolbar">
+                <span>Resolución:</span>
+                ${['10s', '1m', '5m'].map((b) => `<button type="button" class="med-bucket-btn${b === detalleBucket ? ' is-active' : ''}" data-bucket="${b}">${b === '10s' ? '10 s' : b === '1m' ? '1 min' : '5 min'}</button>`).join('')}
+              </div>
+              <div class="med-detalle__chart-wrap"><canvas class="med-detalle__chart" height="180"></canvas></div>
+              <div class="med-detalle__tabla"></div>
+              <div class="med-detalle__pager"></div>`
+              : '<p class="med-detalle__sin-mediciones">No hay mediciones de este empleado en el período seleccionado.</p>'}
           </div>
         </td>
       </tr>
@@ -334,7 +362,7 @@ function filaDetalle(idx) {
 
 async function toggleDetalle(idx) {
   const fila = resumen[idx];
-  if (!fila || fila.lecturas === 0) return;
+  if (!fila) return;
 
   // Cerrar el que estuviera abierto.
   if (detalleAbierto !== null) {
@@ -357,7 +385,9 @@ async function toggleDetalle(idx) {
   if (detalle) detalle.hidden = false;
   if (filaMaestra) filaMaestra.classList.add('is-open');
 
-  await Promise.all([cargarSerieDetalle(idx), cargarTablaDetalle(idx)]);
+  if (fila.lecturas > 0) {
+    await Promise.all([cargarSerieDetalle(idx), cargarTablaDetalle(idx)]);
+  }
 }
 
 function paramsDetalle(idx, extra = {}) {

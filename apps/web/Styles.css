@@ -4666,6 +4666,17 @@ select.cfg-input {
 .med-detalle__box { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 .med-detalle__toolbar { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-muted); }
 .med-detalle__chart-wrap { height: 200px; }
+.med-detalle__perfil { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 13px 15px; border: 1px solid var(--border, rgba(148,163,184,0.2)); border-radius: 9px; background: var(--bg-main, rgba(15,23,42,0.28)); }
+.med-detalle__perfil-title { display: flex; align-items: center; gap: 10px; min-width: 185px; }
+.med-detalle__perfil-title strong, .med-detalle__perfil-title span { display: block; }
+.med-detalle__perfil-title span:not(.med-detalle__avatar) { margin-top: 2px; color: var(--text-muted); font-size: 0.76rem; }
+.med-detalle__avatar { display: grid !important; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(45,212,191,0.16); color: var(--teal, #2dd4bf); font-size: 0.76rem; font-weight: 700; }
+.med-detalle__datos-personales { display: grid; grid-template-columns: repeat(4, minmax(100px, 1fr)); gap: 12px 22px; margin: 0; flex: 1; }
+.med-detalle__datos-personales div { min-width: 0; }
+.med-detalle__datos-personales dt { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.med-detalle__datos-personales dd { margin: 3px 0 0; color: var(--text-secondary); font-size: 0.82rem; overflow-wrap: anywhere; }
+.med-detalle__sin-mediciones { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+@media (max-width: 900px) { .med-detalle__perfil { align-items: flex-start; flex-direction: column; } .med-detalle__datos-personales { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .med-bucket-btn {
   background: transparent; border: 1px solid var(--border, rgba(148,163,184,0.25));
