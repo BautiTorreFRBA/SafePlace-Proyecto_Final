@@ -21,7 +21,7 @@ async function resolverDispositivos() {
   const ids = [];
   for (let i = 1; i <= CANTIDAD; i++) {
     const { rows } = await db.query(
-      'SELECT id FROM dispositivo WHERE mac_address = $1 LIMIT 1',
+      'SELECT id FROM dispositivo WHERE direccion_mac = $1 LIMIT 1',
       [simMac(i)],
     );
     if (rows[0]) ids.push(rows[0].id);
