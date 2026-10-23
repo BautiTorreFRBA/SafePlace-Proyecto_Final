@@ -7,9 +7,12 @@ const filterTipo = document.getElementById('filterTipo');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 const chartTipoCanvas = document.getElementById('chartTipo');
+const chartEvolucionCanvas = document.getElementById('chartEvolucion');
+const histAnalisis = document.getElementById('histAnalisis');
 
 let historicoAlertas = [];
 let chartTipo = null;
+let chartEvolucion = null;
 let debounceTimer = null;
 
 function getAuthHeaders() {
@@ -145,6 +148,39 @@ function destruirGraficas() {
     chartTipo.destroy();
     chartTipo = null;
   }
+  if (chartEvolucion) {
+    chartEvolucion.destroy();
+    chartEvolucion = null;
+  }
+}
+
+function resumenAnalisis() {
+  const total = historicoAlertas.length;
+  const criticas = historicoAlertas.filter((a) => a.severidad.clase === 'critico').length;
+  const resueltas = historicoAlertas.filter((a) => ['cerrada', 'atendida'].includes(a.estado.clase)).length;
+  const porTipo = historicoAlertas.reduce((conteo, a) => {
+    conteo[a.tipo] = (conteo[a.tipo] || 0) + 1;
+    return conteo;
+  }, {});
+  const principal = Object.entries(porTipo).sort((a, b) => b[1] - a[1])[0];
+  return { total, criticas, resueltas, principal };
+}
+
+function renderAnalisis() {
+  if (!histAnalisis) return;
+  const { total, criticas, resueltas, principal } = resumenAnalisis();
+  const periodo = filterDesde.value
+    ? `Análisis del sistema desde el ${filterDesde.value.split('-').reverse().join('/')}`
+    : 'Análisis del histórico del sistema';
+  const pctResueltas = total ? Math.round((resueltas / total) * 100) : 0;
+  histAnalisis.innerHTML = `
+    <div class="hist-analisis__heading"><div><strong>Resumen del histórico</strong><span>${escapeHtml(periodo)}</span></div></div>
+    <div class="hist-analisis__metrics">
+      <div><span>Alertas registradas</span><strong>${total}</strong></div>
+      <div class="hist-analisis__critical"><span>Alertas críticas</span><strong>${criticas}</strong></div>
+      <div><span>Alertas resueltas</span><strong>${pctResueltas}%</strong><small>${resueltas} de ${total}</small></div>
+      <div><span>Tipo más frecuente</span><strong class="hist-analisis__tipo">${escapeHtml(principal ? principal[0] : 'Sin datos')}</strong><small>${principal ? `${principal[1]} alerta${principal[1] === 1 ? '' : 's'}` : 'Sin registros'}</small></div>
+    </div>`;
 }
 
 function renderEstadoInicial(mensaje) {
@@ -158,6 +194,7 @@ function renderEstadoInicial(mensaje) {
     </tr>
   `;
   destruirGraficas();
+  renderAnalisis();
 }
 
 function renderTabla() {
@@ -211,6 +248,34 @@ function renderGraficas() {
           position: 'bottom',
           labels: { color: '#cbd5e1', boxWidth: 14, boxHeight: 14 },
         },
+      },
+    },
+  });
+
+  const porDia = historicoAlertas.reduce((conteo, alerta) => {
+    const fecha = new Date(alerta.fechaHora);
+    if (Number.isNaN(fecha.getTime())) return conteo;
+    const clave = fecha.toISOString().slice(0, 10);
+    conteo[clave] = (conteo[clave] || 0) + 1;
+    return conteo;
+  }, {});
+  const dias = Object.keys(porDia).sort();
+  chartEvolucion = new Chart(chartEvolucionCanvas, {
+    type: 'line',
+    data: {
+      labels: dias.map((dia) => dia.split('-').reverse().slice(0, 2).join('/')),
+      datasets: [{
+        label: 'Alertas', data: dias.map((dia) => porDia[dia]), borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.15)', fill: true, tension: 0.3,
+        pointBackgroundColor: '#5eead4', pointRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
       },
     },
   });
@@ -307,11 +372,13 @@ async function cargarHistorial() {
       tipoClase: ({ FATIGA: 'fatiga', SOBREESFUERZO: 'sobreesfuerzo', INACTIVIDAD_PROLONGADA: 'inactividad', EMERGENCIA: 'emergencia', SUPER_EMERGENCIA: 'super-emergencia' }[String(a.tipo_alerta || '').trim().toUpperCase()] || ''),
       empleado: nombreEmpleado || '--',
       fecha: formatearFecha(a.fecha_hora),
+      fechaHora: a.fecha_hora,
       estado,
     };
   });
 
   renderTabla();
+  renderAnalisis();
   renderGraficas();
 }
 
@@ -346,8 +413,21 @@ filterDesde.addEventListener('change', () => {
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
-renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
+function fechaHace30Dias() {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() - 29);
+  return fecha.toISOString().slice(0, 10);
+}
+
+// Al ingresar se muestra el análisis reciente del sistema, sin requerir que
+// la persona usuaria configure filtros primero.
+if (!filterDesde.value) filterDesde.value = fechaHace30Dias();
+renderEstadoInicial('Cargando análisis del histórico de alertas...');
 cargarEmpleados().catch((error) => {
   console.error(error);
   filterEmpleado.innerHTML = '<option value="">No se pudieron cargar los empleados</option>';
+});
+cargarHistorial().catch((error) => {
+  console.error(error);
+  histCount.textContent = error.message;
 });

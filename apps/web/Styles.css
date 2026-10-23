@@ -4007,10 +4007,21 @@ select.cfg-input {
 
 .hist-charts {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   padding: 0 28px;
 }
+.hist-analisis { grid-column: 1 / -1; padding: 16px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.hist-analisis__heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.hist-analisis__heading strong, .hist-analisis__heading span { display:block; }
+.hist-analisis__heading strong { color:var(--text-primary); font-size:.95rem; }
+.hist-analisis__heading span { margin-top:3px; color:var(--text-muted); font-size:.76rem; }
+.hist-analisis__metrics { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; }
+.hist-analisis__metrics > div { min-width:0; padding:11px 13px; border:1px solid var(--border-soft); border-radius:9px; background:var(--bg-main); }
+.hist-analisis__metrics span, .hist-analisis__metrics small { display:block; color:var(--text-secondary); font-size:.7rem; }
+.hist-analisis__metrics strong { display:block; margin:4px 0 2px; color:var(--teal-400); font-size:1.35rem; }
+.hist-analisis__metrics .hist-analisis__tipo { overflow:hidden; color:var(--text-primary); font-size:.88rem; text-overflow:ellipsis; white-space:nowrap; }
+.hist-analisis__metrics .hist-analisis__critical strong { color:var(--red); }
 
 .card {
   background: var(--bg-card);
@@ -4216,6 +4227,7 @@ select.cfg-input {
   }
 
   .hist-charts { padding: 0 16px; }
+  .hist-analisis__metrics { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   .hist-table-wrap { padding: 16px 16px 20px; }
 }
 /* ============================================================
