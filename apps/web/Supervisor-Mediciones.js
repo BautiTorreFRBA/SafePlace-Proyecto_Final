@@ -219,7 +219,7 @@ function renderTabla() {
     return `
       <tr class="med-row${expandible ? ' med-row--expandible' : ''}" data-idx="${i}">
         <td>
-          <div>${expandible ? '<span class="med-row__caret">▸</span> ' : ''}${escapeHtml(nombre)}</div>
+          <div>${expandible ? '<span class="med-row__caret">▸</span> ' : ''}<button type="button" class="med-empleado-btn" data-empleado="${escapeHtml(nombre)}">${escapeHtml(nombre)}</button></div>
           <div style="color:var(--text-muted); font-size:0.78rem">${escapeHtml(f.legajo || '')}${f.area ? ` · ${escapeHtml(f.area)}` : ''}</div>
         </td>
         <td style="color:var(--text-secondary); font-size:0.85rem">${wearable}</td>
@@ -514,6 +514,17 @@ async function cargarTablaDetalle(idx) {
 }
 
 tableBody.addEventListener('click', (e) => {
+  const empleadoBtn = e.target.closest('.med-empleado-btn');
+  if (empleadoBtn) {
+    e.stopPropagation();
+    filterEmpleado.value = empleadoBtn.dataset.empleado;
+    cargarResumen().catch((error) => {
+      console.error(error);
+      medCount.textContent = error.message;
+    });
+    return;
+  }
+
   const bucketBtn = e.target.closest('.med-bucket-btn[data-bucket]');
   if (bucketBtn) {
     detalleBucket = bucketBtn.dataset.bucket;
@@ -533,7 +544,8 @@ tableBody.addEventListener('click', (e) => {
 
   const fila = e.target.closest('tr.med-row--expandible');
   if (fila) {
-    toggleDetalle(Number(fila.dataset.idx)).catch((err) => console.error(err));
+    const idx = Number(fila.dataset.idx);
+    toggleDetalle(idx).catch((err) => console.error(err));
   }
 });
 

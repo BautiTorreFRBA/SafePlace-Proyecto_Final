@@ -2018,6 +2018,8 @@ select.cfg-input {
   gap: 16px;
   padding: 0 28px;
 }
+.med-empleado-btn { margin:0; padding:0; border:0; background:transparent; color:var(--text-primary); font:inherit; cursor:pointer; text-align:left; }
+.med-empleado-btn:hover, .med-empleado-btn:focus-visible { color:var(--teal, #2dd4bf); text-decoration:underline; outline:none; }
 
 /* ── TABLA DE MEDICIONES ────────────────────────────────────── */
 
