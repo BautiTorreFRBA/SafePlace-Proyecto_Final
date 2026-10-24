@@ -1,19 +1,43 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/database');
 
-const auth = (req, res, next) => {
+// El alcance del supervisor (área y turnos) se lee de la base en cada pedido y
+// no del token: así un cambio hecho por el admin rige de inmediato, sin que el
+// supervisor tenga que volver a iniciar sesión.
+const alcanceActualDelSupervisor = async (idUsuario) => {
+  const result = await db.query(
+    'SELECT area_supervisada, turnos_supervisados FROM usuario WHERE id = $1 LIMIT 1',
+    [idUsuario],
+  );
+  return result.rows[0] || null;
+};
+
+const auth = async (req, res, next) => {
+  let decoded;
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    res.status(401).json({ error: 'Token inválido o expirado.' });
+    return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
+
+  if (decoded.role === 'supervisor') {
+    try {
+      const alcance = await alcanceActualDelSupervisor(decoded.sub);
+      decoded.areaSupervisada = alcance?.area_supervisada || null;
+      decoded.turnosSupervisados = alcance?.turnos_supervisados || [];
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  req.user = decoded;
+  next();
 };
 
 const authorize = (roles = []) => {

@@ -21,7 +21,19 @@ const crearUsuario = async (req, res, next) => {
   }
 };
 
+// Alcance vigente del usuario autenticado (el middleware ya lo trae de la base).
+const me = (req, res) => {
+  res.status(200).json({
+    data: {
+      role: req.user.role,
+      areaSupervisada: req.user.areaSupervisada || null,
+      turnosSupervisados: req.user.turnosSupervisados || [],
+    },
+  });
+};
+
 module.exports = {
   login,
+  me,
   crearUsuario,
 };

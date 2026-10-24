@@ -326,8 +326,20 @@ function renderAll() {
   document.getElementById('currentDate').textContent = `Actualizado ${fmtARHora(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 }
 
+// El alcance del supervisor puede cambiar mientras tiene la sesión abierta: se
+// vuelve a pedir al backend antes de filtrar.
+async function refrescarAlcanceSupervisor() {
+  if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() !== 'supervisor') return;
+  try {
+    const { data } = await apiFetch('/auth/me');
+    sessionStorage.setItem('userSupervisorArea', data?.areaSupervisada ?? '');
+    sessionStorage.setItem('userSupervisorTurnos', JSON.stringify(data?.turnosSupervisados ?? []));
+  } catch { /* si falla, se usa el alcance guardado al iniciar sesión */ }
+}
+
 async function cargarHome() {
   try {
+    await refrescarAlcanceSupervisor();
     const [estadoResult, alertasResult] = await Promise.allSettled([apiFetch('/estado/trabajadores-activos'), apiFetch('/alertas/activas')]);
     if (estadoResult.status === 'rejected') throw estadoResult.reason;
     if (alertasResult.status === 'rejected') console.error(alertasResult.reason);

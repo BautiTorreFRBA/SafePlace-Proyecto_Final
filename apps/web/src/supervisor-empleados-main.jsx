@@ -21,6 +21,17 @@ async function apiFetch(path) {
   return payload;
 }
 
+// El alcance del supervisor (área y turnos) puede cambiar mientras tiene la
+// sesión abierta: se vuelve a pedir al backend antes de filtrar.
+async function refrescarAlcanceSupervisor() {
+  if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() !== 'supervisor') return;
+  try {
+    const { data } = await apiFetch('/auth/me');
+    sessionStorage.setItem('userSupervisorArea', data?.areaSupervisada ?? '');
+    sessionStorage.setItem('userSupervisorTurnos', JSON.stringify(data?.turnosSupervisados ?? []));
+  } catch { /* si falla, se usa el alcance guardado al iniciar sesión */ }
+}
+
 function initials(name) { return String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'SP'; }
 function fullName(item) { return `${item.nombre || item.operario_nombre || ''} ${item.apellido || item.operario_apellido || ''}`.trim() || 'Sin nombre'; }
 function sessionUser() {
@@ -161,11 +172,24 @@ function ListView({ employees, loading, error, filters, setFilters, onSearch, on
       if (!byArea.has(area)) byArea.set(area, new Map());
       if (!byArea.get(area).has(turno)) byArea.get(area).set(turno, []);
     });
+    // El supervisor ve todos los turnos que tiene a cargo, aunque todavía no
+    // tengan operarios asignados.
+    const esSupervisor = String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor';
+    const areaSupervisor = sessionStorage.getItem('userSupervisorArea') || '';
+    if (esSupervisor && areaSupervisor) {
+      let turnosACargo = [];
+      try { turnosACargo = JSON.parse(sessionStorage.getItem('userSupervisorTurnos') || '[]'); } catch { turnosACargo = []; }
+      if (!byArea.has(areaSupervisor)) byArea.set(areaSupervisor, new Map());
+      (Array.isArray(turnosACargo) ? turnosACargo : []).forEach((turno) => {
+        const clave = String(turno).toLowerCase();
+        if (!byArea.get(areaSupervisor).has(clave)) byArea.get(areaSupervisor).set(clave, []);
+      });
+    }
     filtered.forEach((item) => { byArea.get(item.area || 'Sin área').get(String(item.turno || '').toLowerCase() || 'sin turno').push(item); });
     const orden = (turno) => { const index = turnos.indexOf(turno); return index === -1 ? turnos.length : index; };
     return [...byArea.entries()]
       .map(([area, map]) => ({ area, total: [...map.values()].reduce((acc, list) => acc + list.length, 0), turnos: [...map.entries()].map(([turno, list]) => ({ turno, employees: list })).sort((a, b) => orden(a.turno) - orden(b.turno)) }))
-      .filter((group) => group.total > 0)
+      .filter((group) => group.total > 0 || (esSupervisor && group.area === areaSupervisor))
       .sort((a, b) => (a.area === 'Sin área') - (b.area === 'Sin área') || a.area.localeCompare(b.area, 'es'));
   }, [employees, filtered]);
   return <Layout><div className="empleados-content"><div className="empleados-heading"><div><h1>Historial de empleados</h1><p>Consultá la evolución de las mediciones de todos los operarios.</p></div><div className="empleados-live"><span></span>Datos del período seleccionado</div></div><div className="empleados-toolbar"><div className="empleados-field"><label>Buscar operario</label><input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre o legajo..." /></div><div className="empleados-field empleados-field--small"><label>Área</label><select value={filters.area} onChange={(event) => setFilters({ ...filters, area: event.target.value })}><option value="">Todas</option>{areas.map((area) => <option key={area} value={area}>{area}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Turno</label><select value={filters.turno} onChange={(event) => setFilters({ ...filters, turno: event.target.value })}><option value="">Todos</option>{turnos.map((turno) => <option key={turno} value={turno}>{turno}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Desde</label><input type="date" value={filters.desde} onChange={(event) => setFilters({ ...filters, desde: event.target.value })} /></div><div className="empleados-field empleados-field--small"><label>Hasta</label><input type="date" value={filters.hasta} onChange={(event) => setFilters({ ...filters, hasta: event.target.value })} /></div><button className="btn-export" onClick={onSearch}>Actualizar</button></div>{loading && <div className="empleado-empty">Cargando empleados y mediciones...</div>}{error && <div className="empleado-error">{error}</div>}{!loading && !error && <><p className="empleados-count">{filtered.length} de {employees.length} empleados activos</p>{filtered.length > 0 && <div className="grupos-area-turno empleados-grupos">{groups.map((group) => <details className="area-turno-seccion" key={group.area} open={areasAbiertas.has(group.area)} onToggle={(event) => toggleArea(group.area, event.currentTarget.open)}><summary className="area-turno-seccion__titulo">{group.area} <small>{group.total} operario{group.total !== 1 ? 's' : ''}</small></summary><div className="area-turno-seccion__turnos">{group.turnos.map((turno) => { const claveTurno = `${group.area}|${turno.turno}`; return <details className="grupo-area-turno" key={turno.turno} open={turnosAbiertos.has(claveTurno)} onToggle={(event) => toggleTurno(claveTurno, event.currentTarget.open)}><summary className="grupo-area-turno__header"><h4>{turnoLabel(turno.turno)}</h4><span>{turno.employees.length} operario{turno.employees.length !== 1 ? 's' : ''}</span></summary><div className="grupo-area-turno__operarios empleados-grupo__cards">{turno.employees.length ? turno.employees.map((employee) => <EmployeeCard key={employee.id} employee={employee} onClick={() => onSelect(employee)} />) : <span className="grupo-area-turno__vacio">Sin operarios para los filtros</span>}</div></details>; })}</div></details>)}</div>}{filtered.length === 0 && <div className="empleado-empty">No hay empleados que coincidan con los filtros.</div>}</>}</div></Layout>;
@@ -401,7 +425,7 @@ function DetailView({ employee, filters, onBack }) {
 
 function App() {
   const [employees, setEmployees] = useState([]); const [selected, setSelected] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [filters, setFilters] = useState({ search: '', area: '', turno: '', desde: defaultDesde, hasta: defaultHasta });
-  const load = async () => { setLoading(true); setError(''); try { const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).filter(dentroDelAlcance).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); setError(''); try { await refrescarAlcanceSupervisor(); const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).filter(dentroDelAlcance).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
   useEffect(() => { load(); }, []);
   // ?empleado=<id> abre directo el historial de ese operario (lo usan las tarjetas del Home del admin).
   const empleadoInicial = useRef(new URLSearchParams(window.location.search).get('empleado'));
