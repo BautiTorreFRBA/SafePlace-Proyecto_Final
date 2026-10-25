@@ -15,7 +15,7 @@ const ESTADOS = {
   sobreesfuerzo: { label: 'Sobreesfuerzo', color: '#a78bfa', grupo: 'critico', rank: 0 },
   fatiga: { label: 'Fatiga', color: '#4ade80', grupo: 'advertencia', rank: 1 },
   inactividad: { label: 'Inactividad prolongada', color: '#38bdf8', grupo: 'advertencia', rank: 2 },
-  normal: { label: 'Normal', color: '#4ade80', grupo: 'normal', rank: 3 },
+  normal: { label: 'Normal', color: '#e9a9a3', grupo: 'normal', rank: 3 },
   sin_datos: { label: 'Sin datos', color: '#9ca3af', grupo: 'sin_datos', rank: 4 },
 };
 // Tipo de alerta activa → estado. Si hay varias, gana la de menor rank (SUPER_EMERGENCIA > EMERGENCIA > SOBREESFUERZO > FATIGA > INACTIVIDAD).
@@ -81,7 +81,7 @@ function escapeHtml(value) {
 }
 
 function nombreCompleto(item) {
-  return `${item.nombre || item.operario_nombre || ''} ${item.apellido || item.operario_apellido || ''}`.trim() || `Trabajador ${item.id_trabajador ?? ''}`.trim();
+  return `${item.nombre || item.operario_nombre || ''} ${item.apellido || item.operario_apellido || ''}`.trim() || `Operario ${item.id_trabajador ?? ''}`.trim();
 }
 
 function iniciales(nombre) {
@@ -179,7 +179,7 @@ function renderTarjeta(item) {
   const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong></div>`;
 
   const innerEl = `<div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="Foto de ${escapeHtml(nombre)}" /></div>`;
-  return `<a class="op-card${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
+  return `<a class="op-card${item.estado === 'normal' ? ' op-card--normal' : ''}${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     ${innerEl}
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
@@ -300,7 +300,15 @@ function renderAlerts() {
   const items = alertasActivas
     .map((alerta) => {
       const estado = ALERTA_A_ESTADO[String(alerta.tipo_alerta || '').toUpperCase()];
-      return { ...alerta, estado, nombre: nombrePorTrabajador.get(String(alerta.id_trabajador)) || `Trabajador ${alerta.id_trabajador ?? ''}`.trim() };
+      // La API de alertas ya incluye la identidad reidentificada. Se prioriza
+      // esa fuente para que el nombre siga mostrándose aunque el operario no
+      // figure en la lista de estado del turno actual.
+      const nombreAlerta = `${alerta.operario_nombre || alerta.nombre || ''} ${alerta.operario_apellido || alerta.apellido || ''}`.trim();
+      return {
+        ...alerta,
+        estado,
+        nombre: nombreAlerta || nombrePorTrabajador.get(String(alerta.id_trabajador)) || `Operario ${alerta.id_trabajador ?? ''}`.trim(),
+      };
     })
     .filter((item) => item.estado)
     .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank);

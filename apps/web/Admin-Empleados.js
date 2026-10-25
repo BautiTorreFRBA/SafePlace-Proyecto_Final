@@ -251,10 +251,10 @@ function renderTable() {
 
   const ordenados = ordenarEmpleados(filtrados);
 
-  empCount.textContent = `${ordenados.length} empleado${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
+  empCount.textContent = `${ordenados.length} operario${ordenados.length !== 1 ? 's' : ''} registrado${ordenados.length !== 1 ? 's' : ''}`;
 
   empGrupos.innerHTML = ordenados.length === 0
-    ? mensajeHTML('No se encontraron empleados')
+    ? mensajeHTML('No se encontraron operarios')
     : agruparPorAreaYTurno(ordenados).map(grupoAreaHTML).join('');
 
   actualizarIndicadoresOrden();
@@ -305,7 +305,7 @@ function grupoAreaHTML({ area, total, turnos }) {
     return buscando || turno === actual;
   };
   return `<section class="area-turno-seccion">
-      <h3 class="area-turno-seccion__titulo">${escapeHtml(area)} <small>${total} empleado${total !== 1 ? 's' : ''}</small></h3>
+      <h3 class="area-turno-seccion__titulo">${escapeHtml(area)} <small>${total} operario${total !== 1 ? 's' : ''}</small></h3>
       <div class="emp-grupos__turnos">
         ${turnos.map(([turno, lista]) => `<details class="grupo-area-turno" data-clave="${escapeHtml(`${area}|${turno}`)}"${abierto(turno) ? ' open' : ''}>
           <summary class="grupo-area-turno__header">
@@ -363,7 +363,7 @@ function openModal(modo, id = null) {
   if (modo === 'editar') {
     const emp = empleados.find((e) => String(e.id) === String(id));
     if (!emp) return;
-    modalTitle.textContent = 'Editar Empleado';
+    modalTitle.textContent = 'Editar Operario';
     mNombre.value = emp.nombre || '';
     mApellido.value = emp.apellido || '';
     mEmail.value = emp.email || '';
@@ -371,7 +371,7 @@ function openModal(modo, id = null) {
     mTurno.value = emp.turno || '';
     mSexo.value = emp.sexo || '';
   } else {
-    modalTitle.textContent = 'Nuevo Empleado';
+    modalTitle.textContent = 'Nuevo Operario';
     mNombre.value = '';
     mApellido.value = '';
     mEmail.value = '';
@@ -429,7 +429,7 @@ async function desactivarEmpleado(id) {
   const emp = empleados.find((e) => String(e.id) === String(id));
   if (!emp) return;
 
-  const ok = window.confirm(`Desactivar al empleado ${emp.nombreCompleto}?`);
+  const ok = window.confirm(`Desactivar al operario ${emp.nombreCompleto}?`);
   if (!ok) return;
 
   try {
@@ -495,7 +495,7 @@ modalSave.addEventListener('click', guardarEmpleado);
 cargarEmpleados().catch((err) => {
   console.error(err);
   empCount.textContent = err.status === 401 || err.status === 403
-    ? 'Sesión sin permisos para consultar empleados'
-    : 'Error cargando empleados';
-  empGrupos.innerHTML = mensajeHTML(err.message || 'No se pudieron cargar los empleados');
+    ? 'Sesión sin permisos para consultar operarios'
+    : 'Error cargando operarios';
+  empGrupos.innerHTML = mensajeHTML(err.message || 'No se pudieron cargar los operarios');
 });

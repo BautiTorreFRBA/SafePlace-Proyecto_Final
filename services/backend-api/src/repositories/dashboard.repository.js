@@ -69,7 +69,7 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmp
   const turnoLimpio = String(turno || '').trim().toLowerCase();
 
   if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !turnoLimpio || !idEmpresa) {
-    throw new Error('Faltan campos obligatorios para crear el empleado.');
+    throw new Error('Faltan campos obligatorios para crear el operario.');
   }
   if (!AREAS_VALIDAS.includes(areaLimpia)) {
     throw new Error('El área debe ser Logística, Mantenimiento, Producción o Prueba.');
@@ -78,7 +78,7 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmp
     throw new Error('El turno debe ser mañana, tarde o noche.');
   }
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
-    throw new Error('El email del empleado no es válido.');
+    throw new Error('El email del operario no es válido.');
   }
   const sexoLimpio = normalizarSexo(sexo) ?? null;
 
@@ -100,14 +100,14 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmp
     return res.rows[0];
   } catch (error) {
     if (error.code === '23505') {
-      const dup = new Error('Ya existe un empleado con ese legajo.');
+      const dup = new Error('Ya existe un operario con ese legajo.');
       dup.status = 409;
       dup.motivo = 'EMPLEADO_DUPLICADO';
       throw dup;
     }
 
     if (error.code === '23503') {
-      const fk = new Error('No se pudo crear el empleado porque la empresa no existe o no es válida.');
+      const fk = new Error('No se pudo crear el operario porque la empresa no existe o no es válida.');
       fk.status = 409;
       fk.motivo = 'FK_INVALIDA';
       throw fk;
@@ -124,7 +124,7 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
   const turnoLimpio = String(turno || '').trim().toLowerCase();
 
   if (!nombreLimpio || !apellidoLimpio || !areaLimpia || !turnoLimpio || !idEmpresa) {
-    throw new Error('Faltan campos obligatorios para actualizar el empleado.');
+    throw new Error('Faltan campos obligatorios para actualizar el operario.');
   }
   if (!AREAS_VALIDAS.includes(areaLimpia)) {
     throw new Error('El área debe ser Logística, Mantenimiento, Producción o Prueba.');
@@ -133,7 +133,7 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
     throw new Error('El turno debe ser mañana, tarde o noche.');
   }
   if (email && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
-    throw new Error('El email del empleado no es válido.');
+    throw new Error('El email del operario no es válido.');
   }
   const sexoLimpio = normalizarSexo(sexo);
 
@@ -155,14 +155,14 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
     return res.rows[0] || null;
   } catch (error) {
     if (error.code === '23505') {
-      const dup = new Error('Ya existe un empleado con ese legajo.');
+      const dup = new Error('Ya existe un operario con ese legajo.');
       dup.status = 409;
       dup.motivo = 'EMPLEADO_DUPLICADO';
       throw dup;
     }
 
     if (error.code === '23503') {
-      const fk = new Error('No se pudo actualizar el empleado porque la empresa no existe o no es valida.');
+      const fk = new Error('No se pudo actualizar el operario porque la empresa no existe o no es valida.');
       fk.status = 409;
       fk.motivo = 'FK_INVALIDA';
       throw fk;

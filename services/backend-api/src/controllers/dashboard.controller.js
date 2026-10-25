@@ -45,7 +45,7 @@ const crearEmpleado = async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: 'Empleado creado correctamente.',
+      message: 'Operario creado correctamente.',
       data: empleado,
     });
   } catch (error) {
@@ -67,11 +67,11 @@ const actualizarEmpleado = async (req, res, next) => {
     });
 
     if (!empleado) {
-      return res.status(404).json({ error: 'Empleado no encontrado.' });
+      return res.status(404).json({ error: 'Operario no encontrado.' });
     }
 
     res.json({
-      message: 'Empleado actualizado correctamente.',
+      message: 'Operario actualizado correctamente.',
       data: empleado,
     });
   } catch (error) {
@@ -84,11 +84,11 @@ const desactivarEmpleado = async (req, res, next) => {
     const empleado = await dashboardRepository.desactivarEmpleado(req.params.id, req.user?.sub);
 
     if (!empleado) {
-      return res.status(404).json({ error: 'Empleado no encontrado.' });
+      return res.status(404).json({ error: 'Operario no encontrado.' });
     }
 
     res.json({
-      message: 'Empleado desactivado correctamente.',
+      message: 'Operario desactivado correctamente.',
       data: empleado,
     });
   } catch (error) {

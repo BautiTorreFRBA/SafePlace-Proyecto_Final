@@ -118,7 +118,7 @@ function obtenerFiltros() {
 }
 
 function actualizarContador(total) {
-  medCount.textContent = `${total} ${total === 1 ? 'empleado con datos en el período' : 'empleados en el período'}`;
+  medCount.textContent = `${total} ${total === 1 ? 'operario con datos en el período' : 'operarios en el período'}`;
 }
 
 function renderEstadoInicial(mensaje) {
@@ -196,7 +196,7 @@ function renderTabla() {
   destruirChartDetalle();
 
   if (resumen.length === 0) {
-    renderEstadoInicial('No hay empleados con datos ni wearable asignado en el período');
+    renderEstadoInicial('No hay operarios con datos ni wearable asignado en el período');
     return;
   }
 
@@ -242,7 +242,7 @@ function renderTabla() {
               <div class="med-detalle__chart-wrap"><canvas class="med-detalle__chart" height="180"></canvas></div>
               <div class="med-detalle__tabla"></div>
               <div class="med-detalle__pager"></div>`
-              : '<p class="med-detalle__sin-mediciones">No hay mediciones de este empleado en el período seleccionado.</p>'}
+              : '<p class="med-detalle__sin-mediciones">No hay mediciones de este operario en el período seleccionado.</p>'}
           </div>
         </td>
       </tr>
@@ -565,7 +565,7 @@ function renderEmpleadoOptions(filas) {
 }
 
 function obtenerMensajeSinFechas() {
-  return 'Selecciona las fechas Desde y Hasta para consultar el resumen por empleado.';
+  return 'Selecciona las fechas Desde y Hasta para consultar el resumen por operario.';
 }
 
 // YYYY-MM-DD del día de hoy (formato que espera <input type="date">.value).
@@ -663,7 +663,7 @@ function exportarPDF() {
   const doc = new jsPDF('landscape');
 
   doc.setFontSize(16);
-  doc.text('Resumen de Mediciones por Empleado', 14, 15);
+  doc.text('Resumen de Mediciones por Operario', 14, 15);
   doc.setFontSize(10);
   doc.text(`Generado el ${fmtAR(new Date())}`, 14, 22);
 
@@ -684,7 +684,7 @@ function exportarPDF() {
   const filas = filasExport();
   doc.autoTable({
     startY: tablaInicio,
-    head: [['Empleado', 'Legajo', 'Wearable', 'FC prom', 'FC mín', 'FC máx', 'Lecturas', 'Cob. %', 'Primera', 'Última', 'Alertas']],
+    head: [['Operario', 'Legajo', 'Wearable', 'FC prom', 'FC mín', 'FC máx', 'Lecturas', 'Cob. %', 'Primera', 'Última', 'Alertas']],
     body: filas.map((f) => [
       f.Empleado, f.Legajo, f.Wearable, f['FC promedio'], f['FC mín'], f['FC máx'],
       f.Lecturas, f['Cobertura %'], f.Primera, f.Última, f.Alertas,
@@ -709,7 +709,7 @@ function exportarExcel() {
 
   const hoja = window.XLSX.utils.json_to_sheet(filasExport());
   const libro = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(libro, hoja, 'Resumen por empleado');
+  window.XLSX.utils.book_append_sheet(libro, hoja, 'Resumen por operario');
 
   if (validacionActual) {
     const v = validacionActual;

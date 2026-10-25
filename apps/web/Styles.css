@@ -781,6 +781,13 @@ html[data-theme="light"] .alert-btn--revisar:disabled:hover { color:var(--text-s
 @media (prefers-reduced-motion:reduce) { .op-emergencias__dot { animation:none; } }
 .op-card { position:relative; display:block; min-height:250px; overflow:hidden; border:1px solid var(--border); border-left:4px solid var(--estado); border-radius:16px; background:#171717; color:inherit; text-decoration:none; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
 .op-card:hover,.op-card:focus-visible { transform:translateY(-3px); border-color:color-mix(in srgb, var(--estado) 55%, var(--border)); border-left-color:var(--estado); box-shadow:0 10px 24px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--estado) 25%, transparent); outline:none; }
+/* Operarios sin alertas: rosa piel suave, con contraste oscuro para su lectura. */
+.op-card--normal,
+html[data-theme="light"] .op-card--normal { border-color:#d9908a; border-left-color:#c97872; background:#f7d5ce; color:#4a2424; }
+.op-card--normal .op-card__fc,
+.op-card--normal .op-card__nombre { color:#4a2424; text-shadow:none; }
+.op-card--normal .op-card__area { color:#70413d; text-shadow:none; }
+.op-card--normal .op-chip { border-color:rgba(116,62,57,.3); background:rgba(255,255,255,.58); color:#4a2424; }
 /* El dibujo ocupa toda la tarjeta y los datos se escriben encima (FC arriba a la derecha, nombre abajo). */
 .op-avatar { position:absolute; inset:34px 18px 0; background:var(--estado); -webkit-mask-position:center bottom; mask-position:center bottom; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:contain; mask-size:contain; }
 .op-avatar img { display:block; width:100%; height:100%; object-fit:contain; object-position:center bottom; mix-blend-mode:multiply; }

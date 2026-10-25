@@ -115,7 +115,7 @@ function obtenerFiltros() {
 function nombreEmpleado(empleado = {}) {
   return `${empleado.nombre || ''} ${empleado.apellido || ''}`.trim()
     || `${empleado.operario_nombre || ''} ${empleado.operario_apellido || ''}`.trim()
-    || `Empleado ${empleado.id || empleado.id_trabajador || ''}`.trim();
+    || `Operario ${empleado.id || empleado.id_trabajador || ''}`.trim();
 }
 
 async function cargarEmpleados() {
@@ -125,7 +125,7 @@ async function cargarEmpleados() {
   if (!res.ok) {
     res = await fetch(`${API_BASE_URL}/estado/trabajadores-activos`, { headers: getAuthHeaders() });
   }
-  if (!res.ok) throw new Error('No se pudieron cargar los empleados.');
+  if (!res.ok) throw new Error('No se pudieron cargar los operarios.');
 
   const json = await res.json();
   const empleados = (json.data || [])
@@ -134,7 +134,7 @@ async function cargarEmpleados() {
     .filter((nombre, indice, lista) => lista.indexOf(nombre) === indice)
     .sort((a, b) => a.localeCompare(b, 'es'));
 
-  filterEmpleado.innerHTML = '<option value="">Todos los empleados</option>'
+  filterEmpleado.innerHTML = '<option value="">Todos los operarios</option>'
     + empleados.map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`).join('');
   filterEmpleado.disabled = false;
 }
@@ -297,7 +297,7 @@ function exportarPDF() {
 
   doc.autoTable({
     startY: 28,
-    head: [['Severidad', 'Tipo', 'Empleado', 'Fecha', 'Estado']],
+    head: [['Severidad', 'Tipo', 'Operario', 'Fecha', 'Estado']],
     body: historicoAlertas.map((a) => [a.severidad.texto, a.tipo, a.empleado, a.fecha, a.estado.texto]),
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [17, 24, 39] },
@@ -425,7 +425,7 @@ if (!filterDesde.value) filterDesde.value = fechaHace30Dias();
 renderEstadoInicial('Cargando análisis del histórico de alertas...');
 cargarEmpleados().catch((error) => {
   console.error(error);
-  filterEmpleado.innerHTML = '<option value="">No se pudieron cargar los empleados</option>';
+  filterEmpleado.innerHTML = '<option value="">No se pudieron cargar los operarios</option>';
 });
 cargarHistorial().catch((error) => {
   console.error(error);

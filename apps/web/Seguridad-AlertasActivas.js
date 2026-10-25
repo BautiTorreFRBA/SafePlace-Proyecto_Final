@@ -218,7 +218,7 @@ const horaFc = (t) => fmtARHora(new Date(t), { hour: '2-digit', minute: '2-digit
 function renderGraficoFc(puntos, umbrales, momentoAlerta) {
   fcZoom.puntos = puntos;
   if (!puntos.length) {
-    fcModalChart.innerHTML = '<div class="fc-modal__empty">No hay mediciones de frecuencia cardíaca para este empleado en el día.</div>';
+    fcModalChart.innerHTML = '<div class="fc-modal__empty">No hay mediciones de frecuencia cardíaca para este operario en el día.</div>';
     return;
   }
   fcZoom.umbrales = umbrales;
@@ -393,7 +393,7 @@ window.revisarAlerta = async (id) => {
   fcModal.setAttribute('aria-hidden', 'false');
 
   if (alerta.idTrabajador == null) {
-    fcModalChart.innerHTML = '<div class="fc-modal__empty">La alerta no tiene un empleado asociado.</div>';
+    fcModalChart.innerHTML = '<div class="fc-modal__empty">La alerta no tiene un operario asociado.</div>';
     return;
   }
 

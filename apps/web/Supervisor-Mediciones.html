@@ -57,7 +57,7 @@
             <!-- Encabezado + Filtros + Botones exportación -->
             <div class="med-header">
                 <div>
-                    <h2 class="welcome__title">Mediciones por Empleado</h2>
+                    <h2 class="welcome__title">Mediciones por Operario</h2>
                     <p class="med-header__count" id="medCount"><!-- Cantidad de empleados en el periodo--></p>
                 </div>
                 <div class="med-export"> 
@@ -69,7 +69,7 @@
             <!-- Barra de filtros -->
             <div class="med-filters">
                 <div class="med-filter-group">
-                    <label class="med-filter-label">Empleado</label>
+                    <label class="med-filter-label">Operario</label>
                     <select class="med-select" id="filterEmpleado" data-operario-autocomplete>
                     <option value="">Todos</option>
                     </select>
@@ -90,7 +90,7 @@
             <!-- Gráfica: FC promedio por empleado en el período -->
             <div class="med-charts">
                 <div class="card">
-                    <div class="card__header"> <span class="card__icon-label"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> </svg> Frecuencia Cardíaca promedio por empleado (período) </span> </div>
+                    <div class="card__header"> <span class="card__icon-label"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"> <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/> </svg> Frecuencia Cardíaca promedio por operario (período) </span> </div>
                     <div class="card__body"> <canvas id="chartFrecuencia" height="200"></canvas> </div>
                 </div>
             </div>
@@ -100,7 +100,7 @@
                 <table class="med-table">
                     <thead>
                         <tr>
-                            <th>EMPLEADO</th>
+                            <th>OPERARIO</th>
                             <th>WEARABLE</th>
                             <th>FC PROM / MÍN / MÁX</th>
                             <th>LECTURAS</th>
