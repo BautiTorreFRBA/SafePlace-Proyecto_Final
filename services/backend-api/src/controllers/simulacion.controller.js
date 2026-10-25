@@ -22,4 +22,12 @@ const actualizarEstado = async (req, res, next) => {
   }
 };
 
-module.exports = { obtenerEstado, actualizarEstado };
+const listarOperarios = async (_req, res, next) => {
+  try {
+    res.json({ data: await simulacionRepository.listarOperariosSimulados() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { obtenerEstado, actualizarEstado, listarOperarios };

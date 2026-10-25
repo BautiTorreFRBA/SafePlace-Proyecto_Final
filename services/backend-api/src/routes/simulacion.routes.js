@@ -10,6 +10,7 @@ const eitherAuth = (req, res, next) => {
   return auth(req, res, next);
 };
 router.get('/', eitherAuth, simulacionController.obtenerEstado);
+router.get('/operarios', auth, authorize(['admin']), simulacionController.listarOperarios);
 // Solo admin puede prender / apagar
 router.put('/', auth, authorize(['admin']), simulacionController.actualizarEstado);
 
