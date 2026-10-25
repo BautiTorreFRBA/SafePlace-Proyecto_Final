@@ -7,41 +7,73 @@
     if (!select || select.dataset.autocompleteReady === 'true') return;
     select.dataset.autocompleteReady = 'true';
 
+    const wrapper = document.createElement('div');
     const input = document.createElement('input');
-    const list = document.createElement('datalist');
+    const list = document.createElement('div');
     const inputId = select.id
       ? `${select.id}Autocomplete`
       : `selectAutocomplete${nextId += 1}`;
     const listId = `${inputId}List`;
 
+    wrapper.className = 'select-autocomplete';
     input.id = inputId;
-    input.type = 'search';
+    input.type = 'text';
     input.className = select.className;
-    input.setAttribute('list', listId);
     input.setAttribute('autocomplete', 'off');
-    input.setAttribute('aria-label', 'Buscar operario');
+    input.setAttribute('aria-label', select.getAttribute('aria-label') || 'Buscar o seleccionar una opción');
+    input.setAttribute('aria-controls', listId);
+    input.setAttribute('aria-expanded', 'false');
     list.id = listId;
+    list.className = 'select-autocomplete__list';
+    list.setAttribute('role', 'listbox');
+    list.hidden = true;
 
-    select.insertAdjacentElement('beforebegin', input);
-    select.insertAdjacentElement('beforebegin', list);
+    select.insertAdjacentElement('beforebegin', wrapper);
+    wrapper.append(input, list, select);
     select.hidden = true;
     select.tabIndex = -1;
     if (select.id) {
       document.querySelector(`label[for="${select.id}"]`)?.setAttribute('for', inputId);
     }
 
+    function opcionesFiltradas() {
+      const texto = input.value.trim().toLocaleLowerCase('es');
+      return [...select.options].filter((option) => option.value && option.textContent.trim().toLocaleLowerCase('es').includes(texto));
+    }
+
+    function mostrarOpciones() {
+      const opciones = opcionesFiltradas();
+      list.replaceChildren(...opciones.map((option) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'select-autocomplete__option';
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', String(option.value === select.value));
+        item.textContent = option.textContent.trim();
+        item.addEventListener('mousedown', (event) => event.preventDefault());
+        item.addEventListener('click', () => {
+          select.value = option.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          input.value = option.textContent.trim();
+          cerrarLista();
+        });
+        return item;
+      }));
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+    }
+
+    function cerrarLista() {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+    }
+
     function actualizarOpciones() {
       const opciones = [...select.options];
-      list.replaceChildren(...opciones
-        .filter((option) => option.value)
-        .map((option) => {
-          const item = document.createElement('option');
-          item.value = option.textContent.trim();
-          return item;
-        }));
-      input.placeholder = opciones[0]?.textContent.trim() || 'Buscar operario...';
+      input.placeholder = opciones[0]?.textContent.trim() || 'Buscar o seleccionar...';
       input.disabled = select.disabled;
       if (!select.value) input.value = '';
+      if (!list.hidden) mostrarOpciones();
     }
 
     function seleccionarCoincidencia() {
@@ -60,11 +92,23 @@
       }
     }
 
-    input.addEventListener('input', seleccionarCoincidencia);
+    input.addEventListener('focus', mostrarOpciones);
+    input.addEventListener('click', mostrarOpciones);
+    input.addEventListener('input', () => {
+      seleccionarCoincidencia();
+      mostrarOpciones();
+    });
     input.addEventListener('change', seleccionarCoincidencia);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') cerrarLista();
+      if (event.key === 'ArrowDown') { mostrarOpciones(); list.querySelector('button')?.focus(); }
+    });
     select.addEventListener('change', () => {
       const opcion = select.options[select.selectedIndex];
       input.value = opcion?.value ? opcion.textContent.trim() : '';
+    });
+    document.addEventListener('pointerdown', (event) => {
+      if (!wrapper.contains(event.target)) cerrarLista();
     });
     new MutationObserver(actualizarOpciones).observe(select, { childList: true, subtree: true });
     actualizarOpciones();
