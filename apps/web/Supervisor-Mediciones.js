@@ -7,6 +7,7 @@ const filterHasta = document.getElementById('filterHasta');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 const btnVolverOperarios = document.getElementById('btnVolverOperarios');
+const medBackbar = document.getElementById('medBackbar');
 const medValidacion = document.getElementById('medValidacion');
 
 let resumen = [];
@@ -119,7 +120,7 @@ function obtenerFiltros() {
 }
 
 function actualizarBotonVolverOperarios() {
-  btnVolverOperarios.hidden = !filterEmpleado.value;
+  medBackbar.hidden = !filterEmpleado.value;
 }
 
 function actualizarContador(total) {

@@ -2044,6 +2044,32 @@ select.cfg-input {
   color: var(--teal-400);
 }
 
+/* Navegación al consultar el detalle de un único operario. */
+.med-backbar {
+  padding: 8px 28px 0;
+}
+
+.med-backbar__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid rgba(45, 212, 191, .55);
+  border-radius: 8px;
+  color: #062e2b;
+  background: var(--teal-400);
+  font: 700 .8rem var(--font);
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+
+.med-backbar__button:hover {
+  background: #5eead4;
+  transform: translateY(-1px);
+}
+
+.med-backbar__button span { font-size: 1rem; }
+
 /* ── BARRA DE FILTROS ───────────────────────────────────────── */
 
 .med-filters {
