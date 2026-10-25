@@ -6,6 +6,7 @@ const filterDesde = document.getElementById('filterDesde');
 const filterHasta = document.getElementById('filterHasta');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
+const btnVolverOperarios = document.getElementById('btnVolverOperarios');
 const medValidacion = document.getElementById('medValidacion');
 
 let resumen = [];
@@ -115,6 +116,10 @@ function obtenerFiltros() {
     hasta: filterHasta.value || '',
     empleado: filterEmpleado.value || '',
   };
+}
+
+function actualizarBotonVolverOperarios() {
+  btnVolverOperarios.hidden = !filterEmpleado.value;
 }
 
 function actualizarContador(total) {
@@ -518,6 +523,7 @@ tableBody.addEventListener('click', (e) => {
   if (empleadoBtn) {
     e.stopPropagation();
     filterEmpleado.value = empleadoBtn.dataset.empleado;
+    actualizarBotonVolverOperarios();
     cargarResumen().catch((error) => {
       console.error(error);
       medCount.textContent = error.message;
@@ -737,7 +743,13 @@ function exportarExcel() {
 
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
+btnVolverOperarios.addEventListener('click', () => {
+  filterEmpleado.value = '';
+  filterEmpleado.dispatchEvent(new Event('change', { bubbles: true }));
+  document.getElementById('filterEmpleadoAutocomplete')?.focus();
+});
 filterEmpleado.addEventListener('change', () => {
+  actualizarBotonVolverOperarios();
   if (!filterDesde.value || !filterHasta.value) {
     renderEstadoInicial(obtenerMensajeSinFechas());
     return;

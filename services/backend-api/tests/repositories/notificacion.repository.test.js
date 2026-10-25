@@ -54,6 +54,7 @@ describe('notificacion.repository (H0015)', () => {
     expect(notif.tipo_alerta).toBe('SOBREESFUERZO');
     expect(notif.prioridad).toBe('Crítica');
     expect(notif.operario_nombre).toBeDefined();
+    expect(notif.operario_area).toBeDefined();
   });
 
   it('marcarLeida setea leida=true y fecha_lectura', async () => {

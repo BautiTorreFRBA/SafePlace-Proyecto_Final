@@ -18,18 +18,12 @@ const normalizarFiltro = (value) => {
 
 const getHistorialAlertas = async (req, res, next) => {
   try {
-    const desde = normalizarFiltro(req.query.desde);
-    if (!desde) {
-      return res.status(400).json({
-        error: 'La fecha desde es obligatoria.',
-        motivo: 'FALTA_FILTRO_DESDE',
-      });
-    }
-
     const rows = await alertsRepository.listarHistorialAlertas({
-      desde,
+      desde: normalizarFiltro(req.query.desde),
       tipo: normalizarFiltro(req.query.tipo),
       empleado: normalizarFiltro(req.query.empleado),
+      area: normalizarFiltro(req.query.area),
+      turno: normalizarFiltro(req.query.turno),
       usuario: req.user,
     });
 

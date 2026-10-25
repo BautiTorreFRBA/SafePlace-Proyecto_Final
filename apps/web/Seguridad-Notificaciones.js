@@ -65,6 +65,7 @@ async function cargarNotificaciones() {
     tipo: mapearTipo(n.tipo_alerta, n.prioridad || ''),
     titulo: n.tipo_alerta || 'Alerta',
     descripcion: `${n.operario_nombre || ''} ${n.operario_apellido || ''}`.trim() || 'Sin operario asignado',
+    area: n.operario_area || '',
     hora: fmtAR(new Date(n.fecha_hora)),
     leido: Boolean(n.leida),
   }));
@@ -88,7 +89,7 @@ function renderNotificaciones() {
   const visibles = notificaciones.filter((n) => (!tipoSeleccionado || n.tipoAlerta === tipoSeleccionado)
     && (filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido)));
   notifList.innerHTML = visibles.length
-    ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div><div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
+    ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div>${n.area ? `<div class="notif-card__area">${n.area}</div>` : ''}<div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
     : '<div class="notif-empty"><div class="notif-empty__title">No hay notificaciones en este filtro</div><div class="notif-empty__desc">Probá con otro filtro para ver más notificaciones.</div></div>';
 }
 

@@ -3,6 +3,7 @@ const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-
 const empGrupos = document.getElementById('empGrupos');
 const empCount = document.getElementById('empCount');
 const searchInput = document.getElementById('searchInput');
+const searchSuggestions = document.getElementById('searchSuggestions');
 const filterStatus = document.getElementById('filterStatus');
 const filterArea = document.getElementById('filterArea');
 const modalOverlay = document.getElementById('modalOverlay');
@@ -232,6 +233,31 @@ async function cargarEmpleados() {
   empleados = (json.data || []).map(normalizarEmpleado);
   poblarFiltroArea();
   renderTable();
+  actualizarSugerencias();
+}
+
+function actualizarSugerencias() {
+  if (!searchSuggestions) return;
+  const consulta = normalizarTexto(searchInput.value);
+  const coincidencias = empleados.filter((emp) => !consulta
+    || normalizarTexto(emp.nombreCompleto).includes(consulta)
+    || normalizarTexto(emp.legajo).includes(consulta)
+    || String(emp.id).includes(consulta));
+
+  searchSuggestions.innerHTML = coincidencias.length
+    ? coincidencias.map((emp) => `<button class="emp-search__suggestion" type="button" role="option" data-search="${escapeHtml(emp.nombreCompleto)}" aria-selected="false"><strong>${escapeHtml(emp.nombreCompleto)}</strong><span>${escapeHtml(emp.legajo || 'Sin legajo')}</span></button>`).join('')
+    : '<p class="emp-search__empty">No se encontraron operarios</p>';
+}
+
+function mostrarSugerencias() {
+  actualizarSugerencias();
+  searchSuggestions.hidden = false;
+  searchInput.setAttribute('aria-expanded', 'true');
+}
+
+function ocultarSugerencias() {
+  searchSuggestions.hidden = true;
+  searchInput.setAttribute('aria-expanded', 'false');
 }
 
 function renderTable() {
@@ -478,7 +504,25 @@ empGrupos.addEventListener('click', (e) => {
   }
 });
 
-searchInput.addEventListener('input', renderTable);
+searchInput.addEventListener('input', () => {
+  renderTable();
+  mostrarSugerencias();
+});
+searchInput.addEventListener('focus', mostrarSugerencias);
+searchInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') ocultarSugerencias();
+});
+searchSuggestions?.addEventListener('mousedown', (event) => event.preventDefault());
+searchSuggestions?.addEventListener('click', (event) => {
+  const opcion = event.target.closest('.emp-search__suggestion');
+  if (!opcion) return;
+  searchInput.value = opcion.dataset.search;
+  renderTable();
+  ocultarSugerencias();
+});
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.emp-search')) ocultarSugerencias();
+});
 filterStatus.addEventListener('change', renderTable);
 filterArea.addEventListener('change', renderTable);
 btnNuevo.addEventListener('click', () => openModal('crear'));

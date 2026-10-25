@@ -139,28 +139,27 @@ function EmployeeCard({ employee, onClick }) {
   </button>;
 }
 
-// Áreas que el usuario desplegó. Vive fuera del componente para que, al volver
-// del detalle de un empleado, las áreas abiertas sigan abiertas.
-const areasAbiertasGuardadas = new Set();
-const turnosAbiertosGuardados = new Set();
+function EmployeeSearch({ employees, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const wrapper = useRef(null);
+  const query = value.trim().toLocaleLowerCase('es');
+  const options = employees.filter((employee) => `${fullName(employee)} ${employee.legajo || ''}`.toLocaleLowerCase('es').includes(query));
+  useEffect(() => {
+    const close = (event) => { if (!wrapper.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, []);
+  return <div className="empleados-search-select" ref={wrapper}>
+    <input value={value} onFocus={() => setOpen(true)} onClick={() => setOpen(true)} onChange={(event) => { onChange(event.target.value); setOpen(true); }} placeholder="Nombre o legajo..." aria-label="Buscar operario" aria-expanded={open} aria-controls="operarios-options" />
+    {open && <div className="empleados-search-select__options" id="operarios-options" role="listbox">{options.length ? options.map((employee) => <button type="button" role="option" key={employee.id} onClick={() => { onChange(fullName(employee)); setOpen(false); }}><strong>{fullName(employee)}</strong><span>{employee.legajo || 'Sin legajo'} · {employee.area || 'Sin área'} · {turnoLabel(employee.turno)}</span></button>) : <span className="empleados-search-select__empty">No hay operarios que coincidan.</span>}</div>}
+  </div>;
+}
 
-function ListView({ employees, loading, error, filters, setFilters, onSearch, onSelect }) {
-  const [areasAbiertas, setAreasAbiertas] = useState(() => new Set(areasAbiertasGuardadas));
-  const toggleArea = (area, abierta) => {
-    if (abierta === areasAbiertas.has(area)) return;
-    if (abierta) areasAbiertasGuardadas.add(area); else areasAbiertasGuardadas.delete(area);
-    setAreasAbiertas(new Set(areasAbiertasGuardadas));
-  };
-  const [turnosAbiertos, setTurnosAbiertos] = useState(() => new Set(turnosAbiertosGuardados));
-  const toggleTurno = (clave, abierto) => {
-    if (abierto) turnosAbiertosGuardados.add(clave); else turnosAbiertosGuardados.delete(clave);
-    setTurnosAbiertos(new Set(turnosAbiertosGuardados));
-  };
-  const areas = [...new Set(employees.map((item) => item.area).filter(Boolean))].sort();
+function ListView({ employees, loading, error, filters, setFilters, onSelect }) {
   const turnos = ['mañana', 'tarde', 'noche'];
   const filtered = useMemo(() => employees.filter((item) => {
     const matchesSearch = fullName(item).toLocaleLowerCase().includes(filters.search.toLocaleLowerCase()) || String(item.legajo || '').toLocaleLowerCase().includes(filters.search.toLocaleLowerCase());
-    return matchesSearch && (!filters.area || item.area === filters.area) && (!filters.turno || item.turno === filters.turno);
+    return matchesSearch && (!filters.turno || item.turno === filters.turno);
   }).sort((a, b) => (b.alertasTotal || 0) - (a.alertasTotal || 0) || (b.fcMax || 0) - (a.fcMax || 0) || fullName(a).localeCompare(fullName(b))), [employees, filters]);
   // Agrupado por área y turno, como "Horarios laborales" del administrador. Se
   // muestran los turnos que tiene cada área (aunque el filtro los deje vacíos)
@@ -192,7 +191,7 @@ function ListView({ employees, loading, error, filters, setFilters, onSearch, on
       .filter((group) => group.total > 0 || (esSupervisor && group.area === areaSupervisor))
       .sort((a, b) => (a.area === 'Sin área') - (b.area === 'Sin área') || a.area.localeCompare(b.area, 'es'));
   }, [employees, filtered]);
-  return <Layout><div className="empleados-content"><div className="empleados-heading"><div><h1>Historial de operarios</h1><p>Consultá la evolución de las mediciones de todos los operarios.</p></div><div className="empleados-live"><span></span>Datos del período seleccionado</div></div><div className="empleados-toolbar"><div className="empleados-field"><label>Buscar operario</label><input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre o legajo..." /></div><div className="empleados-field empleados-field--small"><label>Área</label><select value={filters.area} onChange={(event) => setFilters({ ...filters, area: event.target.value })}><option value="">Todas</option>{areas.map((area) => <option key={area} value={area}>{area}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Turno</label><select value={filters.turno} onChange={(event) => setFilters({ ...filters, turno: event.target.value })}><option value="">Todos</option>{turnos.map((turno) => <option key={turno} value={turno}>{turno}</option>)}</select></div><div className="empleados-field empleados-field--small"><label>Desde</label><input type="date" value={filters.desde} onChange={(event) => setFilters({ ...filters, desde: event.target.value })} /></div><div className="empleados-field empleados-field--small"><label>Hasta</label><input type="date" value={filters.hasta} onChange={(event) => setFilters({ ...filters, hasta: event.target.value })} /></div><button className="btn-export" onClick={onSearch}>Actualizar</button></div>{loading && <div className="empleado-empty">Cargando operarios y mediciones...</div>}{error && <div className="empleado-error">{error}</div>}{!loading && !error && <><p className="empleados-count">{filtered.length} de {employees.length} operarios activos</p>{filtered.length > 0 && <div className="grupos-area-turno empleados-grupos">{groups.map((group) => <details className="area-turno-seccion" key={group.area} open={areasAbiertas.has(group.area)} onToggle={(event) => toggleArea(group.area, event.currentTarget.open)}><summary className="area-turno-seccion__titulo">{group.area} <small>{group.total} operario{group.total !== 1 ? 's' : ''}</small></summary><div className="area-turno-seccion__turnos">{group.turnos.map((turno) => { const claveTurno = `${group.area}|${turno.turno}`; return <details className="grupo-area-turno" key={turno.turno} open={turnosAbiertos.has(claveTurno)} onToggle={(event) => toggleTurno(claveTurno, event.currentTarget.open)}><summary className="grupo-area-turno__header"><h4>{turnoLabel(turno.turno)}</h4><span>{turno.employees.length} operario{turno.employees.length !== 1 ? 's' : ''}</span></summary><div className="grupo-area-turno__operarios empleados-grupo__cards">{turno.employees.length ? turno.employees.map((employee) => <EmployeeCard key={employee.id} employee={employee} onClick={() => onSelect(employee)} />) : <span className="grupo-area-turno__vacio">Sin operarios para los filtros</span>}</div></details>; })}</div></details>)}</div>}{filtered.length === 0 && <div className="empleado-empty">No hay operarios que coincidan con los filtros.</div>}</>}</div></Layout>;
+  return <Layout><div className="empleados-content"><div className="empleados-heading"><div><h1>Historial de operarios</h1><p>Consultá la evolución de las mediciones de todos los operarios.</p></div><div className="empleados-live"><span></span>Datos de los últimos 30 días</div></div><div className="empleados-toolbar"><div className="empleados-field"><label>Buscar operario</label><EmployeeSearch employees={employees} value={filters.search} onChange={(search) => setFilters({ ...filters, search })} /></div><div className="empleados-field empleados-field--small"><label>Turno</label><select value={filters.turno} onChange={(event) => setFilters({ ...filters, turno: event.target.value })}><option value="">Todos</option>{turnos.map((turno) => <option key={turno} value={turno}>{turno}</option>)}</select></div></div>{loading && <div className="empleado-empty">Cargando operarios y mediciones...</div>}{error && <div className="empleado-error">{error}</div>}{!loading && !error && <><p className="empleados-count">{filtered.length} de {employees.length} operarios activos</p>{filtered.length > 0 && <div className="grupos-area-turno empleados-grupos">{groups.map((group) => <details className="area-turno-seccion" key={group.area} defaultOpen><summary className="area-turno-seccion__titulo">{group.area} <small>{group.total} operario{group.total !== 1 ? 's' : ''}</small></summary><div className="area-turno-seccion__turnos">{group.turnos.map((turno) => <details className="grupo-area-turno" key={turno.turno} defaultOpen><summary className="grupo-area-turno__header"><h4>{turnoLabel(turno.turno)}</h4><span>{turno.employees.length} operario{turno.employees.length !== 1 ? 's' : ''}</span></summary><div className="grupo-area-turno__operarios empleados-grupo__cards">{turno.employees.length ? turno.employees.map((employee) => <EmployeeCard key={employee.id} employee={employee} onClick={() => onSelect(employee)} />) : <span className="grupo-area-turno__vacio">Sin operarios para los filtros</span>}</div></details>)}</div></details>)}</div>}{filtered.length === 0 && <div className="empleado-empty">No hay operarios que coincidan con los filtros.</div>}</>}</div></Layout>;
 }
 
 // Colores de las marcas de alerta sobre el gráfico (mismos tonos que los umbrales).
@@ -424,7 +423,7 @@ function DetailView({ employee, filters, onBack }) {
 }
 
 function App() {
-  const [employees, setEmployees] = useState([]); const [selected, setSelected] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [filters, setFilters] = useState({ search: '', area: '', turno: '', desde: defaultDesde, hasta: defaultHasta });
+  const [employees, setEmployees] = useState([]); const [selected, setSelected] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [filters, setFilters] = useState({ search: '', turno: '', desde: defaultDesde, hasta: defaultHasta });
   const load = async () => { setLoading(true); setError(''); try { await refrescarAlcanceSupervisor(); const [workersPayload, summaryPayload] = await Promise.all([apiFetch('/trabajadores'), apiFetch(`/mediciones/resumen?desde=${filters.desde}&hasta=${filters.hasta}`)]); const summaries = new Map((summaryPayload.data || []).map((item) => [String(item.idTrabajador), item])); const merged = (workersPayload.data || []).filter(dentroDelAlcance).map((worker) => { const summary = summaries.get(String(worker.id)) || {}; const alertasPorTipo = summary.alertasPorTipo || {}; return { ...worker, ...summary, id: worker.id, nombre: worker.nombre, apellido: worker.apellido, area: worker.area, turno: worker.turno, alertasTotal: Object.values(alertasPorTipo).reduce((total, value) => total + Number(value || 0), 0) }; }); setEmployees(merged); } catch (loadError) { setError(loadError.message); } finally { setLoading(false); } };
   useEffect(() => { load(); }, []);
   // ?empleado=<id> abre directo el historial de ese operario (lo usan las tarjetas del Home del admin).
@@ -435,7 +434,7 @@ function App() {
     empleadoInicial.current = null;
     if (match) setSelected(match);
   }, [employees]);
-  return selected ? <DetailView employee={selected} filters={filters} onBack={() => setSelected(null)} /> : <ListView employees={employees} loading={loading} error={error} filters={filters} setFilters={setFilters} onSearch={load} onSelect={setSelected} />;
+  return selected ? <DetailView employee={selected} filters={filters} onBack={() => setSelected(null)} /> : <ListView employees={employees} loading={loading} error={error} filters={filters} setFilters={setFilters} onSelect={setSelected} />;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

@@ -6,6 +6,7 @@ const CREATE_USER_ENDPOINT = `${API_BASE_URL}/auth/users`;
 const usrGrupos = document.getElementById('usrGrupos');
 const usrCount = document.getElementById('usrCount');
 const usrSearch = document.getElementById('usrSearch');
+const usrSearchSuggestions = document.getElementById('usrSearchSuggestions');
 const usrRoles = document.getElementById('usrRoles');
 const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
 const modalOverlay = document.getElementById('usrModalOverlay');
@@ -44,6 +45,15 @@ function getAuthHeaders() {
 function iniciales(nombre = '', apellido = '') {
   const parts = [nombre, apellido].filter(Boolean);
   return parts.map((part) => part.trim()[0]).join('').toUpperCase();
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function normalizeRolForApi(value) {
@@ -133,6 +143,7 @@ async function cargarUsuarios() {
     usuarios = Array.isArray(json.data) ? json.data : [];
     renderEmpresaOptions();
     renderTabla();
+    actualizarSugerenciasUsuarios();
   } catch (error) {
     console.error('No se pudieron cargar los usuarios', error);
     usuarios = [];
@@ -226,6 +237,33 @@ function renderTabla(mensajeVacio = 'No se encontraron usuarios') {
         </div>
       </section>`;
   }).join('');
+}
+
+function nombreCompletoUsuario(usuario) {
+  return `${usuario.nombre || usuario.usuario_nombre || ''} ${usuario.apellido || usuario.usuario_apellido || ''}`.trim() || 'Usuario sin nombre';
+}
+
+function actualizarSugerenciasUsuarios() {
+  const busqueda = usrSearch.value.trim().toLowerCase();
+  const coincidencias = usuarios.filter((usuario) => {
+    const nombre = nombreCompletoUsuario(usuario).toLowerCase();
+    const email = String(usuario.email || '').toLowerCase();
+    return !busqueda || nombre.includes(busqueda) || email.includes(busqueda);
+  });
+  usrSearchSuggestions.innerHTML = coincidencias.length
+    ? coincidencias.map((usuario) => `<button class="usr-search__suggestion" type="button" role="option" data-search="${escapeHtml(nombreCompletoUsuario(usuario))}"><strong>${escapeHtml(nombreCompletoUsuario(usuario))}</strong><span>${escapeHtml(usuario.email || '--')}</span></button>`).join('')
+    : '<p class="usr-search__empty">No se encontraron usuarios</p>';
+}
+
+function mostrarSugerenciasUsuarios() {
+  actualizarSugerenciasUsuarios();
+  usrSearchSuggestions.hidden = false;
+  usrSearch.setAttribute('aria-expanded', 'true');
+}
+
+function ocultarSugerenciasUsuarios() {
+  usrSearchSuggestions.hidden = true;
+  usrSearch.setAttribute('aria-expanded', 'false');
 }
 
 // Los selects se muestran como buscadores (operario-autocomplete.js), que sólo
@@ -380,7 +418,20 @@ btnNuevoUsuario.addEventListener('click', abrirModal);
 modalClose.addEventListener('click', cerrarModal);
 modalCancel.addEventListener('click', cerrarModal);
 modalCreate.addEventListener('click', guardarUsuario);
-usrSearch.addEventListener('input', () => renderTabla());
+usrSearch.addEventListener('input', () => {
+  renderTabla();
+  mostrarSugerenciasUsuarios();
+});
+usrSearch.addEventListener('focus', mostrarSugerenciasUsuarios);
+usrSearch.addEventListener('keydown', (event) => { if (event.key === 'Escape') ocultarSugerenciasUsuarios(); });
+usrSearchSuggestions.addEventListener('mousedown', (event) => event.preventDefault());
+usrSearchSuggestions.addEventListener('click', (event) => {
+  const opcion = event.target.closest('.usr-search__suggestion');
+  if (!opcion) return;
+  usrSearch.value = opcion.dataset.search;
+  renderTabla();
+  ocultarSugerenciasUsuarios();
+});
 usrRoles.addEventListener('click', (e) => {
   const boton = e.target.closest('.usr-rol-btn');
   if (!boton) return;
@@ -406,6 +457,10 @@ document.addEventListener('click', (e) => {
   if (btnDesactivar) {
     desactivarUsuario(btnDesactivar.dataset.id);
   }
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.usr-search__field')) ocultarSugerenciasUsuarios();
 });
 
 document.addEventListener('keydown', (e) => {

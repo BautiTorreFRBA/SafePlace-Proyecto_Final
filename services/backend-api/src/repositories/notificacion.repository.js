@@ -30,7 +30,8 @@ const listar = async ({ leida, usuario = {} } = {}) => {
       ta.nombre AS tipo_alerta,
       ta.prioridad,
       o.nombre AS operario_nombre,
-      o.apellido AS operario_apellido
+      o.apellido AS operario_apellido,
+      o.area AS operario_area
     FROM notificacion n
     JOIN alerta a ON a.id = n.id_alerta
     JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta

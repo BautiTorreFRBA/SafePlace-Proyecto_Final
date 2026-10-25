@@ -2,7 +2,8 @@ const API_BASE_URL = 'https://safeplace-backend-9vhx.onrender.com/api/v1';
 const tableBody = document.getElementById('histTableBody');
 const histCount = document.getElementById('histCount');
 const filterEmpleado = document.getElementById('filterEmpleado');
-const filterDesde = document.getElementById('filterDesde');
+const filterArea = document.getElementById('filterArea');
+const filterTurno = document.getElementById('filterTurno');
 const filterTipo = document.getElementById('filterTipo');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
@@ -106,9 +107,10 @@ function formatearFecha(fechaHora = '') {
 
 function obtenerFiltros() {
   return {
-    desde: filterDesde.value || '',
     tipo: filterTipo.value.trim(),
     empleado: filterEmpleado.value.trim(),
+    area: filterArea.value.trim(),
+    turno: filterTurno.value.trim(),
   };
 }
 
@@ -128,7 +130,8 @@ async function cargarEmpleados() {
   if (!res.ok) throw new Error('No se pudieron cargar los operarios.');
 
   const json = await res.json();
-  const empleados = (json.data || [])
+  const registros = json.data || [];
+  const empleados = registros
     .map((empleado) => nombreEmpleado(empleado))
     .filter(Boolean)
     .filter((nombre, indice, lista) => lista.indexOf(nombre) === indice)
@@ -137,6 +140,17 @@ async function cargarEmpleados() {
   filterEmpleado.innerHTML = '<option value="">Todos los operarios</option>'
     + empleados.map((nombre) => `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`).join('');
   filterEmpleado.disabled = false;
+
+  const cargarOpciones = (select, valores, etiqueta) => {
+    const opciones = [...new Set(valores.map((valor) => String(valor || '').trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    select.innerHTML = `<option value="">Todas las ${etiqueta}</option>`
+      + opciones.map((valor) => `<option value="${escapeHtml(valor)}">${escapeHtml(capitalizar(valor))}</option>`).join('');
+    select.disabled = false;
+  };
+
+  cargarOpciones(filterArea, registros.map((empleado) => empleado.area || empleado.operario_area), 'áreas');
+  cargarOpciones(filterTurno, registros.map((empleado) => empleado.turno || empleado.operario_turno), 'turnos');
 }
 
 function actualizarContador(cantidad) {
@@ -169,9 +183,7 @@ function resumenAnalisis() {
 function renderAnalisis() {
   if (!histAnalisis) return;
   const { total, criticas, resueltas, principal } = resumenAnalisis();
-  const periodo = filterDesde.value
-    ? `Análisis del sistema desde el ${filterDesde.value.split('-').reverse().join('/')}`
-    : 'Análisis del histórico del sistema';
+  const periodo = 'Análisis del histórico del sistema';
   const pctResueltas = total ? Math.round((resueltas / total) * 100) : 0;
   histAnalisis.innerHTML = `
     <div class="hist-analisis__heading"><div><strong>Resumen del histórico</strong><span>${escapeHtml(periodo)}</span></div></div>
@@ -328,17 +340,13 @@ function exportarExcel() {
 }
 
 async function cargarHistorial() {
-  const { desde, tipo, empleado } = obtenerFiltros();
-
-  if (!desde) {
-    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
-    return;
-  }
+  const { tipo, empleado, area, turno } = obtenerFiltros();
 
   const params = new URLSearchParams();
-  params.set('desde', desde);
   if (tipo) params.set('tipo', tipo);
   if (empleado) params.set('empleado', empleado);
+  if (area) params.set('area', area);
+  if (turno) params.set('turno', turno);
 
   const url = `${API_BASE_URL}/alertas/historico?${params.toString()}`;
 
@@ -383,11 +391,6 @@ async function cargarHistorial() {
 }
 
 function programarRecarga() {
-  if (!filterDesde.value) {
-    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
-    return;
-  }
-
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     cargarHistorial().catch((error) => {
@@ -399,29 +402,11 @@ function programarRecarga() {
 
 filterEmpleado.addEventListener('change', programarRecarga);
 filterTipo.addEventListener('change', programarRecarga);
-filterDesde.addEventListener('change', () => {
-  if (!filterDesde.value) {
-    renderEstadoInicial('Seleccion una fecha en el filtro Desde para consultar el historial.');
-    return;
-  }
-
-  cargarHistorial().catch((error) => {
-    console.error(error);
-    histCount.textContent = error.message;
-  });
-});
+filterArea.addEventListener('change', programarRecarga);
+filterTurno.addEventListener('change', programarRecarga);
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
-function fechaHace30Dias() {
-  const fecha = new Date();
-  fecha.setDate(fecha.getDate() - 29);
-  return fecha.toISOString().slice(0, 10);
-}
-
-// Al ingresar se muestra el análisis reciente del sistema, sin requerir que
-// la persona usuaria configure filtros primero.
-if (!filterDesde.value) filterDesde.value = fechaHace30Dias();
 renderEstadoInicial('Cargando análisis del histórico de alertas...');
 cargarEmpleados().catch((error) => {
   console.error(error);

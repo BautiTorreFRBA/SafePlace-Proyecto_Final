@@ -919,6 +919,65 @@ html[data-theme="light"] .alert-btn--revisar:disabled:hover { color:var(--text-s
   position: relative;
 }
 
+.emp-search__suggestions {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .28);
+}
+
+.emp-search__suggestion {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: .82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.emp-search__suggestion:hover,
+.emp-search__suggestion:focus {
+  color: var(--teal-300);
+  background: rgba(45, 212, 191, .12);
+  outline: none;
+}
+
+.emp-search__suggestion span,
+.emp-search__empty {
+  color: var(--text-secondary);
+  font-size: .76rem;
+}
+
+.emp-search__empty {
+  margin: 8px 10px;
+}
+
+/* Asociación de wearables: los dos buscadores aprovechan todo el ancho libre. */
+.asoc-toolbar {
+  gap: 16px;
+}
+
+.asoc-search-field {
+  flex: 1 1 380px;
+  min-width: 280px;
+}
+
 .emp-search__icon {
   position: absolute;
   left: 14px;
@@ -3080,6 +3139,12 @@ select.cfg-input {
   margin-top: 3px;
 }
 
+.notif-card__area {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .notif-card__meta {
   font-size: 0.86rem;
   color: #6b7280;
@@ -4263,9 +4328,13 @@ select.cfg-input {
   padding: 0 28px 16px;
 }
 
+.usr-search__field {
+  position: relative;
+  max-width: 550px;
+}
+
 .usr-search__input {
   width: 100%;
-  max-width: 550px;
   padding: 10px 16px;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -4284,6 +4353,53 @@ select.cfg-input {
 .usr-search__input::placeholder {
   color: var(--text-muted);
 }
+
+.usr-search__suggestions {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .28);
+}
+
+.usr-search__suggestion {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: .82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.usr-search__suggestion:hover,
+.usr-search__suggestion:focus {
+  color: var(--teal-300);
+  background: rgba(45, 212, 191, .12);
+  outline: none;
+}
+
+.usr-search__suggestion span,
+.usr-search__empty {
+  color: var(--text-secondary);
+  font-size: .76rem;
+}
+
+.usr-search__empty { margin: 8px 10px; }
 
 /* ── USUARIOS AGRUPADOS POR ROL (recuadros como las áreas de Empleados) ── */
 

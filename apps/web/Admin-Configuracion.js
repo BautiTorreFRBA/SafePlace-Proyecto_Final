@@ -80,6 +80,10 @@ btnGuardar.addEventListener('click', guardarConfiguracion);
 // Se guardan en operario."FC_Fatiga" / "FC_Sobreesfuerzo"; el id de cada fila es el del operario.
 
 const particularTableBody = document.getElementById('particularTableBody');
+const particularSearch = document.getElementById('particularSearch');
+const particularSearchSuggestions = document.getElementById('particularSearchSuggestions');
+const filterParticularArea = document.getElementById('filterParticularArea');
+const filterParticularTurno = document.getElementById('filterParticularTurno');
 const btnNuevaParticular = document.getElementById('btnNuevaParticular');
 const particularModalOverlay = document.getElementById('particularModalOverlay');
 const particularModalTitle = document.getElementById('particularModalTitle');
@@ -98,6 +102,7 @@ const nombreOperario = (o) => `${o.apellido || ''}, ${o.nombre || ''}`.replace(/
 async function cargarParticulares() {
   const payload = await apiFetch('/umbrales-operario');
   particulares = payload.data || [];
+  poblarFiltrosParticulares();
   renderParticulares();
 }
 
@@ -109,9 +114,22 @@ async function cargarOperarios() {
 }
 
 function renderParticulares() {
-  particularTableBody.innerHTML = particulares.length === 0
-    ? '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">Sin configuraciones particulares — todos los operarios usan los umbrales de arriba</td></tr>'
-    : particulares.map((p) => `
+  const busqueda = normalizarBusqueda(particularSearch.value);
+  const area = filterParticularArea.value;
+  const turno = filterParticularTurno.value;
+  const filtradas = particulares.filter((p) => {
+    const nombre = nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido });
+    const coincideBusqueda = !busqueda
+      || normalizarBusqueda(nombre).includes(busqueda)
+      || normalizarBusqueda(p.operario_legajo).includes(busqueda);
+    return coincideBusqueda
+      && (!area || p.operario_area === area)
+      && (!turno || p.operario_turno === turno);
+  });
+
+  particularTableBody.innerHTML = filtradas.length === 0
+    ? `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">${particulares.length ? 'No se encontraron configuraciones para los filtros seleccionados' : 'Sin configuraciones particulares — todos los operarios usan los umbrales de arriba'}</td></tr>`
+    : filtradas.map((p) => `
       <tr>
         <td>${escapeHtml(nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }))}</td>
         <td class="emp-id">${escapeHtml(p.operario_legajo || '--')}</td>
@@ -121,6 +139,49 @@ function renderParticulares() {
         <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${p.id}">Editar</button><button class="emp-actions__deactivate" data-id="${p.id}">Quitar</button></div></td>
       </tr>
     `).join('');
+}
+
+function normalizarBusqueda(valor = '') {
+  return String(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').trim();
+}
+
+function poblarFiltrosParticulares() {
+  const poblar = (select, valores, etiqueta) => {
+    const actual = select.value;
+    const opciones = [...new Set(valores.map((valor) => String(valor || '').trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    const textoInicial = etiqueta === 'áreas' ? 'Todas las áreas' : 'Todos los turnos';
+    select.innerHTML = `<option value="">${textoInicial}</option>`
+      + opciones.map((valor) => `<option value="${escapeHtml(valor)}">${escapeHtml(valor.charAt(0).toUpperCase() + valor.slice(1))}</option>`).join('');
+    select.value = opciones.includes(actual) ? actual : '';
+  };
+  poblar(filterParticularArea, particulares.map((p) => p.operario_area), 'áreas');
+  poblar(filterParticularTurno, particulares.map((p) => p.operario_turno), 'turnos');
+}
+
+function actualizarSugerenciasParticulares() {
+  const busqueda = normalizarBusqueda(particularSearch.value);
+  const coincidencias = particulares.filter((p) => {
+    const nombre = nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido });
+    return !busqueda || normalizarBusqueda(nombre).includes(busqueda) || normalizarBusqueda(p.operario_legajo).includes(busqueda);
+  });
+  particularSearchSuggestions.innerHTML = coincidencias.length
+    ? coincidencias.map((p) => {
+      const nombre = nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido });
+      return `<button class="emp-search__suggestion" type="button" role="option" data-search="${escapeHtml(nombre)}"><strong>${escapeHtml(nombre)}</strong><span>${escapeHtml(p.operario_legajo || 'Sin legajo')}</span></button>`;
+    }).join('')
+    : '<p class="emp-search__empty">No se encontraron operarios</p>';
+}
+
+function mostrarSugerenciasParticulares() {
+  actualizarSugerenciasParticulares();
+  particularSearchSuggestions.hidden = false;
+  particularSearch.setAttribute('aria-expanded', 'true');
+}
+
+function ocultarSugerenciasParticulares() {
+  particularSearchSuggestions.hidden = true;
+  particularSearch.setAttribute('aria-expanded', 'false');
 }
 
 // Al crear se ofrecen sólo los operarios que todavía no tienen configuración
@@ -208,6 +269,25 @@ particularModalClose.addEventListener('click', cerrarModalParticular);
 particularModalCancel.addEventListener('click', cerrarModalParticular);
 particularModalOverlay.addEventListener('click', (e) => { if (e.target === particularModalOverlay) cerrarModalParticular(); });
 particularModalSave.addEventListener('click', guardarParticular);
+particularSearch.addEventListener('input', () => {
+  renderParticulares();
+  mostrarSugerenciasParticulares();
+});
+particularSearch.addEventListener('focus', mostrarSugerenciasParticulares);
+particularSearch.addEventListener('keydown', (event) => { if (event.key === 'Escape') ocultarSugerenciasParticulares(); });
+particularSearchSuggestions.addEventListener('mousedown', (event) => event.preventDefault());
+particularSearchSuggestions.addEventListener('click', (event) => {
+  const opcion = event.target.closest('.emp-search__suggestion');
+  if (!opcion) return;
+  particularSearch.value = opcion.dataset.search;
+  renderParticulares();
+  ocultarSugerenciasParticulares();
+});
+filterParticularArea.addEventListener('change', renderParticulares);
+filterParticularTurno.addEventListener('change', renderParticulares);
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.cfg-particular-toolbar .emp-search')) ocultarSugerenciasParticulares();
+});
 
 cargarConfiguracion().catch((error) => alert(`No se pudo cargar la configuración: ${error.message}`));
 cargarParticulares().catch((error) => alert(`No se pudieron cargar las configuraciones particulares: ${error.message}`));

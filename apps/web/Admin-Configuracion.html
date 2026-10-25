@@ -159,6 +159,20 @@
             <button class="btn-nuevo" id="btnNuevaParticular"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva configuración</button>
         </div>
 
+        <div class="emp-toolbar cfg-particular-toolbar">
+            <div class="emp-search">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="emp-search__icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="emp-search__input" id="particularSearch" type="text" placeholder="Buscar por nombre, apellido o legajo..." autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="particularSearchSuggestions" />
+                <div class="emp-search__suggestions" id="particularSearchSuggestions" role="listbox" hidden></div>
+            </div>
+            <select class="emp-filter" id="filterParticularArea" aria-label="Filtrar configuraciones por área">
+                <option value="">Todas las áreas</option>
+            </select>
+            <select class="emp-filter" id="filterParticularTurno" aria-label="Filtrar configuraciones por turno">
+                <option value="">Todos los turnos</option>
+            </select>
+        </div>
+
         <div class="emp-table-wrap">
             <table class="emp-table">
                 <thead>

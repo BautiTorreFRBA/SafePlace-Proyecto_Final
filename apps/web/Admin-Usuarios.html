@@ -65,7 +65,7 @@
     <!-- PANTALLA Usuario -->
    
     <!-- Buscador -->
-    <div class="usr-search"><input type="text" class="usr-search__input" id="usrSearch" placeholder="Buscar por nombre o email..."/></div>
+    <div class="usr-search"><div class="usr-search__field"><input type="text" class="usr-search__input" id="usrSearch" placeholder="Buscar por nombre o email..." autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="usrSearchSuggestions"/><div class="usr-search__suggestions" id="usrSearchSuggestions" role="listbox" hidden></div></div></div>
 
     <!-- Filtro por rol: un botón por rol (inyectados por Admin-Usuarios.js) -->
     <div class="usr-roles" id="usrRoles" role="group" aria-label="Filtrar por rol"></div>

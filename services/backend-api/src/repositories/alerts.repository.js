@@ -7,6 +7,8 @@ const listarHistorialAlertas = async ({
   desde = null,
   tipo = null,
   empleado = null,
+  area = null,
+  turno = null,
   usuario = {},
 } = {}) => {
   const turnoSeguridad = turnoSeguridadActual(usuario);
@@ -21,7 +23,9 @@ const listarHistorialAlertas = async ({
       a.estado,
       o.id AS id_trabajador,
       o.nombre AS operario_nombre,
-      o.apellido AS operario_apellido
+      o.apellido AS operario_apellido,
+      o.area AS operario_area,
+      o.turno AS operario_turno
     FROM alerta a
     LEFT JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     LEFT JOIN medicion m ON m.id = a.id_medicion
@@ -36,11 +40,13 @@ const listarHistorialAlertas = async ({
         $3::text IS NULL
         OR CONCAT_WS(' ', o.nombre, o.apellido) ILIKE '%' || $3 || '%'
       )
-      AND ($4::text IS NULL OR o.turno = $4)
+      AND ($4::text IS NULL OR o.area = $4)
+      AND ($5::text IS NULL OR o.turno = $5)
+      AND ($6::text IS NULL OR o.turno = $6)
     ORDER BY a.fecha_hora DESC, a.id DESC;
   `;
 
-  const res = await db.query(query, [desde, tipo, empleado, turnoSeguridad]);
+  const res = await db.query(query, [desde, tipo, empleado, area, turno, turnoSeguridad]);
   return res.rows;
 };
 
