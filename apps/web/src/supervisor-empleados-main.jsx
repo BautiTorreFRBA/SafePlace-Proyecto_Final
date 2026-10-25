@@ -113,10 +113,19 @@ function Sidebar() {
 }
 
 function Layout({ children, selected, onBack }) {
-  const origenAdmin = new URLSearchParams(window.location.search).get('origen');
-  const volverAdmin = origenAdmin === 'operarios' ? 'Admin-Empleados.html' : 'Admin-Home.html';
-  const textoVolverAdmin = origenAdmin === 'operarios' ? 'Volver a operarios' : 'Volver al inicio';
-  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del operario' : 'Operarios'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={PAGE_ROL === 'admin' ? () => { window.location.href = volverAdmin; } : onBack}><span>←</span> {PAGE_ROL === 'admin' ? textoVolverAdmin : 'Volver a operarios'}</button>}{children}</main></div>;
+  const origen = new URLSearchParams(window.location.search).get('origen');
+  const destinosPorRol = {
+    admin: { home: 'Admin-Home.html', operarios: 'Admin-Empleados.html' },
+    supervisor: { home: 'Supervisor-Home.html', operarios: 'Supervisor-Empleados.html' },
+    seguridad: { home: 'Seguridad-Home.html', operarios: 'Seguridad-Empleados.html' },
+  };
+  const destinoVolver = destinosPorRol[PAGE_ROL]?.[origen];
+  const textoVolver = origen === 'home' ? 'Volver al inicio' : 'Volver a operarios';
+  const volver = destinoVolver
+    ? () => { window.location.href = destinoVolver; }
+    : onBack;
+
+  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del operario' : 'Operarios'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={volver}><span>←</span> {textoVolver}</button>}{children}</main></div>;
 }
 
 // El encabezado de cada grupo usa este único mapeo; turnos nuevos conservan su
