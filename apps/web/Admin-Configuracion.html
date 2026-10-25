@@ -152,12 +152,15 @@
         <!-- Configuración particular: FC de fatiga y sobreesfuerzo propias de
              un operario (operario."FC_Fatiga" / "FC_Sobreesfuerzo"). Todos los
              demás usan los umbrales globales de arriba. -->
-        <div class="emp-header" style="margin-top:8px;">
-            <div>
-                <h2 class="emp-header__title" style="font-size:1.05rem;">Configuración particular</h2>
-                            </div>
-            <button class="btn-nuevo" id="btnNuevaParticular"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva configuración</button>
-        </div>
+        <details class="cfg-particular-section" open>
+          <summary class="cfg-particular-section__summary">
+            <div><h2 class="emp-header__title" style="font-size:1.05rem;">Configuración particular</h2><p>Umbrales de frecuencia cardíaca personalizados por operario.</p></div>
+            <span class="cfg-particular-section__chevron" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="cfg-particular-section__content">
+            <div class="cfg-particular-section__actions">
+              <button class="btn-nuevo" id="btnNuevaParticular"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva configuración</button>
+            </div>
 
         <div class="emp-toolbar cfg-particular-toolbar">
             <div class="emp-search">
@@ -165,29 +168,17 @@
                 <input class="emp-search__input" id="particularSearch" type="text" placeholder="Buscar por nombre, apellido o legajo..." autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="particularSearchSuggestions" />
                 <div class="emp-search__suggestions" id="particularSearchSuggestions" role="listbox" hidden></div>
             </div>
-            <select class="emp-filter" id="filterParticularArea" aria-label="Filtrar configuraciones por área">
+            <select class="emp-filter" id="filterParticularArea" aria-label="Filtrar configuraciones por área" data-no-autocomplete>
                 <option value="">Todas las áreas</option>
             </select>
-            <select class="emp-filter" id="filterParticularTurno" aria-label="Filtrar configuraciones por turno">
+            <select class="emp-filter" id="filterParticularTurno" aria-label="Filtrar configuraciones por turno" data-no-autocomplete>
                 <option value="">Todos los turnos</option>
             </select>
         </div>
 
-        <div class="emp-table-wrap">
-            <table class="emp-table">
-                <thead>
-                    <tr>
-                        <th>OPERARIO</th>
-                        <th>LEGAJO</th>
-                        <th>FC FATIGA</th>
-                        <th>FC SOBREESFUERZO</th>
-                        <th>ÁREA / TURNO</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="particularTableBody"></tbody>
-            </table>
-        </div>
+        <section class="grupos-area-turno emp-grupos cfg-particular-groups" id="particularGroups" aria-live="polite"></section>
+          </div>
+        </details>
 
         <div class="modal-overlay" id="particularModalOverlay">
             <div class="modal">

@@ -978,6 +978,24 @@ html[data-theme="light"] .alert-btn--revisar:disabled:hover { color:var(--text-s
   min-width: 280px;
 }
 
+.asoc-search-field .modal__input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cfg-particular-section { margin: 8px 28px 28px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.cfg-particular-section__summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 20px; cursor: pointer; list-style: none; }
+.cfg-particular-section__summary::-webkit-details-marker { display: none; }
+.cfg-particular-section__summary p { margin: 4px 0 0; color: var(--text-secondary); font-size: .82rem; }
+.cfg-particular-section__chevron { color: var(--text-secondary); font-size: 1.35rem; transition: transform .2s; }
+.cfg-particular-section:not([open]) .cfg-particular-section__chevron { transform: rotate(-90deg); }
+.cfg-particular-section__content { border-top: 1px solid var(--border); padding-bottom: 8px; }
+.cfg-particular-section__actions { display: flex; justify-content: flex-end; padding: 14px 20px 0; }
+.cfg-particular-section .emp-toolbar { padding-right: 20px; padding-left: 20px; }
+.cfg-particular-groups { padding: 0 20px 20px !important; }
+.cfg-particular-toolbar { flex-wrap: nowrap !important; }
+.cfg-particular-toolbar .emp-search { min-width: 260px; }
+
 .emp-search__icon {
   position: absolute;
   left: 14px;

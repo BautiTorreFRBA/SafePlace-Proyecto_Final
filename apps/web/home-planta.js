@@ -6,6 +6,13 @@ const LIMITE_DESACTUALIZADO_S = 5 * 60;
 // <body data-historial="..."> a qué pantalla de historial llevan las tarjetas (?empleado=<id>).
 // El backend ya limita /estado/trabajadores-activos al alcance de cada supervisor.
 const HISTORIAL_URL = document.body.dataset.historial || 'Admin-HistorialEmpleado.html';
+const HISTORIAL_ORIGEN = document.body.dataset.historialOrigen || '';
+
+function enlaceHistorial(idTrabajador) {
+  const parametros = new URLSearchParams({ empleado: String(idTrabajador) });
+  if (HISTORIAL_ORIGEN) parametros.set('origen', HISTORIAL_ORIGEN);
+  return `${HISTORIAL_URL}?${parametros.toString()}`;
+}
 
 // Estado de cada tarjeta → color del dibujo, etiqueta del chip, grupo del filtro y orden.
 // Es el único lugar donde se define el mapeo: cambiar un color acá lo cambia en toda la pantalla.
@@ -179,7 +186,7 @@ function renderTarjeta(item) {
   const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong></div>`;
 
   const innerEl = `<div class="op-avatar" style="-webkit-mask-image:url('${avatar}');mask-image:url('${avatar}')"><img src="${avatar}" alt="Foto de ${escapeHtml(nombre)}" /></div>`;
-  return `<a class="op-card${item.estado === 'normal' ? ' op-card--normal' : ''}${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${HISTORIAL_URL}?empleado=${encodeURIComponent(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
+  return `<a class="op-card${item.estado === 'normal' ? ' op-card--normal' : ''}${item.estado === 'emergencia' ? ' op-card--emergencia' : ''}${item.estado === 'super_emergencia' ? ' op-card--super-emergencia' : ''}" href="${enlaceHistorial(item.id_trabajador)}" style="--estado:${config.color}" aria-label="Ver historial de ${escapeHtml(nombre)}" title="${escapeHtml(subtitulo)}">
     ${innerEl}
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">

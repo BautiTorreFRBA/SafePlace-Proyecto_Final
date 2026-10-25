@@ -113,7 +113,10 @@ function Sidebar() {
 }
 
 function Layout({ children, selected, onBack }) {
-  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del operario' : 'Operarios'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={PAGE_ROL === 'admin' ? () => { window.location.href = 'Admin-Home.html'; } : onBack}><span>←</span> {PAGE_ROL === 'admin' ? 'Volver al inicio' : 'Volver a operarios'}</button>}{children}</main></div>;
+  const origenAdmin = new URLSearchParams(window.location.search).get('origen');
+  const volverAdmin = origenAdmin === 'operarios' ? 'Admin-Empleados.html' : 'Admin-Home.html';
+  const textoVolverAdmin = origenAdmin === 'operarios' ? 'Volver a operarios' : 'Volver al inicio';
+  return <div className="app empleados-page"><Sidebar /><main className="main"><header className="topbar"><div className="topbar__title">{selected ? 'Historial del operario' : 'Operarios'}</div><div className="topbar__right"><div className="status-dot"><span className="dot dot--green"></span> En línea</div><div className="avatar">{sessionUser().initials}</div></div></header>{selected && <button className="empleado-back" onClick={PAGE_ROL === 'admin' ? () => { window.location.href = volverAdmin; } : onBack}><span>←</span> {PAGE_ROL === 'admin' ? textoVolverAdmin : 'Volver a operarios'}</button>}{children}</main></div>;
 }
 
 // El encabezado de cada grupo usa este único mapeo; turnos nuevos conservan su

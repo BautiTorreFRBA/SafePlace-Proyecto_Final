@@ -79,7 +79,7 @@ btnGuardar.addEventListener('click', guardarConfiguracion);
 // ---- Configuración particular (/umbrales-operario): FC propias por operario ----
 // Se guardan en operario."FC_Fatiga" / "FC_Sobreesfuerzo"; el id de cada fila es el del operario.
 
-const particularTableBody = document.getElementById('particularTableBody');
+const particularGroups = document.getElementById('particularGroups');
 const particularSearch = document.getElementById('particularSearch');
 const particularSearchSuggestions = document.getElementById('particularSearchSuggestions');
 const filterParticularArea = document.getElementById('filterParticularArea');
@@ -127,18 +127,40 @@ function renderParticulares() {
       && (!turno || p.operario_turno === turno);
   });
 
-  particularTableBody.innerHTML = filtradas.length === 0
-    ? `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.875rem;">${particulares.length ? 'No se encontraron configuraciones para los filtros seleccionados' : 'Sin configuraciones particulares — todos los operarios usan los umbrales de arriba'}</td></tr>`
-    : filtradas.map((p) => `
-      <tr>
-        <td>${escapeHtml(nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }))}</td>
-        <td class="emp-id">${escapeHtml(p.operario_legajo || '--')}</td>
-        <td>${p.fc_fatiga != null ? `<strong>${escapeHtml(p.fc_fatiga)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
-        <td>${p.fc_sobreesfuerzo != null ? `<strong>${escapeHtml(p.fc_sobreesfuerzo)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
-        <td style="color:var(--text-secondary); font-size:0.82rem">${escapeHtml(p.operario_area || '--')} · ${escapeHtml(p.operario_turno ? p.operario_turno.charAt(0).toUpperCase() + p.operario_turno.slice(1) : '--')}</td>
-        <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${p.id}">Editar</button><button class="emp-actions__deactivate" data-id="${p.id}">Quitar</button></div></td>
-      </tr>
-    `).join('');
+  if (filtradas.length === 0) {
+    particularGroups.innerHTML = `<p class="emp-grupos__mensaje">${particulares.length ? 'No se encontraron configuraciones para los filtros seleccionados' : 'Sin configuraciones particulares — todos los operarios usan los umbrales generales'}</p>`;
+    return;
+  }
+
+  const porArea = new Map();
+  filtradas.forEach((p) => {
+    const areaOperario = p.operario_area || 'Sin asignar';
+    const turnoOperario = String(p.operario_turno || 'sin turno').toLocaleLowerCase('es');
+    if (!porArea.has(areaOperario)) porArea.set(areaOperario, new Map());
+    const turnos = porArea.get(areaOperario);
+    if (!turnos.has(turnoOperario)) turnos.set(turnoOperario, []);
+    turnos.get(turnoOperario).push(p);
+  });
+
+  const ordenTurno = (turnoNombre) => ({ mañana: 0, tarde: 1, noche: 2 }[turnoNombre] ?? 3);
+  const etiquetaTurno = (turnoNombre) => turnoNombre ? turnoNombre.charAt(0).toLocaleUpperCase('es') + turnoNombre.slice(1) : 'Sin turno';
+  const fila = (p) => `<tr>
+    <td>${escapeHtml(nombreOperario({ id: p.id_operario, nombre: p.operario_nombre, apellido: p.operario_apellido }))}</td>
+    <td class="emp-id">${escapeHtml(p.operario_legajo || '--')}</td>
+    <td>${p.fc_fatiga != null ? `<strong>${escapeHtml(p.fc_fatiga)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
+    <td>${p.fc_sobreesfuerzo != null ? `<strong>${escapeHtml(p.fc_sobreesfuerzo)}</strong> <span style="color:var(--text-muted)">BPM</span>` : '<span style="color:var(--text-muted)">General</span>'}</td>
+    <td><div class="emp-actions"><button class="emp-actions__edit" data-id="${p.id}">Editar</button><button class="emp-actions__deactivate" data-id="${p.id}">Quitar</button></div></td>
+  </tr>`;
+  const buscando = Boolean(busqueda || area || turno);
+  particularGroups.innerHTML = [...porArea.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'))
+    .map(([nombreArea, turnos]) => `<section class="area-turno-seccion">
+      <h3 class="area-turno-seccion__titulo">${escapeHtml(nombreArea)} <small>${[...turnos.values()].flat().length} operario${[...turnos.values()].flat().length !== 1 ? 's' : ''}</small></h3>
+      <div class="emp-grupos__turnos">${[...turnos.entries()].sort(([a], [b]) => ordenTurno(a) - ordenTurno(b)).map(([nombreTurno, lista]) => `<details class="grupo-area-turno"${buscando ? ' open' : ''}>
+        <summary class="grupo-area-turno__header"><h4>${escapeHtml(etiquetaTurno(nombreTurno))}</h4><span>${lista.length} operario${lista.length !== 1 ? 's' : ''}</span></summary>
+        <div class="emp-grupos__tabla"><table class="emp-table"><thead><tr><th>OPERARIO</th><th>LEGAJO</th><th>FC FATIGA</th><th>FC SOBREESFUERZO</th><th></th></tr></thead><tbody>${lista.map(fila).join('')}</tbody></table></div>
+      </details>`).join('')}</div>
+    </section>`).join('');
 }
 
 function normalizarBusqueda(valor = '') {
@@ -258,7 +280,7 @@ async function quitarParticular(id) {
   }
 }
 
-particularTableBody.addEventListener('click', (e) => {
+particularGroups.addEventListener('click', (e) => {
   const editBtn = e.target.closest('.emp-actions__edit');
   if (editBtn) { abrirModalParticular(editBtn.dataset.id); return; }
   const quitarBtn = e.target.closest('.emp-actions__deactivate');

@@ -500,7 +500,7 @@ empGrupos.addEventListener('click', (e) => {
   // Cualquier parte de la fila abre el historial, excepto sus acciones propias.
   const fila = e.target.closest('.emp-row--history');
   if (fila?.dataset.empleadoId) {
-    window.location.href = `Admin-HistorialEmpleado.html?empleado=${encodeURIComponent(fila.dataset.empleadoId)}`;
+    window.location.href = `Admin-HistorialEmpleado.html?empleado=${encodeURIComponent(fila.dataset.empleadoId)}&origen=operarios`;
   }
 });
 
