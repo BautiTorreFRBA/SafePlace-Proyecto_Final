@@ -33,9 +33,10 @@ const listarOperariosSimulados = async () => {
       LIMIT 1
     ) ad ON true
     JOIN operario o ON o.id = ad.id_trabajador
-    WHERE d.direccion_mac ~* '^02:5E:ED:00:00:(0[1-9]|0A)$'
+    WHERE d.marca = 'SafePlace Sim'
+      AND d.estado IS TRUE
       AND o.estado IS TRUE
-    ORDER BY d.direccion_mac;
+    ORDER BY d.id;
   `);
   return rows;
 };

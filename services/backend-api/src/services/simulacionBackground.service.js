@@ -8,26 +8,34 @@ const medicionesService  = require('./mediciones.service');
 const simulacionRepo     = require('../repositories/simulacion.repository');
 const db                 = require('../config/database');
 
-const CANTIDAD  = 10;
 const TICK_MS   = 5_000;
 const POLL_MS   = 15_000;
 
-const simMac = (n) => `02:5E:ED:00:00:${n.toString(16).toUpperCase().padStart(2, '0')}`;
+// Mismo criterio que simulacion.repository.listarOperariosSimulados: si los dos
+// no coinciden, la tabla de la pantalla y lo que realmente emite se desfasan.
+const MARCA_SIM = 'SafePlace Sim';
 
-let deviceIds       = null;   // [id, id, …] resueltos al primer arranque
+let deviceIds        = [];
 let simulacionActiva = false;
 
+// Antes eran 10 MACs fijas resueltas una sola vez: un operario nuevo no podía
+// entrar nunca a la simulación, ni asignándole un wearable simulado, porque la
+// lista quedaba cacheada hasta reiniciar. Sin asignación vigente la medición se
+// descartaría igual, así que emitir para esos sería trabajo perdido.
 async function resolverDispositivos() {
-  const ids = [];
-  for (let i = 1; i <= CANTIDAD; i++) {
-    const { rows } = await db.query(
-      'SELECT id FROM dispositivo WHERE direccion_mac = $1 LIMIT 1',
-      [simMac(i)],
-    );
-    if (rows[0]) ids.push(rows[0].id);
-  }
-  console.log(`[sim-bg] ${ids.length}/${CANTIDAD} dispositivos sim resueltos`);
-  return ids;
+  const { rows } = await db.query(
+    `SELECT d.id
+       FROM dispositivo d
+       JOIN asignacion_dispositivo ad ON ad.id_dispositivo = d.id
+      WHERE d.marca = $1
+        AND d.estado = TRUE
+        AND ad.fecha_desde <= now()
+        AND (ad.fecha_hasta IS NULL OR ad.fecha_hasta >= now())
+      GROUP BY d.id
+      ORDER BY d.id;`,
+    [MARCA_SIM],
+  );
+  return rows.map((r) => r.id);
 }
 
 function fcAleatoria(seed) {
@@ -56,7 +64,15 @@ async function pollEstado() {
     if (nueva !== simulacionActiva) {
       simulacionActiva = nueva;
       console.log(nueva ? '[sim-bg] ▶ Simulación ACTIVADA' : '[sim-bg] ⏸ Simulación PAUSADA');
-      if (nueva && !deviceIds) deviceIds = await resolverDispositivos();
+    }
+    // Se re-resuelve en cada poll, no sólo al activar: así un operario dado de
+    // alta y asignado entra a la simulación en el próximo ciclo, sin reiniciar.
+    if (simulacionActiva) {
+      const previos = deviceIds.length;
+      deviceIds = await resolverDispositivos();
+      if (deviceIds.length !== previos) {
+        console.log(`[sim-bg] ${deviceIds.length} dispositivos simulados con asignación vigente`);
+      }
     }
   } catch (e) {
     console.error('[sim-bg] poll error:', e.message);

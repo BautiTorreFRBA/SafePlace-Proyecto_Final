@@ -44,12 +44,87 @@ async function cargar() {
     renderOperarios(operarios?.data || []);
     simActiva = Boolean(simulacion?.data?.activa);
     actualizarControlSimulacion();
+    await cargarSlots();
   } catch (error) {
     count.textContent = 'No se pudo cargar la simulación';
     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:#fca5a5">${escapeHtml(error.message)}</td></tr>`;
     statusText.textContent = 'No disponible';
   }
 }
+
+// ---- Alta de operario con wearable del simulador ----
+
+const slotSelect = document.getElementById('altaSlot');
+const slotsInfo = document.getElementById('altaSlots');
+const btnAlta = document.getElementById('btnAlta');
+
+// Un wearable está libre si su última asignación no está vigente: sin mirar
+// fecha_hasta, uno ya liberado seguiría apareciendo como ocupado.
+function estaLibre(d) {
+  if (d.operario_id == null) return true;
+  return d.fecha_hasta != null && new Date(d.fecha_hasta) < new Date();
+}
+
+function aviso(texto, esError) {
+  const el = document.getElementById('altaAviso');
+  el.textContent = texto || '';
+  el.style.color = esError ? '#fca5a5' : 'var(--text-secondary)';
+}
+
+async function cargarSlots() {
+  try {
+    const res = await apiFetch('/dashboard/devices');
+    const libres = (res?.data || []).filter((d) => d.marca === 'SafePlace Sim' && estaLibre(d));
+    slotSelect.innerHTML = libres.length
+      ? libres.map((d) => `<option value="${d.id}">${escapeHtml(d.modelo)}</option>`).join('')
+      : '<option value="">Sin wearables libres</option>';
+    slotsInfo.textContent = `${libres.length} wearable${libres.length === 1 ? '' : 's'} del simulador libre${libres.length === 1 ? '' : 's'}`;
+    btnAlta.disabled = libres.length === 0;
+    if (!libres.length) aviso('No quedan wearables del simulador libres. Liberá uno desde Wearables o cargá otro dispositivo con marca "SafePlace Sim".', true);
+    else aviso('');
+  } catch (error) {
+    slotsInfo.textContent = 'No se pudieron cargar los wearables libres';
+    aviso(error.message, true);
+  }
+}
+
+btnAlta.addEventListener('click', async () => {
+  const nombre = document.getElementById('altaNombre').value.trim();
+  const apellido = document.getElementById('altaApellido').value.trim();
+  const idDispositivo = slotSelect.value;
+  if (!nombre || !apellido) return aviso('Nombre y apellido son obligatorios.', true);
+  if (!idDispositivo) return aviso('No hay wearable libre para asignar.', true);
+
+  btnAlta.disabled = true;
+  aviso('Creando…');
+  try {
+    const creado = await apiFetch('/dashboard/employees', {
+      method: 'POST',
+      body: JSON.stringify({
+        nombre,
+        apellido,
+        area: document.getElementById('altaArea').value,
+        turno: document.getElementById('altaTurno').value,
+      }),
+    });
+    const idTrabajador = creado?.data?.id ?? creado?.id;
+    if (!idTrabajador) throw new Error('El alta no devolvió el id del operario.');
+
+    // Sin la asignación el operario existe pero el simulador no emite para él.
+    await apiFetch('/asociaciones', {
+      method: 'POST',
+      body: JSON.stringify({ idTrabajador, idDispositivo: Number(idDispositivo) }),
+    });
+
+    document.getElementById('altaNombre').value = '';
+    document.getElementById('altaApellido').value = '';
+    await cargar();
+    aviso(`${nombre} ${apellido} agregado. Entra a la simulación en el próximo ciclo (hasta 15 s).`);
+  } catch (error) {
+    aviso(error.message, true);
+    btnAlta.disabled = false;
+  }
+});
 
 document.getElementById('refreshBtn').addEventListener('click', cargar);
 toggleButton.addEventListener('click', async () => {

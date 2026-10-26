@@ -7,6 +7,36 @@ const TIMEZONE = 'America/Argentina/Buenos_Aires';
 const SUMMARY_TIMEZONE = TIMEZONE;
 const AREAS_VALIDAS = ['Logística', 'Mantenimiento', 'Producción', 'Prueba'];
 
+const DIAS_LABORALES = [1, 2, 3, 4, 5];
+
+// `operario.turno` es sólo una etiqueta: la ventana que mira la detección de
+// inactividad (H0012) vive en horario_operario, y sin filas el operario cuenta
+// como permanentemente fuera de horario y nunca alerta.
+// El CHECK de la tabla exige hora_fin > hora_inicio, así que el turno noche no
+// entra en una sola fila: se parte en el tramo previo a medianoche y el del día
+// siguiente (el viernes a la noche termina el sábado a la mañana).
+const ventanasDeTurno = (turno) => {
+  if (turno === 'mañana') return DIAS_LABORALES.map((d) => [d, '06:00', '14:00']);
+  if (turno === 'tarde') return DIAS_LABORALES.map((d) => [d, '14:00', '22:00']);
+  return DIAS_LABORALES.flatMap((d) => [[d, '22:00', '23:59'], [d + 1, '00:00', '06:00']]);
+};
+
+// Reemplaza sólo lo recurrente: las excepciones por fecha son decisiones
+// manuales y no deben perderse al cambiar de turno.
+const sincronizarHorarioPorTurno = async (client, idOperario, turno) => {
+  await client.query(
+    'DELETE FROM horario_operario WHERE id_operario = $1 AND fecha IS NULL;',
+    [idOperario],
+  );
+  for (const [dia, horaInicio, horaFin] of ventanasDeTurno(turno)) {
+    await client.query(
+      `INSERT INTO horario_operario (id_operario, dia_semana, hora_inicio, hora_fin, id_trabajo, fecha)
+       VALUES ($1, $2, $3, $4, NULL, NULL);`,
+      [idOperario, dia, horaInicio, horaFin],
+    );
+  }
+};
+
 const listarEmpresas = async () => {
   const res = await db.query(`
     SELECT id, nombre
@@ -82,23 +112,23 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmp
   }
   const sexoLimpio = normalizarSexo(sexo) ?? null;
 
+  const client = await db.getPool().connect();
   try {
-    const client = await db.getPool().connect();
-    let legajoLimpio;
-    try {
-      legajoLimpio = await generarLegajoEmpleado(client);
-    } finally {
-      client.release();
-    }
+    await client.query('BEGIN');
+    const legajoLimpio = await generarLegajoEmpleado(client);
     const query = `
     INSERT INTO operario (id_empresa, legajo, nombre, apellido, area, turno, mail, sexo, alta, estado)
       VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, NOW(), TRUE)
       RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, sexo, mail AS email, estado;
     `;
 
-    const res = await db.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio]);
-    return res.rows[0];
+    const res = await client.query(query, [idEmpresa, legajoLimpio, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio]);
+    const empleado = res.rows[0];
+    await sincronizarHorarioPorTurno(client, empleado.id, turnoLimpio);
+    await client.query('COMMIT');
+    return empleado;
   } catch (error) {
+    await client.query('ROLLBACK');
     if (error.code === '23505') {
       const dup = new Error('Ya existe un operario con ese legajo.');
       dup.status = 409;
@@ -114,6 +144,8 @@ const crearEmpleado = async ({ nombre, apellido, area, email, turno, sexo, idEmp
     }
 
     throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -137,7 +169,19 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
   }
   const sexoLimpio = normalizarSexo(sexo);
 
+  const client = await db.getPool().connect();
   try {
+    await client.query('BEGIN');
+    // Se compara contra el turno previo y además se contempla que no tenga
+    // ninguna ventana: así una edición repara a los operarios dados de alta
+    // antes de que el alta generara el horario.
+    const estadoPrevio = await client.query(
+      `SELECT o.turno,
+              (SELECT count(*) FROM horario_operario h
+                WHERE h.id_operario = o.id AND h.fecha IS NULL) AS ventanas
+         FROM operario o WHERE o.id = $1;`,
+      [id],
+    );
     const query = `
       UPDATE operario
       SET id_empresa = $2,
@@ -151,9 +195,16 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
       RETURNING id, id_empresa, legajo, nombre, apellido, area, turno, sexo, mail AS email;
     `;
 
-    const res = await db.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio !== undefined, sexoLimpio ?? null]);
-    return res.rows[0] || null;
+    const res = await client.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio !== undefined, sexoLimpio ?? null]);
+    const empleado = res.rows[0] || null;
+    const previo = estadoPrevio.rows[0];
+    if (empleado && previo && (previo.turno !== turnoLimpio || Number(previo.ventanas) === 0)) {
+      await sincronizarHorarioPorTurno(client, id, turnoLimpio);
+    }
+    await client.query('COMMIT');
+    return empleado;
   } catch (error) {
+    await client.query('ROLLBACK');
     if (error.code === '23505') {
       const dup = new Error('Ya existe un operario con ese legajo.');
       dup.status = 409;
@@ -169,6 +220,8 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
     }
 
     throw error;
+  } finally {
+    client.release();
   }
 };
 

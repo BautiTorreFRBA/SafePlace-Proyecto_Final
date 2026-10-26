@@ -42,6 +42,50 @@
       <div class="emp-table-wrap">
         <table class="emp-table"><thead><tr><th>NOMBRE</th><th>APELLIDO</th><th>LEGAJO</th><th>ÁREA</th><th>TURNO</th><th>WEARABLE</th></tr></thead><tbody id="simTableBody"></tbody></table>
       </div>
+
+      <section class="emp-header">
+        <div>
+          <h1 class="emp-header__title">Agregar operario a la simulación</h1>
+          <p class="emp-header__count" id="altaSlots">Buscando wearables libres…</p>
+        </div>
+      </section>
+      <section class="emp-toolbar" style="margin:0 28px 16px;">
+        <p style="margin:0;color:var(--text-secondary);font-size:.86rem;">
+          Crea el operario y le asigna un wearable del simulador. El horario laboral se
+          genera a partir del turno, que es lo que habilita las alertas de inactividad.
+        </p>
+      </section>
+      <div style="margin:0 28px 32px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
+        <div class="modal__field" style="flex:1 1 150px;">
+          <label class="modal__label" for="altaNombre">Nombre</label>
+          <input class="modal__input" id="altaNombre" type="text" autocomplete="off" />
+        </div>
+        <div class="modal__field" style="flex:1 1 150px;">
+          <label class="modal__label" for="altaApellido">Apellido</label>
+          <input class="modal__input" id="altaApellido" type="text" autocomplete="off" />
+        </div>
+        <div class="modal__field" style="flex:1 1 150px;">
+          <label class="modal__label" for="altaArea">Área</label>
+          <select class="modal__input" id="altaArea">
+            <option>Logística</option><option>Mantenimiento</option>
+            <option>Producción</option><option>Prueba</option>
+          </select>
+        </div>
+        <div class="modal__field" style="flex:1 1 180px;">
+          <label class="modal__label" for="altaTurno">Turno</label>
+          <select class="modal__input" id="altaTurno">
+            <option value="mañana">Mañana (06 a 14)</option>
+            <option value="tarde">Tarde (14 a 22)</option>
+            <option value="noche">Noche (22 a 06)</option>
+          </select>
+        </div>
+        <div class="modal__field" style="flex:1 1 180px;">
+          <label class="modal__label" for="altaSlot">Wearable libre</label>
+          <select class="modal__input" id="altaSlot"><option value="">Cargando…</option></select>
+        </div>
+        <button class="btn-nuevo" id="btnAlta" disabled>Crear y agregar</button>
+      </div>
+      <p id="altaAviso" style="margin:0 28px 32px;font-size:.86rem;min-height:18px;color:var(--text-secondary);"></p>
     </main>
   </div>
   <script src="session-ui.js"></script>
