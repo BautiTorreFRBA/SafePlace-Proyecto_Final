@@ -439,13 +439,22 @@ async function guardarEmpleado() {
   }
 
   try {
-    await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
+    const guardado = await apiFetch(editingId ? `${EMPLOYEES_ENDPOINT}/${editingId}` : EMPLOYEES_ENDPOINT, {
       method: editingId ? 'PATCH' : 'POST',
       body: JSON.stringify({ nombre, apellido, area, email, turno, sexo }),
     });
     closeModal();
     limpiarCampos();
     await cargarEmpleados();
+    // El horario no se reescribe solo al cambiar de turno porque puede haberlo
+    // ajustado Seguridad e Higiene; se avisa para que no quede incoherente.
+    if (guardado?.data?.horarioDesactualizado) {
+      alert(`El turno quedó en "${turno}", pero el horario laboral sigue siendo el anterior.
+
+`
+        + 'No se modificó porque puede haber sido configurado a mano. '
+        + 'Revisalo en el horario del operario para que las alertas de inactividad usen la ventana correcta.');
+    }
   } catch (error) {
     alert(error.message);
   }

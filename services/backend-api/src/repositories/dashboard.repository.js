@@ -172,9 +172,11 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
   const client = await db.getPool().connect();
   try {
     await client.query('BEGIN');
-    // Se compara contra el turno previo y además se contempla que no tenga
-    // ninguna ventana: así una edición repara a los operarios dados de alta
-    // antes de que el alta generara el horario.
+    // Sólo se genera cuando el operario no tiene ninguna ventana, para reparar a
+    // los dados de alta antes de que el alta la generara. Un cambio de turno NO
+    // reescribe el horario: Seguridad e Higiene puede haberlo ajustado a mano
+    // (PUT /trabajadores/:id/horario es suyo) y perderlo en silencio sería peor
+    // que la incoherencia. Se devuelve `horarioDesactualizado` para avisar.
     const estadoPrevio = await client.query(
       `SELECT o.turno,
               (SELECT count(*) FROM horario_operario h
@@ -198,11 +200,16 @@ const actualizarEmpleado = async (id, { nombre, apellido, area, email, turno, se
     const res = await client.query(query, [id, idEmpresa, nombreLimpio, apellidoLimpio, areaLimpia, turnoLimpio, String(email || '').trim().toLowerCase(), sexoLimpio !== undefined, sexoLimpio ?? null]);
     const empleado = res.rows[0] || null;
     const previo = estadoPrevio.rows[0];
-    if (empleado && previo && (previo.turno !== turnoLimpio || Number(previo.ventanas) === 0)) {
-      await sincronizarHorarioPorTurno(client, id, turnoLimpio);
+    let horarioDesactualizado = false;
+    if (empleado && previo) {
+      if (Number(previo.ventanas) === 0) {
+        await sincronizarHorarioPorTurno(client, id, turnoLimpio);
+      } else if (previo.turno !== turnoLimpio) {
+        horarioDesactualizado = true;
+      }
     }
     await client.query('COMMIT');
-    return empleado;
+    return empleado && { ...empleado, horarioDesactualizado };
   } catch (error) {
     await client.query('ROLLBACK');
     if (error.code === '23505') {
