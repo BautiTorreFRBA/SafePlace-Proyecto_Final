@@ -98,7 +98,9 @@ const actualizarEstado = async (id, estado, idUsuarioAtendio = null) => {
   const res = await db.query(
     `UPDATE alerta
      SET estado = $2,
-         id_usuario_atendio = CASE WHEN $2 = 'Atendida' THEN $3 ELSE id_usuario_atendio END
+         atendida = CASE WHEN $2 = 'Atendida' THEN (
+           SELECT CONCAT_WS(' ', nombre, apellido) FROM usuario WHERE id = $3
+         ) ELSE atendida END
      WHERE id = $1
      RETURNING *;`,
     [id, estado, idUsuarioAtendio],
@@ -120,15 +122,13 @@ const listarActivas = async (usuario = {}) => {
       a.id_medicion,
       a.estado,
       a.fecha_hora,
-      a.id_usuario_atendio,
-      CONCAT_WS(' ', u.nombre, u.apellido) AS atendida_por,
+      a.atendida AS atendida_por,
       o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido
     FROM alerta a
     JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     ${JOIN_IDENTIDAD}
-    LEFT JOIN usuario u ON u.id = a.id_usuario_atendio
     WHERE a.estado IN ('Activa', 'Atendida')
       AND ($1::text IS NULL OR o.turno = $1)
     ORDER BY a.fecha_hora DESC, a.id DESC;
