@@ -88,7 +88,7 @@ function MenuIcon({ type }) {
 // indica su rol en <div id="root" data-rol="..."> y se arma el menú de ese rol.
 const PAGE_ROL = document.getElementById('root').dataset.rol || 'supervisor';
 const NAV_LINKS = {
-  supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Notificaciones', 'Supervisor-Notificaciones.html']],
+  supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Alertas activas', 'Supervisor-Notificaciones.html']],
   // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
   admin: [['home', 'Home', 'Admin-Home.html', true], ['employees', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Wearables', 'Admin-AsociarWearable.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['broadcast', 'Configuración', 'Admin-Configuracion.html', false], ['clock', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
   seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Operarios', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],

@@ -18,6 +18,13 @@ const ETIQUETA_TIPO_ALERTA = {
 };
 const ORDEN_TIPO = { SUPER_EMERGENCIA: 0, EMERGENCIA: 1, SOBREESFUERZO: 2, FATIGA: 3, INACTIVIDAD_PROLONGADA: 4 };
 const etiquetaTipo = (t) => ETIQUETA_TIPO_ALERTA[t] || t || 'Alerta';
+const motivoTipo = (t) => ({
+  FATIGA: 'Frecuencia cardíaca elevada durante un período sostenido.',
+  SOBREESFUERZO: 'Frecuencia cardíaca por encima del umbral de sobreesfuerzo.',
+  INACTIVIDAD_PROLONGADA: 'No se detectó actividad durante el tiempo configurado.',
+  EMERGENCIA: 'Se detectaron condiciones de riesgo simultáneas.',
+  SUPER_EMERGENCIA: 'Se detectó una condición de riesgo crítico.',
+}[String(t || '').toUpperCase()] || 'La condición de alerta sigue activa.');
 const claseTipo = (t) => ({
   FATIGA: 'fatiga',
   SOBREESFUERZO: 'sobreesfuerzo',
@@ -39,6 +46,7 @@ function normalizarAlerta(a) {
     id: a.id,
     tipoAlerta: String(a.tipo_alerta || '').trim().toUpperCase(),
     tipo: etiquetaTipo(a.tipo_alerta),
+    motivo: motivoTipo(a.tipo_alerta),
     claseTipo: claseTipo(a.tipo_alerta),
     empleado: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || '--',
     idTrabajador: a.id_trabajador ?? null,
@@ -105,6 +113,17 @@ function renderTabla() {
     const coincideEstado = a.estadoClase !== 'cerrada';
     return coincideTipo && coincideEstado;
   });
+  if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
+    tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<button class="supervisor-alert-card supervisor-alert-card--${a.claseTipo}" type="button" onclick="revisarAlerta(${a.id})">
+      <span class="supervisor-alert-card__content">
+        <span class="supervisor-alert-card__name">${escapeHtml(a.empleado)}</span>
+        <span class="supervisor-alert-card__reason">${escapeHtml(a.motivo)}</span>
+        <span class="supervisor-alert-card__meta">${escapeHtml(a.tipo)} · ${escapeHtml(a.fecha)} ${escapeHtml(a.hora)}</span>
+      </span>
+      <span class="supervisor-alert-card__status">Ver alerta</span>
+    </button>`).join('') : '<div class="notif-empty"><div class="notif-empty__title">No hay alertas activas</div><div class="notif-empty__desc">No hay situaciones pendientes de atención.</div></div>';
+    return;
+  }
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}"><span class="alert-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
@@ -131,7 +150,10 @@ async function cambiarEstado(id, estado) {
 const TIPOS_CON_CONFIRMACION = new Set(['EMERGENCIA', 'SUPER_EMERGENCIA']);
 async function confirmarSiEmergencia(id, texto) {
   const alerta = alertas.find((a) => String(a.id) === String(id));
-  if (!alerta || !TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta)) return true;
+  // En la bandeja del supervisor, toda atención requiere la verificación del
+  // estado del operario; Seguridad conserva el criterio original para las
+  // emergencias.
+  if (!alerta || (window.SAFEPLACE_ALERTAS_VIEW !== 'tarjetas' && !TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta))) return true;
   const nombre = alerta.empleado === '--' ? '' : alerta.empleado;
   const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
   return confirmar(nombre, texto);
