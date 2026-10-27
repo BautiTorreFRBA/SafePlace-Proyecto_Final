@@ -77,6 +77,7 @@ function MenuIcon({ type }) {
     notifications: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
     team: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
     clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    check: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
     broadcast: <><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></>,
     document: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></>,
     audit: <><path d="M9 11h6"/><path d="M9 15h6"/><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L15 12.6 11 14l1.4-4 6-6.4z"/></>,
@@ -91,7 +92,7 @@ const NAV_LINKS = {
   supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Alertas activas', 'Supervisor-Notificaciones.html']],
   // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
   admin: [['home', 'Home', 'Admin-Home.html', true], ['employees', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Wearables', 'Admin-AsociarWearable.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['broadcast', 'Configuración', 'Admin-Configuracion.html', false], ['clock', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
-  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Operarios', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html'], ['broadcast', 'Notificaciones', 'Seguridad-Notificaciones.html']],
+  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Operarios', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['check', 'Alertas Atendidas', 'Seguridad-AlertasAtendidas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html']],
 };
 
 function ThemeToggle() {

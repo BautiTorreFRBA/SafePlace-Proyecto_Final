@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafePlace – Notificaciones</title>
+  <title>SafePlace – Alertas Atendidas</title>
   <link rel="stylesheet" href="Styles.css" />
 </head>
 
@@ -21,8 +21,8 @@
             <a class="nav-item" href="Seguridad-Home.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Home </a>
             <a class="nav-item" href="Seguridad-Empleados.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Operarios</a>
             <a class="nav-item"  href="Seguridad-AlertasActivas.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Alertas Activas</a>
+        <a class="nav-item nav-item--active" href="Seguridad-AlertasAtendidas.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Alertas Atendidas</a>
             <a class="nav-item" href="Seguridad-Historial.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Historial Alertas</a>
-            <a class="nav-item nav-item--active" href="Seguridad-Notificaciones.html"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> Notificaciones</a>
         </nav>
 
             <!-- Usuario logueado + cerrar sesión -->
@@ -41,7 +41,7 @@
         <!-- BARRA SUPERIOR --> 
         <main class="main">
             <header class="topbar">
-                <div class="topbar__title">Notificaciones</div>
+                <div class="topbar__title">Alertas atendidas</div>
                 <div class="topbar__right">
                     <button class="notif-bell" type="button" aria-label="Ver notificaciones"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/> <path d="M13.73 21a2 2 0 0 1-3.46 0"/> </svg> <span class="notif-badge" id="notifBadge" style="display:none"></span> </button>
                     <div class="avatar"> <!--PONER EL avatar--> </div> 
@@ -51,14 +51,12 @@
             <!-- Encabezado de sección -->
             <div class="notif-header">
                 <div>
-                    <h2 class="welcome__title">Notificaciones de Seguridad</h2>
-                    <p class="notif-header__count" id="notifCount"><!-- Alertas activas por atender --> alertas activas por atender</p> 
+                    <h2 class="welcome__title">Alertas Atendidas</h2>
+                    <p class="notif-header__count" id="notifCount"><!-- Cantidad de alertas atendidas --> alertas atendidas</p> 
                 </div>
 
             </div>
-            <div class="notif-filters" role="group" aria-label="Filtrar alertas">
-                <button class="notif-filter is-active" type="button" data-filter="activas">Activas <span id="tabCountActivas">0</span></button>
-                <button class="notif-filter" type="button" data-filter="atendidas">Atendidas <span id="tabCountAtendidas">0</span></button>
+            <div class="notif-filters" role="group" aria-label="Filtrar alertas atendidas">
                 <span class="alert-filter-separator" aria-hidden="true"></span>
                 <button class="alert-type-filter notif-type-filter" type="button" data-tipo="FATIGA" aria-pressed="false">Fatiga</button>
                 <button class="alert-type-filter notif-type-filter" type="button" data-tipo="INACTIVIDAD_PROLONGADA" aria-pressed="false">Inactividad prolongada</button>
@@ -69,14 +67,14 @@
                 
             <!-- Lista de notificaciones -->
             <div class="notif-list" id="notifList">
-                <!-- Alertas inyectadas por Seguridad-Notificaciones.js -->
+                <!-- Alertas inyectadas por Seguridad-AlertasAtendidas.js -->
             </div>
         </main>
     </div>
     <script src="session-ui.js"></script>
     <script src="api-config.js"></script>
     <script src="notificacion-ui.js"></script>
-    <script src="Seguridad-Notificaciones.js"></script>
+    <script src="Seguridad-AlertasAtendidas.js"></script>
 </body>
 </html>
 

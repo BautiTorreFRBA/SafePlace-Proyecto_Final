@@ -65,7 +65,7 @@ function mapNotifType(prioridad = '') {
 
 function getNotificationTargetPage() {
   const role = String(sessionStorage.getItem('userRole') || '').toLowerCase();
-  if (role === 'seguridad') return 'Seguridad-Notificaciones.html';
+  if (role === 'seguridad') return 'Seguridad-AlertasActivas.html';
   if (role === 'admin') return 'Admin-Notificaciones.html';
   return 'Supervisor-Notificaciones.html';
 }

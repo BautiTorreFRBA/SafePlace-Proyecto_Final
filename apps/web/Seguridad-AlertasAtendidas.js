@@ -9,7 +9,6 @@ const FALLBACK_POLL_INTERVAL_MS = 60000;
 const notifList = document.getElementById('notifList');
 const notifCount = document.getElementById('notifCount');
 let alertas = [];
-let filtroActual = 'activas';
 let tipoSeleccionado = null;
 
 const ETIQUETA_TIPO_ALERTA = {
@@ -63,12 +62,10 @@ function mapearTipo(tipoAlerta = '', prioridad = '') {
     : 'advertencia';
 }
 
-// Esta pantalla ya no lista notificaciones sino alertas: "Activas" son las que el
-// Responsable todavía no atendió (lo mismo que cuenta la campana) y "Atendidas"
-// las que ya atendió.
+// Alertas que el Responsable ya atendió (las pendientes están en Alertas Activas).
 async function cargarAlertas() {
   const payload = await apiFetch('/alertas/activas');
-  alertas = (payload.data || []).map((a) => {
+  alertas = (payload.data || []).filter((a) => String(a.estado).toLowerCase() === 'atendida').map((a) => {
     const tipoAlerta = String(a.tipo_alerta || '').trim().toUpperCase();
     return {
       id: a.id,
@@ -78,7 +75,6 @@ async function cargarAlertas() {
       descripcion: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || 'Sin operario asignado',
       hora: fmtAR(new Date(a.fecha_hora)),
       fechaHora: new Date(a.fecha_hora).getTime() || 0,
-      atendida: String(a.estado).toLowerCase() === 'atendida',
       atendidaPor: String(a.atendida_por || '').trim(),
     };
   });
@@ -87,31 +83,20 @@ async function cargarAlertas() {
 }
 
 function actualizarContador() {
-  const activas = alertas.filter((a) => !a.atendida).length;
-  const atendidas = alertas.length - activas;
-  notifCount.textContent = `${activas} ${activas === 1 ? 'alerta activa por atender' : 'alertas activas por atender'}`;
-  document.getElementById('tabCountActivas').textContent = activas;
-  document.getElementById('tabCountAtendidas').textContent = atendidas;
+  const total = alertas.length;
+  notifCount.textContent = `${total} ${total === 1 ? 'alerta atendida' : 'alertas atendidas'}`;
   window.refrescarNotificaciones?.();
 }
 
 function renderAlertas() {
   if (!notifList) return;
   const visibles = alertas
-    .filter((a) => (!tipoSeleccionado || a.tipoAlerta === tipoSeleccionado) && (filtroActual === 'atendidas' ? a.atendida : !a.atendida))
+    .filter((a) => !tipoSeleccionado || a.tipoAlerta === tipoSeleccionado)
     .sort((x, y) => y.fechaHora - x.fechaHora);
   notifList.innerHTML = visibles.length
-    ? visibles.map((a) => `<div class="notif-card notif-card--${a.tipo}" onclick="window.location.href='Seguridad-AlertasActivas.html'"><div class="notif-card__content"><div class="notif-card__title">${escapeHtml(a.titulo)}</div><div class="notif-card__desc">${escapeHtml(a.descripcion)}</div>${a.atendidaPor ? `<div class="notif-card__area">Atendida por ${escapeHtml(a.atendidaPor)}</div>` : ''}<div class="notif-card__time">${escapeHtml(a.hora)}</div></div></div>`).join('')
-    : `<div class="notif-empty"><div class="notif-empty__title">${filtroActual === 'atendidas' ? 'No hay alertas atendidas' : 'No hay alertas activas por atender'}</div><div class="notif-empty__desc">Probá con otro filtro para ver más alertas.</div></div>`;
+    ? visibles.map((a) => `<div class="notif-card notif-card--${a.tipo}" role="article"><div class="notif-card__content"><div class="notif-card__title">${escapeHtml(a.titulo)}</div><div class="notif-card__desc">${escapeHtml(a.descripcion)}</div>${a.atendidaPor ? `<div class="notif-card__area">Atendida por ${escapeHtml(a.atendidaPor)}</div>` : ''}<div class="notif-card__time">${escapeHtml(a.hora)}</div></div></div>`).join('')
+    : `<div class="notif-empty"><div class="notif-empty__title">No hay alertas atendidas</div><div class="notif-empty__desc">Probá con otro filtro para ver más alertas.</div></div>`;
 }
-
-document.querySelectorAll('.notif-filter').forEach((button) => {
-  button.addEventListener('click', () => {
-    filtroActual = button.dataset.filter;
-    document.querySelectorAll('.notif-filter').forEach((item) => item.classList.toggle('is-active', item === button));
-    renderAlertas();
-  });
-});
 
 document.querySelectorAll('.notif-type-filter').forEach((button) => {
   button.addEventListener('click', () => {
