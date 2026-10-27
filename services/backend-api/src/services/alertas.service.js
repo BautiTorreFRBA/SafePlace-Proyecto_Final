@@ -129,12 +129,20 @@ const generar = async ({
 // Resolver una SUPER_EMERGENCIA (Atendida/Cerrada) resuelve también la EMERGENCIA
 // Activa del mismo operario: la súper nace de esas emergencias y no tiene sentido
 // que quede una abierta. Devuelve las alertas que arrastró ([] si no aplica).
-const resolverEmergenciasSubordinadas = async (alerta, estado) => {
+// Si la atiende un supervisor (idUsuarioAtendio) sólo se registra quién la vio.
+const resolverEmergenciasSubordinadas = async (alerta, estado, idUsuarioAtendio = null) => {
   if (!alerta || alerta.id_seudonimo == null) return [];
   const tipoSuper = await tipoAlertaRepository.obtenerPorNombre(TIPO_SUPER_EMERGENCIA);
   if (!tipoSuper || alerta.id_tipo_alerta !== tipoSuper.id) return [];
   const tipoEmergencia = await tipoAlertaRepository.obtenerPorNombre(TIPO_EMERGENCIA);
   if (!tipoEmergencia) return [];
+  if (idUsuarioAtendio != null) {
+    return alertaRepository.registrarAtencionActivasPorSeudonimoYTipo(
+      alerta.id_seudonimo,
+      tipoEmergencia.id,
+      idUsuarioAtendio,
+    );
+  }
   return alertaRepository.actualizarEstadoActivasPorSeudonimoYTipo(
     alerta.id_seudonimo,
     tipoEmergencia.id,

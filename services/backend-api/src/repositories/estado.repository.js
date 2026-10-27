@@ -35,6 +35,7 @@ const listarTrabajadoresActivos = async (usuario = {}) => {
         os.id_operario,
         a.id AS id_alerta,
         a.estado AS estado_alerta,
+        a.id_usuario_atendio AS alerta_id_usuario_atendio,
         a.fecha_hora AS alerta_fecha_hora,
         ta.nombre AS tipo_alerta,
         ta.prioridad AS prioridad_alerta
@@ -79,6 +80,7 @@ const listarTrabajadoresActivos = async (usuario = {}) => {
       um.spo2,
       aa.id_alerta,
       aa.estado_alerta,
+      aa.alerta_id_usuario_atendio,
       aa.alerta_fecha_hora,
       aa.tipo_alerta,
       aa.prioridad_alerta,

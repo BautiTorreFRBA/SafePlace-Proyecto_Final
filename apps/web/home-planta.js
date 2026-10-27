@@ -363,6 +363,11 @@ async function cargarHome() {
     const superPorTrabajador = new Map(); // id_trabajador -> id de su SUPER_EMERGENCIA activa
     const emergenciaPorTrabajador = new Map(); // id_trabajador -> id de su EMERGENCIA activa
     alertasActivas = alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : [];
+    // Una alerta que el supervisor ya atendió sigue Activa para el Responsable de
+    // Seguridad e Higiene (falta su chequeo), pero deja de ser pendiente para el supervisor.
+    if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
+      alertasActivas = alertasActivas.filter((alerta) => !String(alerta.atendida_por || '').trim());
+    }
     alertasActivas.forEach((alerta) => {
       const clave = String(alerta.id_trabajador);
       if (!alertasPorTrabajador.has(clave)) alertasPorTrabajador.set(clave, []);
@@ -374,6 +379,10 @@ async function cargarHome() {
 
     const alcance = alcanceDelRol();
     const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : []).filter(alcance.incluye);
+    // Para el supervisor, la alerta que ya atendió deja de marcar al operario (ver arriba).
+    if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
+      data.forEach((item) => { if (item.alerta_id_usuario_atendio != null) item.tipo_alerta = null; });
+    }
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
     trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));

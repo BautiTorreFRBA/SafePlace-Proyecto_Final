@@ -54,7 +54,9 @@ function normalizarAlerta(a) {
     ...separarFechaHora(a.fecha_hora),
     estado,
     atendidaPor: `${a.atendida_por || ''}`.trim(),
-    revisada: a.id_usuario_reviso != null,
+    // Atendida = el Responsable de Seguridad e Higiene ya hizo su chequeo. Que
+    // un supervisor la haya visto (atendidaPor) no alcanza.
+    revisada: estadoNormalizado.includes('atend'),
     estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
       ? 'cerrada'
       : estadoNormalizado.includes('rev') ? 'enrevision' : 'activo',
@@ -112,10 +114,12 @@ async function cargarAlertas() {
 let pestana = 'pendientes';
 const estaAtendida = (a) => a.revisada;
 const noCerrada = (a) => !String(a.estado).toLowerCase().includes('cerr');
+// La bandeja del supervisor sólo muestra lo que nadie atendió todavía.
+const pendienteParaSupervisor = (a) => a.estadoClase !== 'cerrada' && a.atendidaPor === '';
 
 function actualizarContador() {
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
-    const total = alertas.filter((a) => a.estadoClase !== 'cerrada').length;
+    const total = alertas.filter(pendienteParaSupervisor).length;
     alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
     return;
   }
@@ -132,7 +136,7 @@ function actualizarContador() {
 function renderTabla() {
   const filtrados = alertas.filter((a) => {
     const coincideTipo = tiposActivos.has(a.tipoAlerta);
-    if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') return coincideTipo && a.estadoClase !== 'cerrada';
+    if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') return coincideTipo && pendienteParaSupervisor(a);
     return coincideTipo && noCerrada(a) && (pestana === 'atendidas' ? estaAtendida(a) : !estaAtendida(a));
   });
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {

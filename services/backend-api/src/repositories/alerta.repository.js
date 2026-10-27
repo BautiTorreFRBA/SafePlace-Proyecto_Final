@@ -94,35 +94,41 @@ const obtenerPorId = async (id) => {
   return res.rows[0];
 };
 
-const actualizarEstado = async (id, estado, idUsuarioAtendio = null) => {
+const actualizarEstado = async (id, estado) => {
   const res = await db.query(
-    `UPDATE alerta
-     SET estado = $2::varchar(20),
-         id_usuario_atendio = CASE
-           WHEN $2::varchar(20) = 'Atendida'::varchar(20) THEN $3
-           ELSE id_usuario_atendio
-         END
-     WHERE id = $1
-     RETURNING *;`,
-    [id, estado, idUsuarioAtendio],
+    'UPDATE alerta SET estado = $2::varchar(20) WHERE id = $1 RETURNING *;',
+    [id, estado],
   );
   return res.rows[0];
 };
 
-// Revisión del Responsable de Seguridad e Higiene (segundo chequeo). Si nadie
-// la había atendido, queda además como Atendida para que el Motor de Reglas
-// pueda volver a generarla; si ya la atendió un supervisor se conserva quién fue.
-const marcarRevisada = async (id, idUsuarioReviso) => {
+// El supervisor "atiende" la alerta: queda registrado quién la vio, pero el
+// estado sigue en Activa hasta que el Responsable de Seguridad e Higiene haga
+// su segundo chequeo (actualizarEstado -> Atendida).
+const registrarAtencionSupervisor = async (id, idUsuarioAtendio) => {
   const res = await db.query(
-    `UPDATE alerta
-     SET estado = 'Atendida',
-         id_usuario_reviso = $2,
-         fecha_revision = NOW()
-     WHERE id = $1
-     RETURNING *;`,
-    [id, idUsuarioReviso],
+    'UPDATE alerta SET id_usuario_atendio = $2 WHERE id = $1 RETURNING *;',
+    [id, idUsuarioAtendio],
   );
   return res.rows[0];
+};
+
+// Igual que registrarAtencionSupervisor, para las Activas de un seudónimo y tipo
+// (la EMERGENCIA que arrastra una SUPER_EMERGENCIA).
+const registrarAtencionActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta, idUsuarioAtendio) => {
+  const res = await db.query(
+    `UPDATE alerta a
+     SET id_usuario_atendio = $3
+     WHERE a.id_tipo_alerta = $2
+       AND a.estado = 'Activa'
+       AND COALESCE(
+         (SELECT m.id_seudonimo FROM medicion m WHERE m.id = a.id_medicion),
+         a.id_seudonimo
+       ) = $1
+     RETURNING a.*;`,
+    [idSeudonimo, idTipoAlerta, idUsuarioAtendio],
+  );
+  return res.rows;
 };
 
 // Bandeja de alertas activas (H0013), con la identidad ya reidentificada
@@ -141,8 +147,6 @@ const listarActivas = async (usuario = {}) => {
       a.fecha_hora,
       a.id_usuario_atendio,
       CONCAT_WS(' ', u.nombre, u.apellido) AS atendida_por,
-      a.id_usuario_reviso,
-      a.fecha_revision,
       o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido
@@ -166,6 +170,7 @@ module.exports = {
   actualizarEstadoActivasPorSeudonimoYTipo,
   obtenerPorId,
   actualizarEstado,
-  marcarRevisada,
+  registrarAtencionSupervisor,
+  registrarAtencionActivasPorSeudonimoYTipo,
   listarActivas,
 };
