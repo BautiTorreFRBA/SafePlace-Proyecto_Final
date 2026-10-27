@@ -60,7 +60,8 @@
     </div>
 
     <div class="alert-status-filters" role="group" aria-label="Filtrar por estado">
-      <button class="alert-status-filter is-active" type="button" data-filter="pendientes">Pendientes</button>
+      <button class="alert-status-filter is-active" type="button" data-filter="pendientes" aria-pressed="true">Activas <span id="tabCountActivas">0</span></button>
+      <button class="alert-status-filter" type="button" data-filter="atendidas" aria-pressed="false">Atendidas <span id="tabCountAtendidas">0</span></button>
       <span class="alert-filter-separator" aria-hidden="true"></span>
       <button class="alert-type-filter is-active" type="button" data-tipo="FATIGA" aria-pressed="true">Fatiga</button>
       <button class="alert-type-filter is-active" type="button" data-tipo="INACTIVIDAD_PROLONGADA" aria-pressed="true">Inactividad prolongada</button>

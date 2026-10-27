@@ -105,20 +105,33 @@ async function cargarAlertas() {
   renderTabla();
 }
 
+// Seguridad separa la bandeja en dos pestañas: "activas" (ningún supervisor se
+// hizo cargo) y "atendidas" (figura el supervisor que la atendió).
+let pestana = 'pendientes';
+const estaAtendida = (a) => a.atendidaPor !== '';
+const noCerrada = (a) => !String(a.estado).toLowerCase().includes('cerr');
+
 function actualizarContador() {
-  const total = alertas.filter((a) => a.estadoClase !== 'cerrada').length;
-  alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
+  if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
+    const total = alertas.filter((a) => a.estadoClase !== 'cerrada').length;
+    alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
+    return;
+  }
+  const vigentes = alertas.filter(noCerrada);
+  const atendidas = vigentes.filter(estaAtendida).length;
+  const activas = vigentes.length - atendidas;
+  document.getElementById('tabCountActivas').textContent = activas;
+  document.getElementById('tabCountAtendidas').textContent = atendidas;
+  alertCount.textContent = pestana === 'atendidas'
+    ? `${atendidas} ${atendidas === 1 ? 'alerta atendida' : 'alertas atendidas'}`
+    : `${activas} ${activas === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
 }
 
 function renderTabla() {
   const filtrados = alertas.filter((a) => {
     const coincideTipo = tiposActivos.has(a.tipoAlerta);
-    // Seguridad conserva las alertas atendidas para saber qué supervisor se
-    // hizo cargo; la bandeja del supervisor sólo muestra las pendientes.
-    const coincideEstado = window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas'
-      ? a.estadoClase !== 'cerrada'
-      : !String(a.estado).toLowerCase().includes('cerr');
-    return coincideTipo && coincideEstado;
+    if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') return coincideTipo && a.estadoClase !== 'cerrada';
+    return coincideTipo && noCerrada(a) && (pestana === 'atendidas' ? estaAtendida(a) : !estaAtendida(a));
   });
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
     tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<button class="supervisor-alert-card supervisor-alert-card--${a.claseTipo}" type="button" onclick="revisarAlerta(${a.id})">
@@ -462,11 +475,16 @@ fcModalAtender.addEventListener('click', async () => {
 const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
 const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
 
-// "Pendientes" es el acceso para volver a la bandeja completa. Además de
-// consultar otra vez al servidor, restablece los filtros de tipo que el
-// supervisor pudiera haber aplicado antes.
-const botonPendientes = document.querySelector('[data-filter="pendientes"]');
-botonPendientes?.addEventListener('click', async () => {
+// Cada pestaña consulta otra vez al servidor y restablece los filtros de tipo
+// que se hubieran aplicado antes.
+const botonesPestana = [...document.querySelectorAll('.alert-status-filter')];
+botonesPestana.forEach((boton) => boton.addEventListener('click', async () => {
+  pestana = boton.dataset.filter;
+  botonesPestana.forEach((b) => {
+    const activo = b === boton;
+    b.classList.toggle('is-active', activo);
+    b.setAttribute('aria-pressed', String(activo));
+  });
   tiposActivos.clear();
   todosLosTipos.forEach((tipo) => tiposActivos.add(tipo));
   botonesTipo.forEach((boton) => {
@@ -478,9 +496,9 @@ botonPendientes?.addEventListener('click', async () => {
     await cargarAlertas();
   } catch (error) {
     console.error(error);
-    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas pendientes</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No se pudieron cargar las alertas</td></tr>';
   }
-});
+}));
 
 botonesTipo.forEach((button) => {
   button.addEventListener('click', () => {
