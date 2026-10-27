@@ -1,11 +1,19 @@
 /* eslint-disable camelcase */
 
-// La base productiva ya posee este campo; se declara también en migraciones
-// para que los entornos nuevos y de pruebas tengan el mismo contrato.
+// Conserva quién atendió una alerta para que Seguridad e Higiene pueda hacer
+// seguimiento operativo sin depender del historial de sesión del supervisor.
 exports.up = (pgm) => {
-  pgm.sql('ALTER TABLE alerta ADD COLUMN IF NOT EXISTS atendida TEXT;');
+  pgm.addColumn('alerta', {
+    id_usuario_atendio: {
+      type: 'integer',
+      references: 'usuario',
+      onDelete: 'SET NULL',
+    },
+  });
+  pgm.createIndex('alerta', 'id_usuario_atendio');
 };
 
 exports.down = (pgm) => {
-  pgm.dropColumn('alerta', 'atendida', { ifExists: true });
+  pgm.dropIndex('alerta', 'id_usuario_atendio');
+  pgm.dropColumn('alerta', 'id_usuario_atendio');
 };
