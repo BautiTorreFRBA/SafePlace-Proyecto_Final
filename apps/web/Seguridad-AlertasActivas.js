@@ -142,29 +142,19 @@ const COLUMNAS = {
   atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || 'Sin atender', orden: (a) => a.atendidaPor || 'Sin atender' },
 };
 const normalizarTexto = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const contiene = (texto, buscado) => normalizarTexto(texto).includes(normalizarTexto(buscado).trim());
-const diaDe = (a) => {
-  const fecha = new Date(a.fechaHora);
-  return Number.isNaN(fecha.getTime()) ? '' : diaAR(fecha);
-};
 
-// Cada pestaña recuerda su propio orden, filtros por columna y búsqueda.
-const nuevaVista = () => ({ orden: null, filtros: { operario: '', fecha: '', hora: '', atendida: '' }, busqueda: '' });
+// Cada pestaña recuerda su propio orden y búsqueda.
+const nuevaVista = () => ({ orden: null, busqueda: '' });
 const vistaPorPestana = { pendientes: nuevaVista(), atendidas: nuevaVista() };
 
-// Alertas de la pestaña actual tras aplicar filtros, búsqueda y orden. También
+// Alertas de la pestaña actual tras aplicar búsqueda y orden. También
 // es lo que se exporta.
 function filasVisibles() {
   const vista = vistaPorPestana[pestana];
-  const { operario, fecha, hora, atendida } = vista.filtros;
   const terminos = normalizarTexto(vista.busqueda).split(/\s+/).filter(Boolean);
   const filas = alertas.filter((a) => {
     if (!tiposActivos.has(a.tipoAlerta) || !noCerrada(a)) return false;
     if (pestana === 'atendidas' ? !estaAtendida(a) : estaAtendida(a)) return false;
-    if (operario && !contiene(a.empleado, operario)) return false;
-    if (fecha && diaDe(a) !== fecha) return false;
-    if (hora && !contiene(a.hora, hora)) return false;
-    if (atendida && !contiene(COLUMNAS.atendida.texto(a), atendida)) return false;
     if (terminos.length) {
       const pajar = normalizarTexto(Object.values(COLUMNAS).map((c) => c.texto(a)).join(' '));
       if (!terminos.every((t) => pajar.includes(t))) return false;
@@ -526,9 +516,7 @@ fcModalAtender.addEventListener('click', async () => {
 // Tocar un tipo deja sólo ese tipo; tocarlo de nuevo (cuando es el único) vuelve a mostrar todos.
 const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
 const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
-const selectTipo = document.querySelector('.alert-col-filter[data-col="tipo"]');
 
-// El filtro de la columna "Tipo" (select) y los botones de tipo son el mismo filtro.
 function aplicarTipos(tipos) {
   tiposActivos.clear();
   tipos.forEach((t) => tiposActivos.add(t));
@@ -537,27 +525,16 @@ function aplicarTipos(tipos) {
     b.classList.toggle('is-active', activo);
     b.setAttribute('aria-pressed', String(activo));
   });
-  if (selectTipo) selectTipo.value = tipos.length === 1 ? tipos[0] : '';
 }
 
-// ── Orden, filtros por columna, búsqueda y exportación (sólo la tabla de Seguridad) ──
+// ── Orden, búsqueda y exportación (sólo la tabla de Seguridad) ──
 const buscador = document.getElementById('alertSearch');
 const encabezadosOrdenables = [...document.querySelectorAll('th[data-sort]')];
-const filtrosColumna = [...document.querySelectorAll('.alert-col-filter')].filter((el) => el !== selectTipo);
-
-if (selectTipo) {
-  todosLosTipos.forEach((tipo) => selectTipo.add(new Option(etiquetaTipo(tipo), tipo)));
-  selectTipo.addEventListener('change', () => {
-    aplicarTipos(selectTipo.value ? [selectTipo.value] : todosLosTipos);
-    renderTabla();
-  });
-}
 
 // Refleja en los controles el estado guardado de la pestaña activa.
 function sincronizarControles() {
   const vista = vistaPorPestana[pestana];
   if (buscador) buscador.value = vista.busqueda;
-  filtrosColumna.forEach((el) => { el.value = vista.filtros[el.dataset.col] ?? ''; });
   encabezadosOrdenables.forEach((th) => {
     const activo = vista.orden?.col === th.dataset.sort;
     th.setAttribute('aria-sort', activo ? (vista.orden.dir === 'asc' ? 'ascending' : 'descending') : 'none');
@@ -572,11 +549,6 @@ encabezadosOrdenables.forEach((th) => th.addEventListener('click', () => {
   else if (vista.orden.dir === 'asc') vista.orden = { col, dir: 'desc' };
   else vista.orden = null;
   sincronizarControles();
-  renderTabla();
-}));
-
-filtrosColumna.forEach((el) => el.addEventListener('input', () => {
-  vistaPorPestana[pestana].filtros[el.dataset.col] = el.value;
   renderTabla();
 }));
 
@@ -632,7 +604,7 @@ document.getElementById('btnExportPDF')?.addEventListener('click', exportarPDF);
 document.getElementById('btnExportExcel')?.addEventListener('click', exportarExcel);
 
 // Cada pestaña consulta otra vez al servidor y restablece los botones de tipo
-// que se hubieran aplicado antes; el resto de sus filtros se conserva por pestaña.
+// que se hubieran aplicado antes; el orden y la búsqueda se conservan por pestaña.
 const botonesPestana = [...document.querySelectorAll('.alert-status-filter')];
 botonesPestana.forEach((boton) => boton.addEventListener('click', async () => {
   pestana = boton.dataset.filter;

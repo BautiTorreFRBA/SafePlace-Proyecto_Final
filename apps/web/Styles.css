@@ -3939,24 +3939,6 @@ select.cfg-input {
   opacity: 1;
 }
 
-.alert-table .alert-filter-row th {
-  padding: 0 16px 12px;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.alert-col-filter {
-  width: 100%;
-  min-width: 0;
-  padding: 6px 8px;
-  font-size: 0.8rem;
-  cursor: text;
-}
-
-select.alert-col-filter {
-  cursor: pointer;
-}
-
 /* Celda de acciones */
 .alert-td-acciones {
   min-width: 190px;
