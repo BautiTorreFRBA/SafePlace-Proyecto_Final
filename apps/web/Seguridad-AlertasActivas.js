@@ -53,6 +53,7 @@ function normalizarAlerta(a) {
     fechaHora: a.fecha_hora,
     ...separarFechaHora(a.fecha_hora),
     estado,
+    atendidaPor: `${a.atendida_por || ''}`.trim(),
     estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
       ? 'cerrada'
       : estadoNormalizado.includes('rev') ? 'enrevision' : 'activo',
@@ -110,7 +111,11 @@ function actualizarContador() {
 function renderTabla() {
   const filtrados = alertas.filter((a) => {
     const coincideTipo = tiposActivos.has(a.tipoAlerta);
-    const coincideEstado = a.estadoClase !== 'cerrada';
+    // Seguridad conserva las alertas atendidas para saber qué supervisor se
+    // hizo cargo; la bandeja del supervisor sólo muestra las pendientes.
+    const coincideEstado = window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas'
+      ? a.estadoClase !== 'cerrada'
+      : !String(a.estado).toLowerCase().includes('cerr');
     return coincideTipo && coincideEstado;
   });
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
@@ -130,8 +135,9 @@ function renderTabla() {
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estadoClase}">${escapeHtml(a.estado)}</span></td>
+      <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
       <td class="alert-td-acciones">${a.estadoClase === 'cerrada' ? '<span class="alert-action-done">Resuelta</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="7" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 
 async function cambiarEstado(id, estado) {
