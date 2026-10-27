@@ -201,7 +201,9 @@ describe('Motor de Reglas end-to-end', () => {
       expect(patch.body.data.estado).toBe('Atendida');
 
       const activasLuego = await request(app).get('/api/v1/alertas/activas').set('Authorization', `Bearer ${token}`);
-      expect(activasLuego.body.data).toHaveLength(0);
+      // Sigue en la bandeja de Seguridad, pero ya revisada (pestaña "Atendidas").
+      expect(activasLuego.body.data).toHaveLength(1);
+      expect(activasLuego.body.data[0].id_usuario_reviso).not.toBeNull();
 
       const notifs = await request(app).get('/api/v1/notificaciones').set('Authorization', `Bearer ${token}`);
       expect(notifs.status).toBe(200);

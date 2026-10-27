@@ -54,6 +54,7 @@ function normalizarAlerta(a) {
     ...separarFechaHora(a.fecha_hora),
     estado,
     atendidaPor: `${a.atendida_por || ''}`.trim(),
+    revisada: a.id_usuario_reviso != null,
     estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
       ? 'cerrada'
       : estadoNormalizado.includes('rev') ? 'enrevision' : 'activo',
@@ -105,10 +106,11 @@ async function cargarAlertas() {
   renderTabla();
 }
 
-// Seguridad separa la bandeja en dos pestañas: "activas" (ningún supervisor se
-// hizo cargo) y "atendidas" (figura el supervisor que la atendió).
+// Seguridad separa la bandeja en dos pestañas: "activas" (el Responsable todavía
+// no la revisó, aunque un supervisor ya la haya atendido) y "atendidas" (el
+// Responsable ya hizo su segundo chequeo).
 let pestana = 'pendientes';
-const estaAtendida = (a) => a.atendidaPor !== '';
+const estaAtendida = (a) => a.revisada;
 const noCerrada = (a) => !String(a.estado).toLowerCase().includes('cerr');
 
 function actualizarContador() {
@@ -149,9 +151,9 @@ function renderTabla() {
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
-      <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.estadoClase}">${escapeHtml(a.estado)}</span></td>
+      <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.revisada ? 'cerrada' : 'activo'}">${a.revisada ? 'Atendida' : 'Activa'}</span></td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
-      <td class="alert-td-acciones">${a.estadoClase === 'cerrada' ? '<span class="alert-action-done">Resuelta</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
+      <td class="alert-td-acciones">${a.revisada ? '<span class="alert-action-done">Revisada</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
     </tr>`).join('') : '<tr><td colspan="7" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 

@@ -59,7 +59,11 @@ const actualizarEstado = async (req, res, next) => {
       return res.status(404).json({ error: 'La alerta no existe.', motivo: 'ALERTA_NO_ENCONTRADA' });
     }
 
-    const actualizada = await alertaRepository.actualizarEstado(id, estado, estado === 'Atendida' ? req.user?.sub : null);
+    // Cuando Seguridad e Higiene "atiende" una alerta no reemplaza al supervisor
+    // que la atendió: registra su revisión (segundo chequeo).
+    const actualizada = estado === 'Atendida' && req.user?.role === 'seguridad'
+      ? await alertaRepository.marcarRevisada(id, req.user.sub)
+      : await alertaRepository.actualizarEstado(id, estado, estado === 'Atendida' ? req.user?.sub : null);
     const arrastradas = await alertasService.resolverEmergenciasSubordinadas(existente, estado);
     res.json({
       message: 'Estado de la alerta actualizado.',

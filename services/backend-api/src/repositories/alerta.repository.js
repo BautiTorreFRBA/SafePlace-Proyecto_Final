@@ -109,6 +109,22 @@ const actualizarEstado = async (id, estado, idUsuarioAtendio = null) => {
   return res.rows[0];
 };
 
+// Revisión del Responsable de Seguridad e Higiene (segundo chequeo). Si nadie
+// la había atendido, queda además como Atendida para que el Motor de Reglas
+// pueda volver a generarla; si ya la atendió un supervisor se conserva quién fue.
+const marcarRevisada = async (id, idUsuarioReviso) => {
+  const res = await db.query(
+    `UPDATE alerta
+     SET estado = 'Atendida',
+         id_usuario_reviso = $2,
+         fecha_revision = NOW()
+     WHERE id = $1
+     RETURNING *;`,
+    [id, idUsuarioReviso],
+  );
+  return res.rows[0];
+};
+
 // Bandeja de alertas activas (H0013), con la identidad ya reidentificada
 // (H0020) para mostrar nombre/apellido.
 const listarActivas = async (usuario = {}) => {
@@ -125,6 +141,8 @@ const listarActivas = async (usuario = {}) => {
       a.fecha_hora,
       a.id_usuario_atendio,
       CONCAT_WS(' ', u.nombre, u.apellido) AS atendida_por,
+      a.id_usuario_reviso,
+      a.fecha_revision,
       o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido
@@ -148,5 +166,6 @@ module.exports = {
   actualizarEstadoActivasPorSeudonimoYTipo,
   obtenerPorId,
   actualizarEstado,
+  marcarRevisada,
   listarActivas,
 };
