@@ -97,8 +97,11 @@ const obtenerPorId = async (id) => {
 const actualizarEstado = async (id, estado, idUsuarioAtendio = null) => {
   const res = await db.query(
     `UPDATE alerta
-     SET estado = $2,
-         id_usuario_atendio = CASE WHEN $2 = 'Atendida' THEN $3 ELSE id_usuario_atendio END
+     SET estado = $2::varchar(20),
+         id_usuario_atendio = CASE
+           WHEN $2::varchar(20) = 'Atendida'::varchar(20) THEN $3
+           ELSE id_usuario_atendio
+         END
      WHERE id = $1
      RETURNING *;`,
     [id, estado, idUsuarioAtendio],
