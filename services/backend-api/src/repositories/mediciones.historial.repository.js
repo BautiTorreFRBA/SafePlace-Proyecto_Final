@@ -295,7 +295,10 @@ const listarSerieMediciones = async ({
   bucketSegundos = 60,
   usuario = {},
 } = {}) => {
-  const alcance = alcanceSupervisor(usuario);
+  // El detalle de un operario puntual (id_trabajador) es el que abre "Revisar" desde
+  // una alerta, y la bandeja de alertas no se recorta por área/turno. Por eso el
+  // alcance del supervisor se aplica sólo a las series sin operario indicado.
+  const alcance = idTrabajador == null ? alcanceSupervisor(usuario) : { area: null, turnos: null };
   const query = `
     SELECT
       to_timestamp(floor(extract(epoch FROM m.fecha_hora) / $4) * $4) AS bucket_ts,
