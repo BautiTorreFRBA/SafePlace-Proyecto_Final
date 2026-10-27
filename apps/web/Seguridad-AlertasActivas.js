@@ -108,10 +108,11 @@ async function cargarAlertas() {
   renderTabla();
 }
 
-// Seguridad separa la bandeja en dos pestañas: "activas" (el Responsable todavía
-// no la revisó, aunque un supervisor ya la haya atendido) y "atendidas" (el
-// Responsable ya hizo su segundo chequeo).
-let pestana = 'pendientes';
+// Seguridad separa la bandeja en dos páginas: "Alertas Activas" (el Responsable
+// todavía no la revisó, aunque un supervisor ya la haya atendido) y "Alertas
+// Atendidas" (el Responsable ya hizo su segundo chequeo).
+// La página de Alertas Atendidas usa este mismo script con SAFEPLACE_ALERTAS_VIEW = 'atendidas'.
+const pestana = window.SAFEPLACE_ALERTAS_VIEW === 'atendidas' ? 'atendidas' : 'pendientes';
 const estaAtendida = (a) => a.revisada;
 const noCerrada = (a) => !String(a.estado).toLowerCase().includes('cerr');
 // La bandeja del supervisor sólo muestra lo que nadie atendió todavía.
@@ -126,8 +127,6 @@ function actualizarContador() {
   const vigentes = alertas.filter(noCerrada);
   const atendidas = vigentes.filter(estaAtendida).length;
   const activas = vigentes.length - atendidas;
-  document.getElementById('tabCountActivas').textContent = activas;
-  document.getElementById('tabCountAtendidas').textContent = atendidas;
   alertCount.textContent = pestana === 'atendidas'
     ? `${atendidas} ${atendidas === 1 ? 'alerta atendida' : 'alertas atendidas'}`
     : `${activas} ${activas === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
@@ -603,27 +602,6 @@ function exportarExcel() {
 
 document.getElementById('btnExportPDF')?.addEventListener('click', exportarPDF);
 document.getElementById('btnExportExcel')?.addEventListener('click', exportarExcel);
-
-// Cada pestaña consulta otra vez al servidor y restablece los botones de tipo
-// que se hubieran aplicado antes; el orden y la búsqueda se conservan por pestaña.
-const botonesPestana = [...document.querySelectorAll('.alert-status-filter')];
-botonesPestana.forEach((boton) => boton.addEventListener('click', async () => {
-  pestana = boton.dataset.filter;
-  botonesPestana.forEach((b) => {
-    const activo = b === boton;
-    b.classList.toggle('is-active', activo);
-    b.setAttribute('aria-pressed', String(activo));
-  });
-  aplicarTipos(todosLosTipos);
-  sincronizarControles();
-
-  try {
-    await cargarAlertas();
-  } catch (error) {
-    console.error(error);
-    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas</td></tr>';
-  }
-}));
 
 botonesTipo.forEach((button) => {
   button.addEventListener('click', () => {
