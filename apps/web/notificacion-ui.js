@@ -139,19 +139,47 @@ function openNotifModal(notificaciones) {
   modal.classList.add('notif-modal--open');
 }
 
+function openSupervisorAlertsModal(alertas) {
+  const modal = ensureNotifModal();
+  const title = document.getElementById('notifModalTitle');
+  const subtitle = modal.querySelector('.notif-modal__subtitle');
+  const body = document.getElementById('notifModalBody');
+  const items = alertas.slice(0, 6);
+
+  title.textContent = 'Alertas activas';
+  subtitle.textContent = 'Tocá una alerta para revisar su detalle.';
+  body.innerHTML = items.length
+    ? items.map((alerta) => {
+      const person = `${alerta.operario_nombre || ''} ${alerta.operario_apellido || ''}`.trim() || 'Sin operario asignado';
+      const when = alerta.fecha_hora ? fmtAR(new Date(alerta.fecha_hora)) : 'Fecha no disponible';
+      return `<button class="notif-preview notif-preview--${mapNotifType(alerta.prioridad || '')}" type="button" data-alert-target="Supervisor-Notificaciones.html">
+        <div class="notif-preview__top"><strong>${escapeHtml(person)}</strong><span class="notif-preview__state">Activa</span></div>
+        <div class="notif-preview__summary">${escapeHtml(`${etiquetaTipo(alerta.tipo_alerta)} · ${when}`)}</div>
+      </button>`;
+    }).join('')
+    : '<div class="notif-preview notif-preview--empty">No hay alertas activas.</div>';
+
+  body.querySelectorAll('[data-alert-target]').forEach((button) => {
+    button.addEventListener('click', () => { window.location.href = button.dataset.alertTarget; });
+  });
+  modal.classList.add('notif-modal--open');
+}
+
 async function loadHomeNotifications() {
   const badge = document.getElementById('notifBadge');
   const bell = document.querySelector('.notif-bell');
   if (!badge || !bell) return;
 
-  const payload = await notifApiFetch('/notificaciones?leida=false');
-  const notificaciones = payload?.data || [];
+  const role = String(sessionStorage.getItem('userRole') || '').toLowerCase();
+  const esSupervisor = role === 'supervisor';
+  const payload = await notifApiFetch(esSupervisor ? '/alertas/activas' : '/notificaciones?leida=false');
+  const notificaciones = (payload?.data || []).filter((item) => !esSupervisor || String(item.estado).toLowerCase() === 'activa');
 
   badge.textContent = String(notificaciones.length);
   badge.style.display = notificaciones.length > 0 ? 'flex' : 'none';
   bell.classList.toggle('notif-bell--has-items', notificaciones.length > 0);
 
-  bell.onclick = () => openNotifModal(notificaciones);
+  bell.onclick = () => (esSupervisor ? openSupervisorAlertsModal(notificaciones) : openNotifModal(notificaciones));
 }
 
 function initHomeNotifications() {

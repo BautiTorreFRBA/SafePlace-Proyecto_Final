@@ -88,7 +88,9 @@ async function apiFetch(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.error || payload.message || 'No se pudo completar la operación.');
+    // El backend incluye el detalle de los errores 500 (por ejemplo, una
+    // columna faltante). Priorizarlo evita el mensaje genérico del navegador.
+    throw new Error(payload.message || payload.error || 'No se pudo completar la operación.');
   }
 
   return payload;
