@@ -139,7 +139,9 @@ function openNotifModal(notificaciones) {
   modal.classList.add('notif-modal--open');
 }
 
-function openSupervisorAlertsModal(alertas) {
+// Modal de la campana con las alertas Activas: las del supervisor y, para el
+// Responsable de Seguridad e Higiene, las que todavía no atendió (destino = su bandeja).
+function openSupervisorAlertsModal(alertas, destino = 'Supervisor-Notificaciones.html') {
   const modal = ensureNotifModal();
   const title = document.getElementById('notifModalTitle');
   const subtitle = modal.querySelector('.notif-modal__subtitle');
@@ -152,7 +154,7 @@ function openSupervisorAlertsModal(alertas) {
     ? items.map((alerta) => {
       const person = `${alerta.operario_nombre || ''} ${alerta.operario_apellido || ''}`.trim() || 'Sin operario asignado';
       const when = alerta.fecha_hora ? fmtAR(new Date(alerta.fecha_hora)) : 'Fecha no disponible';
-      return `<button class="notif-preview notif-preview--${mapNotifType(alerta.prioridad || '')}" type="button" data-alert-target="Supervisor-Notificaciones.html">
+      return `<button class="notif-preview notif-preview--${mapNotifType(alerta.prioridad || '')}" type="button" data-alert-target="${destino}">
         <div class="notif-preview__top"><strong>${escapeHtml(person)}</strong><span class="notif-preview__state">Activa</span></div>
         <div class="notif-preview__summary">${escapeHtml(`${etiquetaTipo(alerta.tipo_alerta)} · ${when}`)}</div>
       </button>`;
@@ -172,14 +174,22 @@ async function loadHomeNotifications() {
 
   const role = String(sessionStorage.getItem('userRole') || '').toLowerCase();
   const esSupervisor = role === 'supervisor';
-  const payload = await notifApiFetch(esSupervisor ? '/alertas/activas' : '/notificaciones?leida=false');
-  const notificaciones = (payload?.data || []).filter((item) => !esSupervisor || String(item.estado).toLowerCase() === 'activa');
+  const esSeguridad = role === 'seguridad';
+  const cuentaAlertas = esSupervisor || esSeguridad;
+  const payload = await notifApiFetch(cuentaAlertas ? '/alertas/activas' : '/notificaciones?leida=false');
+  // Supervisor y Responsable cuentan alertas en estado Activa. Para el Responsable
+  // son las que todavía no atendió (aunque un supervisor ya la haya visto).
+  const notificaciones = (payload?.data || []).filter((item) => !cuentaAlertas || String(item.estado).toLowerCase() === 'activa');
 
   badge.textContent = String(notificaciones.length);
   badge.style.display = notificaciones.length > 0 ? 'flex' : 'none';
   bell.classList.toggle('notif-bell--has-items', notificaciones.length > 0);
 
-  bell.onclick = () => (esSupervisor ? openSupervisorAlertsModal(notificaciones) : openNotifModal(notificaciones));
+  bell.onclick = () => {
+    if (esSeguridad) openSupervisorAlertsModal(notificaciones, 'Seguridad-AlertasActivas.html');
+    else if (esSupervisor) openSupervisorAlertsModal(notificaciones);
+    else openNotifModal(notificaciones);
+  };
 }
 
 function initHomeNotifications() {

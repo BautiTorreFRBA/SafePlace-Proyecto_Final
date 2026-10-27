@@ -8,12 +8,23 @@ const FALLBACK_POLL_INTERVAL_MS = 60000;
 
 const notifList = document.getElementById('notifList');
 const notifCount = document.getElementById('notifCount');
-const btnLeerTodas = document.getElementById('btnLeerTodas');
-const btnActualizar = document.getElementById('btnActualizar');
-let notificaciones = [];
-let filtroActual = 'todas';
-let cantidadSinLeer = 0;
+let alertas = [];
+let filtroActual = 'activas';
 let tipoSeleccionado = null;
+
+const ETIQUETA_TIPO_ALERTA = {
+  FATIGA: 'Fatiga',
+  SOBREESFUERZO: 'Sobreesfuerzo',
+  INACTIVIDAD_PROLONGADA: 'Inactividad prolongada',
+  EMERGENCIA: 'EMERGENCIA',
+  SUPER_EMERGENCIA: 'SÚPER EMERGENCIA',
+};
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 async function apiFetch(path, options = {}) {
   const token = sessionStorage.getItem('authToken');
@@ -52,67 +63,53 @@ function mapearTipo(tipoAlerta = '', prioridad = '') {
     : 'advertencia';
 }
 
-async function cargarNotificaciones() {
-  const filtroQuery = filtroActual === 'leidas' ? '?leida=true' : filtroActual === 'no-leidas' ? '?leida=false' : '';
-  const [payload, pendientesPayload] = await Promise.all([
-    apiFetch(`/notificaciones${filtroQuery}`),
-    apiFetch('/notificaciones?leida=false'),
-  ]);
-  cantidadSinLeer = (pendientesPayload.data || []).length;
-  notificaciones = (payload.data || []).map((n) => ({
-    id: n.id,
-    tipoAlerta: String(n.tipo_alerta || '').trim().toUpperCase(),
-    tipo: mapearTipo(n.tipo_alerta, n.prioridad || ''),
-    titulo: n.tipo_alerta || 'Alerta',
-    descripcion: `${n.operario_nombre || ''} ${n.operario_apellido || ''}`.trim() || 'Sin operario asignado',
-    area: n.operario_area || '',
-    hora: fmtAR(new Date(n.fecha_hora)),
-    leido: Boolean(n.leida),
-  }));
+// Esta pantalla ya no lista notificaciones sino alertas: "Activas" son las que el
+// Responsable todavía no atendió (lo mismo que cuenta la campana) y "Atendidas"
+// las que ya atendió.
+async function cargarAlertas() {
+  const payload = await apiFetch('/alertas/activas');
+  alertas = (payload.data || []).map((a) => {
+    const tipoAlerta = String(a.tipo_alerta || '').trim().toUpperCase();
+    return {
+      id: a.id,
+      tipoAlerta,
+      tipo: mapearTipo(a.tipo_alerta, a.prioridad || ''),
+      titulo: ETIQUETA_TIPO_ALERTA[tipoAlerta] || a.tipo_alerta || 'Alerta',
+      descripcion: `${a.operario_nombre || ''} ${a.operario_apellido || ''}`.trim() || 'Sin operario asignado',
+      hora: fmtAR(new Date(a.fecha_hora)),
+      fechaHora: new Date(a.fecha_hora).getTime() || 0,
+      atendida: String(a.estado).toLowerCase() === 'atendida',
+      atendidaPor: String(a.atendida_por || '').trim(),
+    };
+  });
   actualizarContador();
-  renderNotificaciones();
+  renderAlertas();
 }
 
 function actualizarContador() {
-  const sinLeer = cantidadSinLeer;
-  notifCount.textContent = sinLeer > 0 ? `${sinLeer} sin leer` : 'Todas leídas';
-  const badge = document.getElementById('notifBadge');
-  if (badge) {
-    badge.textContent = sinLeer;
-    badge.style.display = sinLeer > 0 ? 'flex' : 'none';
-  }
+  const activas = alertas.filter((a) => !a.atendida).length;
+  const atendidas = alertas.length - activas;
+  notifCount.textContent = `${activas} ${activas === 1 ? 'alerta activa por atender' : 'alertas activas por atender'}`;
+  document.getElementById('tabCountActivas').textContent = activas;
+  document.getElementById('tabCountAtendidas').textContent = atendidas;
   window.refrescarNotificaciones?.();
 }
 
-function renderNotificaciones() {
+function renderAlertas() {
   if (!notifList) return;
-  const visibles = notificaciones.filter((n) => (!tipoSeleccionado || n.tipoAlerta === tipoSeleccionado)
-    && (filtroActual === 'todas' || (filtroActual === 'leidas' && n.leido) || (filtroActual === 'no-leidas' && !n.leido)));
+  const visibles = alertas
+    .filter((a) => (!tipoSeleccionado || a.tipoAlerta === tipoSeleccionado) && (filtroActual === 'atendidas' ? a.atendida : !a.atendida))
+    .sort((x, y) => y.fechaHora - x.fechaHora);
   notifList.innerHTML = visibles.length
-    ? visibles.map((n) => `<div class="notif-card notif-card--${n.tipo} ${n.leido ? 'notif-card--leido' : ''}" onclick="marcarComoLeido(${n.id})"><div class="notif-card__content"><div class="notif-card__title">${n.titulo}</div><div class="notif-card__desc">${n.descripcion}</div>${n.area ? `<div class="notif-card__area">${n.area}</div>` : ''}<div class="notif-card__time">${n.hora}</div></div>${n.leido ? '' : '<span class="notif-card__unread" title="Sin leer"></span>'}</div>`).join('')
-    : '<div class="notif-empty"><div class="notif-empty__title">No hay notificaciones en este filtro</div><div class="notif-empty__desc">Probá con otro filtro para ver más notificaciones.</div></div>';
+    ? visibles.map((a) => `<div class="notif-card notif-card--${a.tipo}" onclick="window.location.href='Seguridad-AlertasActivas.html'"><div class="notif-card__content"><div class="notif-card__title">${escapeHtml(a.titulo)}</div><div class="notif-card__desc">${escapeHtml(a.descripcion)}</div>${a.atendidaPor ? `<div class="notif-card__area">Atendida por ${escapeHtml(a.atendidaPor)}</div>` : ''}<div class="notif-card__time">${escapeHtml(a.hora)}</div></div></div>`).join('')
+    : `<div class="notif-empty"><div class="notif-empty__title">${filtroActual === 'atendidas' ? 'No hay alertas atendidas' : 'No hay alertas activas por atender'}</div><div class="notif-empty__desc">Probá con otro filtro para ver más alertas.</div></div>`;
 }
-
-window.marcarComoLeido = async (id) => {
-  const notif = notificaciones.find((n) => n.id === id);
-  if (!notif || notif.leido) return;
-
-  try {
-    await apiFetch(`/notificaciones/${id}/leida`, { method: 'PATCH' });
-    notif.leido = true;
-    cantidadSinLeer = Math.max(0, cantidadSinLeer - 1);
-    actualizarContador();
-    renderNotificaciones();
-  } catch (error) {
-    alert(error.message);
-  }
-};
 
 document.querySelectorAll('.notif-filter').forEach((button) => {
   button.addEventListener('click', () => {
     filtroActual = button.dataset.filter;
     document.querySelectorAll('.notif-filter').forEach((item) => item.classList.toggle('is-active', item === button));
-    cargarNotificaciones().catch((error) => alert(error.message));
+    renderAlertas();
   });
 });
 
@@ -125,24 +122,9 @@ document.querySelectorAll('.notif-type-filter').forEach((button) => {
       item.classList.toggle('is-active', activo);
       item.setAttribute('aria-pressed', String(activo));
     });
-    renderNotificaciones();
+    renderAlertas();
   });
 });
-
-btnLeerTodas?.addEventListener('click', async () => {
-  const pendientes = notificaciones.filter((n) => !n.leido);
-  try {
-    await Promise.all(pendientes.map((n) => apiFetch(`/notificaciones/${n.id}/leida`, { method: 'PATCH' })));
-    pendientes.forEach((n) => { n.leido = true; });
-    cantidadSinLeer = 0;
-    actualizarContador();
-    renderNotificaciones();
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
-btnActualizar?.addEventListener('click', () => cargarNotificaciones().catch((error) => alert(error.message)));
 
 // SSE manual con fetch (no EventSource nativo): así se puede mandar el
 // header Authorization, que EventSource no soporta.
@@ -177,8 +159,9 @@ function conectarStreamNotificaciones() {
         buffer = eventos.pop();
 
         for (const bloque of eventos) {
+          // Cada alerta nueva emite un evento: se recarga la lista de alertas.
           if (bloque.includes('event: notificacion')) {
-            cargarNotificaciones().catch((error) => console.error(error));
+            cargarAlertas().catch((error) => console.error(error));
           }
         }
       }
@@ -192,6 +175,6 @@ function conectarStreamNotificaciones() {
     });
 }
 
-cargarNotificaciones().catch((error) => console.error(error));
+cargarAlertas().catch((error) => console.error(error));
 conectarStreamNotificaciones();
-setInterval(() => cargarNotificaciones().catch((error) => console.error(error)), FALLBACK_POLL_INTERVAL_MS);
+setInterval(() => cargarAlertas().catch((error) => console.error(error)), FALLBACK_POLL_INTERVAL_MS);

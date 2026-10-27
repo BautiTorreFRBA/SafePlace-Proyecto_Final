@@ -204,6 +204,7 @@ async function cambiarEstado(id, estado) {
       body: JSON.stringify({ estado }),
     });
     await cargarAlertas();
+    window.refrescarNotificaciones?.(); // actualiza el contador de la campana
   } catch (error) {
     alert(error.message);
   }
