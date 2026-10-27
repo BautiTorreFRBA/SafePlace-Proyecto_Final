@@ -134,11 +134,8 @@ const registrarAtencionActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAler
 // Bandeja de alertas activas (H0013), con la identidad ya reidentificada
 // (H0020) para mostrar nombre/apellido.
 const listarActivas = async (usuario = {}) => {
-  // Seguridad e Higiene y el admin ven todo; el supervisor sólo las alertas de su
-  // área y turnos (el mismo alcance que usan sus mediciones, estado y notificaciones).
-  const esSupervisor = usuario.role === 'supervisor';
-  const area = esSupervisor ? usuario.areaSupervisada || '__sin_alcance__' : null;
-  const turnos = esSupervisor ? usuario.turnosSupervisados || [] : null;
+  // Seguridad e Higiene ve todos los turnos: el filtro por turno queda desactivado (null).
+  const turnoSeguridad = null;
   const query = `
     SELECT
       a.id,
@@ -158,10 +155,10 @@ const listarActivas = async (usuario = {}) => {
     ${JOIN_IDENTIDAD}
     LEFT JOIN usuario u ON u.id = a.id_usuario_atendio
     WHERE a.estado IN ('Activa', 'Atendida')
-      AND ($1::text IS NULL OR (o.area = $1 AND o.turno = ANY($2::varchar[])))
+      AND ($1::text IS NULL OR o.turno = $1)
     ORDER BY a.fecha_hora DESC, a.id DESC;
   `;
-  const res = await db.query(query, [area, turnos]);
+  const res = await db.query(query, [turnoSeguridad]);
   return res.rows;
 };
 
