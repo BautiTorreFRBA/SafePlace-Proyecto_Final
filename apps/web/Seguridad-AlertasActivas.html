@@ -4,6 +4,9 @@
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafePlace – Alertas Activas</title><link rel="stylesheet" href="Styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body> 
@@ -57,6 +60,10 @@
         <h2 class="welcome__title">Alertas Activas</h2>
         <p class="alert-header__count" id="alertCount"><!-- Cantidad de alertas pendientes --> alertas pendientes</p>
       </div>
+      <div class="hist-export">
+        <button class="btn-export" type="button" id="btnExportPDF"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF</button>
+        <button class="btn-export" type="button" id="btnExportExcel"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+      </div>
     </div>
 
     <div class="alert-status-filters" role="group" aria-label="Filtrar por estado">
@@ -70,18 +77,30 @@
       <button class="alert-type-filter is-active" type="button" data-tipo="SUPER_EMERGENCIA" aria-pressed="true">Súper emergencia</button>
     </div>
  
+    <div class="alert-search">
+      <input class="hist-input alert-search__input" id="alertSearch" type="search" placeholder="Buscar por tipo, operario, fecha, hora o supervisor..." aria-label="Buscar en la tabla" autocomplete="off" />
+      <button class="btn-export" type="button" id="alertClearFilters">Limpiar filtros</button>
+    </div>
+
     <!-- Tabla de alertas -->
     <div class="alert-table-wrap">
       <table class="alert-table">
         <thead>
           <tr>
-            <th>TIPO</th>
-            <th>OPERARIO</th>
-            <th>FECHA</th>
-            <th>HORA</th>
-            <th>ESTADO</th>
-            <th>ATENDIDA</th>
+            <th data-sort="tipo" aria-sort="none"><button type="button" class="alert-sort">TIPO <span class="alert-sort__arrow" aria-hidden="true"></span></button></th>
+            <th data-sort="operario" aria-sort="none"><button type="button" class="alert-sort">OPERARIO <span class="alert-sort__arrow" aria-hidden="true"></span></button></th>
+            <th data-sort="fecha" aria-sort="none"><button type="button" class="alert-sort">FECHA <span class="alert-sort__arrow" aria-hidden="true"></span></button></th>
+            <th data-sort="hora" aria-sort="none"><button type="button" class="alert-sort">HORA <span class="alert-sort__arrow" aria-hidden="true"></span></button></th>
+            <th data-sort="atendida" aria-sort="none"><button type="button" class="alert-sort">ATENDIDA <span class="alert-sort__arrow" aria-hidden="true"></span></button></th>
             <th>ACCIONES</th>
+          </tr>
+          <tr class="alert-filter-row">
+            <th><select class="hist-select alert-col-filter" data-col="tipo" aria-label="Filtrar por tipo"><option value="">Todos</option></select></th>
+            <th><input class="hist-input alert-col-filter" data-col="operario" type="text" placeholder="Filtrar..." aria-label="Filtrar por operario" autocomplete="off" /></th>
+            <th><input class="hist-input alert-col-filter" data-col="fecha" type="date" aria-label="Filtrar por fecha" /></th>
+            <th><input class="hist-input alert-col-filter" data-col="hora" type="text" placeholder="Ej: 14:3" aria-label="Filtrar por hora" autocomplete="off" /></th>
+            <th><input class="hist-input alert-col-filter" data-col="atendida" type="text" placeholder="Filtrar..." aria-label="Filtrar por supervisor" autocomplete="off" /></th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="alertTableBody">

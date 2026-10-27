@@ -3753,9 +3753,8 @@ select.cfg-input {
   text-align: center;
 }
 
-.alert-table th:nth-child(5),
 .alert-td-hora {
-  min-width: 150px;
+  min-width: 110px;
 }
 
 .alert-table tbody tr {
@@ -3892,9 +3891,76 @@ select.cfg-input {
   color: var(--text-muted);
 }
 
+/* Orden y filtros por columna */
+.alert-search {
+  display: flex;
+  gap: 10px;
+  padding: 0 28px 16px;
+}
+
+.alert-search__input {
+  flex: 1;
+  max-width: 460px;
+  cursor: text;
+}
+
+.alert-table .alert-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.alert-table .alert-sort:hover,
+.alert-table th[aria-sort="ascending"] .alert-sort,
+.alert-table th[aria-sort="descending"] .alert-sort {
+  color: var(--teal-400);
+}
+
+.alert-sort__arrow::after {
+  content: "↕";
+  opacity: 0.4;
+}
+
+.alert-table th[aria-sort="ascending"] .alert-sort__arrow::after {
+  content: "▲";
+  opacity: 1;
+}
+
+.alert-table th[aria-sort="descending"] .alert-sort__arrow::after {
+  content: "▼";
+  opacity: 1;
+}
+
+.alert-table .alert-filter-row th {
+  padding: 0 16px 12px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.alert-col-filter {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  cursor: text;
+}
+
+select.alert-col-filter {
+  cursor: pointer;
+}
+
 /* Celda de acciones */
 .alert-td-acciones {
   min-width: 190px;
+  text-align: center;
 }
 
 .alert-actions {

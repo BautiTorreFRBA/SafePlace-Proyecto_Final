@@ -133,13 +133,59 @@ function actualizarContador() {
     : `${activas} ${activas === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
 }
 
-function renderTabla() {
-  const filtrados = alertas.filter((a) => {
-    const coincideTipo = tiposActivos.has(a.tipoAlerta);
-    if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') return coincideTipo && pendienteParaSupervisor(a);
-    return coincideTipo && noCerrada(a) && (pestana === 'atendidas' ? estaAtendida(a) : !estaAtendida(a));
+// Valor de cada columna para buscar, filtrar, ordenar y exportar.
+const COLUMNAS = {
+  tipo: { titulo: 'Tipo', texto: (a) => a.tipo, orden: (a) => ORDEN_TIPO[a.tipoAlerta] ?? 9 },
+  operario: { titulo: 'Operario', texto: (a) => a.empleado, orden: (a) => a.empleado },
+  fecha: { titulo: 'Fecha', texto: (a) => a.fecha, orden: (a) => new Date(a.fechaHora).getTime() || 0 },
+  hora: { titulo: 'Hora', texto: (a) => a.hora, orden: (a) => a.hora },
+  atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || 'Sin atender', orden: (a) => a.atendidaPor || 'Sin atender' },
+};
+const normalizarTexto = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const contiene = (texto, buscado) => normalizarTexto(texto).includes(normalizarTexto(buscado).trim());
+const diaDe = (a) => {
+  const fecha = new Date(a.fechaHora);
+  return Number.isNaN(fecha.getTime()) ? '' : diaAR(fecha);
+};
+
+// Cada pestaña recuerda su propio orden, filtros por columna y búsqueda.
+const nuevaVista = () => ({ orden: null, filtros: { operario: '', fecha: '', hora: '', atendida: '' }, busqueda: '' });
+const vistaPorPestana = { pendientes: nuevaVista(), atendidas: nuevaVista() };
+
+// Alertas de la pestaña actual tras aplicar filtros, búsqueda y orden. También
+// es lo que se exporta.
+function filasVisibles() {
+  const vista = vistaPorPestana[pestana];
+  const { operario, fecha, hora, atendida } = vista.filtros;
+  const terminos = normalizarTexto(vista.busqueda).split(/\s+/).filter(Boolean);
+  const filas = alertas.filter((a) => {
+    if (!tiposActivos.has(a.tipoAlerta) || !noCerrada(a)) return false;
+    if (pestana === 'atendidas' ? !estaAtendida(a) : estaAtendida(a)) return false;
+    if (operario && !contiene(a.empleado, operario)) return false;
+    if (fecha && diaDe(a) !== fecha) return false;
+    if (hora && !contiene(a.hora, hora)) return false;
+    if (atendida && !contiene(COLUMNAS.atendida.texto(a), atendida)) return false;
+    if (terminos.length) {
+      const pajar = normalizarTexto(Object.values(COLUMNAS).map((c) => c.texto(a)).join(' '));
+      if (!terminos.every((t) => pajar.includes(t))) return false;
+    }
+    return true;
   });
+  if (vista.orden) {
+    const { orden } = COLUMNAS[vista.orden.col];
+    const signo = vista.orden.dir === 'desc' ? -1 : 1;
+    filas.sort((x, y) => {
+      const vx = orden(x);
+      const vy = orden(y);
+      return signo * (typeof vx === 'number' ? vx - vy : String(vx).localeCompare(String(vy), 'es', { numeric: true }));
+    });
+  }
+  return filas;
+}
+
+function renderTabla() {
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
+    const filtrados = alertas.filter((a) => tiposActivos.has(a.tipoAlerta) && pendienteParaSupervisor(a));
     tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<button class="supervisor-alert-card supervisor-alert-card--${a.claseTipo}" type="button" onclick="revisarAlerta(${a.id})">
       <span class="supervisor-alert-card__content">
         <span class="supervisor-alert-card__name">${escapeHtml(a.empleado)}</span>
@@ -150,15 +196,15 @@ function renderTabla() {
     </button>`).join('') : '<div class="notif-empty"><div class="notif-empty__title">No hay alertas activas</div><div class="notif-empty__desc">No hay situaciones pendientes de atención.</div></div>';
     return;
   }
+  const filtrados = filasVisibles();
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}"><span class="alert-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
-      <td class="alert-td-estado"><span class="alert-badge-estado alert-badge-${a.revisada ? 'cerrada' : 'activo'}">${a.revisada ? 'Atendida' : 'Activa'}</span></td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
       <td class="alert-td-acciones">${a.revisada ? '<span class="alert-action-done">Revisada</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="6" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 
 async function cambiarEstado(id, estado) {
@@ -480,9 +526,113 @@ fcModalAtender.addEventListener('click', async () => {
 // Tocar un tipo deja sólo ese tipo; tocarlo de nuevo (cuando es el único) vuelve a mostrar todos.
 const botonesTipo = [...document.querySelectorAll('.alert-type-filter')];
 const todosLosTipos = botonesTipo.map((b) => b.dataset.tipo);
+const selectTipo = document.querySelector('.alert-col-filter[data-col="tipo"]');
 
-// Cada pestaña consulta otra vez al servidor y restablece los filtros de tipo
-// que se hubieran aplicado antes.
+// El filtro de la columna "Tipo" (select) y los botones de tipo son el mismo filtro.
+function aplicarTipos(tipos) {
+  tiposActivos.clear();
+  tipos.forEach((t) => tiposActivos.add(t));
+  botonesTipo.forEach((b) => {
+    const activo = tiposActivos.has(b.dataset.tipo);
+    b.classList.toggle('is-active', activo);
+    b.setAttribute('aria-pressed', String(activo));
+  });
+  if (selectTipo) selectTipo.value = tipos.length === 1 ? tipos[0] : '';
+}
+
+// ── Orden, filtros por columna, búsqueda y exportación (sólo la tabla de Seguridad) ──
+const buscador = document.getElementById('alertSearch');
+const encabezadosOrdenables = [...document.querySelectorAll('th[data-sort]')];
+const filtrosColumna = [...document.querySelectorAll('.alert-col-filter')].filter((el) => el !== selectTipo);
+
+if (selectTipo) {
+  todosLosTipos.forEach((tipo) => selectTipo.add(new Option(etiquetaTipo(tipo), tipo)));
+  selectTipo.addEventListener('change', () => {
+    aplicarTipos(selectTipo.value ? [selectTipo.value] : todosLosTipos);
+    renderTabla();
+  });
+}
+
+// Refleja en los controles el estado guardado de la pestaña activa.
+function sincronizarControles() {
+  const vista = vistaPorPestana[pestana];
+  if (buscador) buscador.value = vista.busqueda;
+  filtrosColumna.forEach((el) => { el.value = vista.filtros[el.dataset.col] ?? ''; });
+  encabezadosOrdenables.forEach((th) => {
+    const activo = vista.orden?.col === th.dataset.sort;
+    th.setAttribute('aria-sort', activo ? (vista.orden.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+  });
+}
+
+encabezadosOrdenables.forEach((th) => th.addEventListener('click', () => {
+  const vista = vistaPorPestana[pestana];
+  const col = th.dataset.sort;
+  // Ascendente → descendente → orden original.
+  if (vista.orden?.col !== col) vista.orden = { col, dir: 'asc' };
+  else if (vista.orden.dir === 'asc') vista.orden = { col, dir: 'desc' };
+  else vista.orden = null;
+  sincronizarControles();
+  renderTabla();
+}));
+
+filtrosColumna.forEach((el) => el.addEventListener('input', () => {
+  vistaPorPestana[pestana].filtros[el.dataset.col] = el.value;
+  renderTabla();
+}));
+
+buscador?.addEventListener('input', () => {
+  vistaPorPestana[pestana].busqueda = buscador.value;
+  renderTabla();
+});
+
+document.getElementById('alertClearFilters')?.addEventListener('click', () => {
+  vistaPorPestana[pestana] = nuevaVista();
+  aplicarTipos(todosLosTipos);
+  sincronizarControles();
+  renderTabla();
+});
+
+const nombreExportacion = () => (pestana === 'atendidas' ? 'alertas-atendidas' : 'alertas-activas');
+const filasParaExportar = () => filasVisibles().map((a) => Object.values(COLUMNAS).map((c) => c.texto(a)));
+const encabezadosExportacion = () => Object.values(COLUMNAS).map((c) => c.titulo);
+
+function exportarPDF() {
+  if (!window.jspdf?.jsPDF) {
+    alert('No se pudo cargar la libreria PDF.');
+    return;
+  }
+  const doc = new window.jspdf.jsPDF('landscape');
+  doc.setFontSize(16);
+  doc.text(pestana === 'atendidas' ? 'Alertas atendidas' : 'Alertas activas', 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generado el ${fmtAR(new Date())}`, 14, 22);
+  doc.autoTable({
+    startY: 28,
+    head: [encabezadosExportacion()],
+    body: filasParaExportar(),
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [17, 24, 39] },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
+  });
+  doc.save(`${nombreExportacion()}.pdf`);
+}
+
+function exportarExcel() {
+  if (!window.XLSX) {
+    alert('No se pudo cargar la libreria Excel.');
+    return;
+  }
+  const hoja = window.XLSX.utils.aoa_to_sheet([encabezadosExportacion(), ...filasParaExportar()]);
+  const libro = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(libro, hoja, pestana === 'atendidas' ? 'Atendidas' : 'Activas');
+  window.XLSX.writeFile(libro, `${nombreExportacion()}.xlsx`);
+}
+
+document.getElementById('btnExportPDF')?.addEventListener('click', exportarPDF);
+document.getElementById('btnExportExcel')?.addEventListener('click', exportarExcel);
+
+// Cada pestaña consulta otra vez al servidor y restablece los botones de tipo
+// que se hubieran aplicado antes; el resto de sus filtros se conserva por pestaña.
 const botonesPestana = [...document.querySelectorAll('.alert-status-filter')];
 botonesPestana.forEach((boton) => boton.addEventListener('click', async () => {
   pestana = boton.dataset.filter;
@@ -491,18 +641,14 @@ botonesPestana.forEach((boton) => boton.addEventListener('click', async () => {
     b.classList.toggle('is-active', activo);
     b.setAttribute('aria-pressed', String(activo));
   });
-  tiposActivos.clear();
-  todosLosTipos.forEach((tipo) => tiposActivos.add(tipo));
-  botonesTipo.forEach((boton) => {
-    boton.classList.add('is-active');
-    boton.setAttribute('aria-pressed', 'true');
-  });
+  aplicarTipos(todosLosTipos);
+  sincronizarControles();
 
   try {
     await cargarAlertas();
   } catch (error) {
     console.error(error);
-    tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No se pudieron cargar las alertas</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas</td></tr>';
   }
 }));
 
@@ -510,13 +656,7 @@ botonesTipo.forEach((button) => {
   button.addEventListener('click', () => {
     const tipo = button.dataset.tipo;
     const soloEste = tiposActivos.size === 1 && tiposActivos.has(tipo);
-    tiposActivos.clear();
-    (soloEste ? todosLosTipos : [tipo]).forEach((t) => tiposActivos.add(t));
-    botonesTipo.forEach((b) => {
-      const activo = tiposActivos.has(b.dataset.tipo);
-      b.classList.toggle('is-active', activo);
-      b.setAttribute('aria-pressed', String(activo));
-    });
+    aplicarTipos(soloEste ? todosLosTipos : [tipo]);
     renderTabla();
   });
 });
