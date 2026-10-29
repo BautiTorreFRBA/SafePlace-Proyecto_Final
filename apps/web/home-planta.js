@@ -363,9 +363,12 @@ async function cargarHome() {
     const superPorTrabajador = new Map(); // id_trabajador -> id de su SUPER_EMERGENCIA activa
     const emergenciaPorTrabajador = new Map(); // id_trabajador -> id de su EMERGENCIA activa
     alertasActivas = alertasResult.status === 'fulfilled' ? alertasResult.value?.data || [] : [];
+    // El Home sólo representa condiciones todavía activas. El endpoint también
+    // devuelve Atendida para la bandeja de Seguridad e Higiene.
+    alertasActivas = alertasActivas.filter((alerta) => String(alerta.estado || '').toLowerCase() === 'activa');
     // Una alerta que el supervisor ya atendió sigue Activa para el Responsable de
     // Seguridad e Higiene (falta su chequeo), pero deja de ser pendiente para el supervisor.
-    if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
+    if (['supervisor', 'admin'].includes(String(sessionStorage.getItem('userRole') || '').trim().toLowerCase())) {
       alertasActivas = alertasActivas.filter((alerta) => !String(alerta.atendida_por || '').trim());
     }
     alertasActivas.forEach((alerta) => {
@@ -380,7 +383,7 @@ async function cargarHome() {
     const alcance = alcanceDelRol();
     const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : []).filter(alcance.incluye);
     // Para el supervisor, la alerta que ya atendió deja de marcar al operario (ver arriba).
-    if (String(sessionStorage.getItem('userRole') || '').trim().toLowerCase() === 'supervisor') {
+    if (['supervisor', 'admin'].includes(String(sessionStorage.getItem('userRole') || '').trim().toLowerCase())) {
       data.forEach((item) => { if (item.alerta_id_usuario_atendio != null) item.tipo_alerta = null; });
     }
     document.getElementById('turnoActual').textContent = alcance.titulo;
