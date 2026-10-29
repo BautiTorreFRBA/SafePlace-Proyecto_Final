@@ -20,6 +20,7 @@ const getHistorialAlertas = async (req, res, next) => {
   try {
     const rows = await alertsRepository.listarHistorialAlertas({
       desde: normalizarFiltro(req.query.desde),
+      hasta: normalizarFiltro(req.query.hasta),
       tipo: normalizarFiltro(req.query.tipo),
       empleado: normalizarFiltro(req.query.empleado),
       area: normalizarFiltro(req.query.area),
