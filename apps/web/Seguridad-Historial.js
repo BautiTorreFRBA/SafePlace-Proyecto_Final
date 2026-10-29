@@ -5,6 +5,7 @@ const filterEmpleado = document.getElementById('filterEmpleado');
 const filterArea = document.getElementById('filterArea');
 const filterTurno = document.getElementById('filterTurno');
 const filterTipo = document.getElementById('filterTipo');
+const filterDesde = document.getElementById('filterDesde');
 const btnPDF = document.getElementById('btnPDF');
 const btnExcel = document.getElementById('btnExcel');
 const chartTipoCanvas = document.getElementById('chartTipo');
@@ -107,6 +108,7 @@ function formatearFecha(fechaHora = '') {
 
 function obtenerFiltros() {
   return {
+    desde: filterDesde.value,
     tipo: filterTipo.value.trim(),
     empleado: filterEmpleado.value.trim(),
     area: filterArea.value.trim(),
@@ -340,9 +342,10 @@ function exportarExcel() {
 }
 
 async function cargarHistorial() {
-  const { tipo, empleado, area, turno } = obtenerFiltros();
+  const { desde, tipo, empleado, area, turno } = obtenerFiltros();
 
   const params = new URLSearchParams();
+  if (desde) params.set('desde', desde);
   if (tipo) params.set('tipo', tipo);
   if (empleado) params.set('empleado', empleado);
   if (area) params.set('area', area);
@@ -404,6 +407,7 @@ filterEmpleado.addEventListener('change', programarRecarga);
 filterTipo.addEventListener('change', programarRecarga);
 filterArea.addEventListener('change', programarRecarga);
 filterTurno.addEventListener('change', programarRecarga);
+filterDesde.addEventListener('change', programarRecarga);
 btnPDF.addEventListener('click', exportarPDF);
 btnExcel.addEventListener('click', exportarExcel);
 
