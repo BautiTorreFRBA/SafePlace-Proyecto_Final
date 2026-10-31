@@ -256,6 +256,10 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
 
   // following = la vista es "la última hora" y se desliza con now; manualView = la ventana que eligió el usuario.
   const [following, setFollowing] = useState(true);
+  // Punto bajo el cursor (o con foco). Los puntos traian un <title> de SVG, que el
+  // navegador muestra recien al segundo, sin seguir al punto y con el estilo del
+  // sistema: en la practica pasaba inadvertido.
+  const [tip, setTip] = useState(null);
   const [manualView, setManualView] = useState(null);
   const view = following || !manualView ? { v0: now - VISTA_INICIAL_MS, v1: now } : manualView;
   const viewRef = useRef(view); viewRef.current = view;
@@ -348,12 +352,13 @@ function Chart({ points, alerts = [], now, domainStart, lastReading, onNeedFull,
       <g clipPath="url(#empleadoChartClip)">
         {visibleMarks.map((mark) => <g key={`alert-${mark.id}`} className={`empleado-chart__alert empleado-chart__alert--${mark.cls}`}><line x1={x(mark.t)} x2={x(mark.t)} y1={top} y2={height - bottom} /><line className="empleado-chart__alert-hit" x1={x(mark.t)} x2={x(mark.t)} y1={top} y2={height - bottom}><title>{`${mark.label} · ${formatDate(mark.t)}${mark.estado ? ` · ${mark.estado}` : ''}`}</title></line>{visibleMarks.length <= 4 && <text x={x(mark.t) + 4} y={top - 8 + 9}>{mark.label}</text>}</g>)}
         <path className="empleado-chart__line" d={line} />
-        {drawnVisible.length <= 400 && drawnVisible.map((point) => <circle className="empleado-chart__point" key={point.t} cx={x(point.t)} cy={y(point.fcPromedio)} r={radius} fill="var(--teal-400)"><title>{`${point.fcPromedio} BPM · ${formatDate(point.t)} · ${point.lecturas} lectura(s)`}</title></circle>)}
-        {aislados.map((point) => <circle className="empleado-chart__point" key={`solo-${point.t}`} cx={x(point.t)} cy={y(point.fcPromedio)} r={2.5} fill="var(--teal-400)" />)}
+        {drawnVisible.length <= 400 && drawnVisible.map((point) => <circle className="empleado-chart__point" key={point.t} cx={x(point.t)} cy={y(point.fcPromedio)} r={radius} fill="var(--teal-400)" tabIndex={0} role="img" aria-label={`${point.fcPromedio} BPM a las ${formatTick(point.t)}, ${point.lecturas} lectura(s)`} onMouseEnter={() => setTip({ ...point, cx: x(point.t), cy: y(point.fcPromedio) })} onMouseLeave={() => setTip(null)} onFocus={() => setTip({ ...point, cx: x(point.t), cy: y(point.fcPromedio) })} onBlur={() => setTip(null)} />)}
+        {aislados.map((point) => <circle className="empleado-chart__point" key={`solo-${point.t}`} cx={x(point.t)} cy={y(point.fcPromedio)} r={2.5} fill="var(--teal-400)" tabIndex={0} role="img" aria-label={`${point.fcPromedio} BPM a las ${formatTick(point.t)}, ${point.lecturas} lectura(s)`} onMouseEnter={() => setTip({ ...point, cx: x(point.t), cy: y(point.fcPromedio) })} onMouseLeave={() => setTip(null)} onFocus={() => setTip({ ...point, cx: x(point.t), cy: y(point.fcPromedio) })} onBlur={() => setTip(null)} />)}
       </g>
       {xTicks.map((t, index) => <text className="empleado-chart__date" key={`tick-${t}`} x={x(t)} y={height - 13} textAnchor={index === xTicks.length - 1 ? 'end' : x(t) - left < 40 ? 'start' : 'middle'}>{formatTick(t, tickConFecha)}</text>)}
       <text className="empleado-chart__label empleado-chart__label--fatigue" x={left + 5} y={y(fatigue) - 5}>Fatiga {fatigue}</text><text className="empleado-chart__label empleado-chart__label--critical" x={left + 5} y={y(overexertion) - 5}>Sobreesfuerzo {overexertion}</text>
     </svg>
+    {tip && <div className="empleado-chart-tip" style={{ left: `${(tip.cx / width) * 100}%`, top: `${(tip.cy / height) * 100}%` }}><strong>{tip.fcPromedio} BPM</strong><span className="empleado-chart-tip__hora">{formatTick(tip.t, true)}</span>{tip.lecturas > 1 && tip.fcMin !== tip.fcMax && <span className="empleado-chart-tip__rango">{tip.fcMin}–{tip.fcMax} BPM</span>}<span className="empleado-chart-tip__lecturas">{tip.lecturas} lectura{tip.lecturas === 1 ? '' : 's'}</span></div>}
     {sinLecturasVista && <div className="empleado-chart-empty"><p>Sin lecturas en la última hora</p>{lastReading && <button type="button" onClick={verUltimaActividad}>Ver última actividad</button>}</div>}
     </div>
     {marks.length > 0 && <div className="empleado-chart-legend">{tipos.map((mark) => <span key={mark.cls} className={`empleado-chart-legend__item empleado-chart-legend__item--${mark.cls}`}><i></i>{mark.label}</span>)}<span className="empleado-chart-legend__count">{visibleMarks.length} de {marks.length} alertas en pantalla</span></div>}

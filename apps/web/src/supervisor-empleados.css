@@ -27,6 +27,23 @@
 .empleado-chart__date { fill:var(--text-primary)!important; }
 .empleado-chart__label { font-size:9px!important; }.empleado-chart__label--fatigue { fill:#f59e0b!important; }.empleado-chart__label--critical { fill:#ef4444!important; }
 .empleado-chart__point { cursor:pointer; transition:r .15s; }.empleado-chart__point:hover { r:6; }
+.empleado-chart__point:focus { r:6; outline:none; }
+.empleado-chart__point:focus-visible { stroke:var(--text-primary); stroke-width:2; }
+
+/* Tooltip del punto. Se posiciona en % sobre .empleado-chart-frame (que ya es
+   position:relative) porque el SVG escala con viewBox; translate lo centra
+   encima del punto. pointer-events:none evita que se robe el hover. */
+.empleado-chart-tip {
+  position:absolute; transform:translate(-50%, calc(-100% - 10px)); pointer-events:none; z-index:6;
+  display:flex; flex-direction:column; gap:1px; padding:7px 10px; border-radius:8px;
+  background:var(--bg-card, #11161f); border:1px solid var(--border, rgba(255,255,255,.14));
+  box-shadow:0 6px 18px rgba(0,0,0,.45); color:var(--text-primary, #e8eef7);
+  font:12px var(--font); white-space:nowrap;
+}
+.empleado-chart-tip strong { font-size:14px; }
+.empleado-chart-tip__hora { color:var(--teal-400, #2dd4bf); font-weight:600; }
+.empleado-chart-tip__rango,
+.empleado-chart-tip__lecturas { color:var(--text-secondary, #93a1b5); font-size:11px; }
 
 /* Zoom y marcas de alerta en "Evolución de frecuencia cardíaca" */
 .empleado-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:12px 17px 0; }
