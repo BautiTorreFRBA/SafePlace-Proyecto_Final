@@ -72,6 +72,10 @@ function alcanceDelRol() {
 }
 
 let trabajadores = [];
+// Las (súper) emergencias se miran aparte: una emergencia es visible para los tres
+// roles aunque el operario quede fuera del alcance del rol (otro turno para el Admin,
+// otra área/turno para el Supervisor). Ver renderEmergencias().
+let emergencias = [];
 let alertasActivas = [];
 let filtroActual = 'todos';
 let busquedaActual = '';
@@ -180,7 +184,11 @@ function renderTarjeta(item) {
   const nombre = nombreCompleto(item);
   const avatar = AVATARES[String(item.sexo || '').toLowerCase()] || AVATARES.neutro;
   const reciente = tieneLecturaReciente(item) && item.frecuencia_cardiaca != null;
-  const subtitulo = [item.legajo, item.area].filter(Boolean).join(' · ') || 'Operario';
+  // Si la tarjeta corresponde a un operario fuera del alcance del rol (sólo pasa en la
+  // sección de emergencias) se agrega el turno para que se entienda de dónde sale.
+  const turnoTexto = item.turno ? etiquetaTurno(turnoDe(item)) : '';
+  const ubicacion = [item.area, item.fuera_de_alcance ? turnoTexto : ''].filter(Boolean).join(' · ');
+  const subtitulo = [item.legajo, ubicacion].filter(Boolean).join(' · ') || 'Operario';
   // Se conserva el valor de FC, pero sin el ícono de corazón. La foto/avatar
   // del empleado se muestra siempre, aun cuando esté transmitiendo.
   const lectura = `<div class="op-card__fc${reciente ? '' : ' op-card__fc--vacia'}"><strong>${reciente ? escapeHtml(item.frecuencia_cardiaca) : '—'}</strong></div>`;
@@ -191,7 +199,7 @@ function renderTarjeta(item) {
     <div class="op-card__lectura">${lectura}</div>
     <div class="op-card__pie">
       <h4 class="op-card__nombre">${escapeHtml(nombre)}</h4>
-      ${item.area ? `<p class="op-card__area">${escapeHtml(item.area)}</p>` : ''}
+      ${ubicacion ? `<p class="op-card__area">${escapeHtml(ubicacion)}</p>` : ''}
       <span class="op-chip"><i></i>${escapeHtml(config.label)}</span>
     </div>
   </a>`;
@@ -276,9 +284,11 @@ function renderGrid() {
 // Sección fija arriba de todo con los operarios en EMERGENCIA o SÚPER EMERGENCIA
 // (súper primero). No depende de filtros ni de la búsqueda; cuando no queda
 // ninguna emergencia sin resolver, la sección se quita.
+// Importante: se alimenta de `emergencias` (toda la planta) y NO de `trabajadores`
+// (el alcance del rol). Una emergencia la tienen que ver los tres roles: el Admin
+// aunque sea de otro turno y el Supervisor aunque sea de otra área/turno.
 function renderEmergencias() {
-  const enEmergencia = trabajadores
-    .filter((item) => ['super_emergencia', 'emergencia'].includes(item.estado))
+  const enEmergencia = [...emergencias]
     .sort((a, b) => ESTADOS[a.estado].rank - ESTADOS[b.estado].rank || nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
   let seccion = document.getElementById('emergenciasPanel');
   if (!enEmergencia.length) {
@@ -294,10 +304,11 @@ function renderEmergencias() {
     document.querySelector('.supervisor-welcome').before(seccion);
   }
   const supers = enEmergencia.filter((item) => item.estado === 'super_emergencia').length;
+  const fuera = enEmergencia.filter((item) => item.fuera_de_alcance).length;
   seccion.classList.toggle('op-emergencias--super', supers > 0);
   seccion.innerHTML = `<div class="supervisor-panel__header">
       <div><h3><span class="op-emergencias__dot" aria-hidden="true"></span>Emergencias en curso · ${plural(enEmergencia.length, 'operario')}</h3>
-      <p>${supers ? `${plural(supers, 'súper emergencia', 'súper emergencias')} · ` : ''}Atendé cada caso desde su tarjeta. La sección desaparece cuando no quedan emergencias.</p></div>
+      <p>${supers ? `${plural(supers, 'súper emergencia', 'súper emergencias')} · ` : ''}${fuera ? `${plural(fuera, 'caso', 'casos')} fuera de tu alcance habitual · ` : ''}Atendé cada caso desde su tarjeta. La sección desaparece cuando no quedan emergencias.</p></div>
     </div>
     <div class="op-grid">${enEmergencia.map(renderCard).join('')}</div>`;
 }
@@ -381,14 +392,49 @@ async function cargarHome() {
     });
 
     const alcance = alcanceDelRol();
-    const data = (Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : []).filter(alcance.incluye);
+    const filas = Array.isArray(estadoResult.value?.data) ? estadoResult.value.data : [];
     // Para el supervisor, la alerta que ya atendió deja de marcar al operario (ver arriba).
     if (['supervisor', 'admin'].includes(String(sessionStorage.getItem('userRole') || '').trim().toLowerCase())) {
-      data.forEach((item) => { if (item.alerta_id_usuario_atendio != null) item.tipo_alerta = null; });
+      filas.forEach((item) => { if (item.alerta_id_usuario_atendio != null) item.tipo_alerta = null; });
     }
     document.getElementById('turnoActual').textContent = alcance.titulo;
     document.getElementById('alcanceDetalle').textContent = alcance.detalle;
-    trabajadores = data.map((item) => ({ ...item, estado: calcularEstado(item, alertasPorTrabajador), id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null, id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null }));
+    const conEstado = (item) => ({
+      ...item,
+      estado: calcularEstado(item, alertasPorTrabajador),
+      id_alerta_super: superPorTrabajador.get(String(item.id_trabajador)) ?? null,
+      id_alerta_emergencia: emergenciaPorTrabajador.get(String(item.id_trabajador)) ?? null,
+    });
+    // KPIs, grilla, conectividad y listado de alertas: sólo el alcance del rol.
+    trabajadores = filas.filter(alcance.incluye).map(conEstado);
+    // Emergencias: toda la planta, sin filtrar por turno ni por área. Se marcan las que
+    // quedan fuera del alcance para que la tarjeta muestre área y turno.
+    const dentroDelAlcance = new Set(trabajadores.map((item) => String(item.id_trabajador)));
+    emergencias = filas
+      .map(conEstado)
+      .filter((item) => ['super_emergencia', 'emergencia'].includes(item.estado))
+      .map((item) => ({ ...item, fuera_de_alcance: !dentroDelAlcance.has(String(item.id_trabajador)) }));
+    // Red de seguridad: una (súper) emergencia de un operario que /estado/trabajadores-activos
+    // no devuelve (por ejemplo, sin asignación de dispositivo vigente) igual tiene que verse.
+    const yaListados = new Set(emergencias.map((item) => String(item.id_trabajador)));
+    alertasActivas.forEach((alerta) => {
+      const estado = ALERTA_A_ESTADO[String(alerta.tipo_alerta || '').toUpperCase()];
+      const clave = String(alerta.id_trabajador);
+      if (!['super_emergencia', 'emergencia'].includes(estado) || yaListados.has(clave)) return;
+      yaListados.add(clave);
+      emergencias.push({
+        id_trabajador: alerta.id_trabajador,
+        nombre: alerta.operario_nombre || alerta.nombre || '',
+        apellido: alerta.operario_apellido || alerta.apellido || '',
+        area: alerta.area || null,
+        turno: alerta.turno || null,
+        frecuencia_cardiaca: null,
+        estado,
+        fuera_de_alcance: true,
+        id_alerta_super: superPorTrabajador.get(clave) ?? null,
+        id_alerta_emergencia: emergenciaPorTrabajador.get(clave) ?? null,
+      });
+    });
     // Un estado crítico siempre se prioriza en el Home: activa la vista de
     // críticos para que ningún caso urgente quede oculto entre el resto.
     if (trabajadores.some((item) => ESTADOS[item.estado].grupo === 'critico')) {
@@ -409,7 +455,9 @@ document.querySelectorAll('.supervisor-filter').forEach((button) => button.addEv
 async function atenderDesdeTarjeta(event) {
   const boton = event.target.closest('.op-super__atender');
   if (!boton) return;
-  const operario = trabajadores.find((item) => [item.id_alerta_super, item.id_alerta_emergencia].some((id) => id != null && String(id) === String(boton.dataset.alerta)));
+  // La tarjeta puede venir de la grilla (alcance del rol) o de la sección de emergencias
+  // (toda la planta): se busca en las dos listas.
+  const operario = [...trabajadores, ...emergencias].find((item) => [item.id_alerta_super, item.id_alerta_emergencia].some((id) => id != null && String(id) === String(boton.dataset.alerta)));
   const nombre = operario ? nombreCompleto(operario) : '';
   const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
   if (!(await confirmar(nombre))) return;
