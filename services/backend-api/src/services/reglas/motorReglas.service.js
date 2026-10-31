@@ -1,4 +1,5 @@
 const medicionRepository = require('../../repositories/medicion.repository');
+const alertaRepository = require('../../repositories/alerta.repository');
 const umbralEfectivoService = require('../umbralEfectivo.service');
 const alertasService = require('../alertas.service');
 
@@ -92,12 +93,29 @@ const evaluar = async (medicion) => {
     });
   }
   if (await evaluarFatiga(medicion, umbral)) {
-    await alertasService.generar({
-      nombreTipo: TIPOS.FATIGA,
-      idSeudonimo: medicion.id_seudonimo,
-      idMedicion: medicion.id,
-      detalle: `Alerta FATIGA generada para el seudónimo ${medicion.id_seudonimo} (medición ${medicion.id}).`,
-    });
+    // Cada cuadro de fatiga genera su propia alerta, aunque la anterior siga
+    // Activa: lo que separa un episodio del siguiente es que la FC haya bajado
+    // del umbral en el medio. Sin este corte, al evaluarse una vez por medición
+    // (cada pocos segundos) un mismo cuadro produciría una alerta por lectura.
+    const ultima = await alertaRepository.ultimaFechaPorSeudonimoYNombreTipo(
+      medicion.id_seudonimo,
+      TIPOS.FATIGA,
+    );
+    const episodioNuevo = ultima === null
+      || await medicionRepository.huboLecturaPorDebajo(
+        medicion.id_seudonimo,
+        ultima,
+        umbral.fc_fatiga,
+      );
+    if (episodioNuevo) {
+      await alertasService.generar({
+        nombreTipo: TIPOS.FATIGA,
+        idSeudonimo: medicion.id_seudonimo,
+        idMedicion: medicion.id,
+        detalle: `Alerta FATIGA generada para el seudónimo ${medicion.id_seudonimo} (medición ${medicion.id}).`,
+        episodioNuevo: true,
+      });
+    }
   }
 };
 

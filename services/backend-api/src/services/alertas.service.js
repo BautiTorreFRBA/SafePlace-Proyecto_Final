@@ -66,6 +66,11 @@ const generar = async ({
   idSeudonimo,
   idMedicion = null,
   detalle,
+  // El antiduplicado por defecto es "una sola Activa por tipo y operario". Un
+  // llamador que ya delimitó el episodio (el motor de reglas sabe cuándo la
+  // condición se interrumpió y volvió) pasa `episodioNuevo` para que un cuadro
+  // distinto genere su propia alerta aunque la anterior siga sin atenderse.
+  episodioNuevo = false,
 }) => {
   const tipoAlerta = await tipoAlertaRepository.obtenerPorNombre(nombreTipo);
   if (!tipoAlerta) {
@@ -73,11 +78,13 @@ const generar = async ({
     return null;
   }
 
-  const yaActiva = await alertaRepository.existeActivaParaSeudonimoYTipo(
-    idSeudonimo,
-    tipoAlerta.id,
-  );
-  if (yaActiva) return null;
+  if (!episodioNuevo) {
+    const yaActiva = await alertaRepository.existeActivaParaSeudonimoYTipo(
+      idSeudonimo,
+      tipoAlerta.id,
+    );
+    if (yaActiva) return null;
+  }
 
   const alerta = await alertaRepository.crear({
     idTipoAlerta: tipoAlerta.id,

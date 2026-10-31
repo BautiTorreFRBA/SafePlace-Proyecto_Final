@@ -126,8 +126,25 @@ const ultimasFrecuencias = async (idDispositivo, limite) => {
   return res.rows;
 };
 
+// ¿Hubo alguna lectura por debajo del umbral desde `desde`? Es lo que separa
+// un episodio del siguiente: mientras la FC no baje, el cuadro no se interrumpió
+// y no corresponde una alerta nueva por la misma condición.
+const huboLecturaPorDebajo = async (idSeudonimo, desde, umbral) => {
+  const query = `
+    SELECT 1 FROM medicion
+    WHERE id_seudonimo = $1
+      AND fecha_hora > $2
+      AND frecuencia_cardiaca IS NOT NULL
+      AND frecuencia_cardiaca < $3
+    LIMIT 1;
+  `;
+  const res = await db.query(query, [idSeudonimo, desde, umbral]);
+  return res.rowCount > 0;
+};
+
 module.exports = {
   crear,
+  huboLecturaPorDebajo,
   existeDuplicado,
   obtenerPorId,
   listarPorSeudonimo,

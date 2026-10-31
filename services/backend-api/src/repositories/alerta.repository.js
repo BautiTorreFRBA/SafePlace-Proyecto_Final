@@ -162,8 +162,27 @@ const listarActivas = async (usuario = {}) => {
   return res.rows;
 };
 
+// Fecha de la última alerta de ese tipo para el seudónimo, en cualquier estado.
+// El motor la usa para delimitar el episodio en curso: si desde entonces la
+// condición nunca dejó de cumplirse, sigue siendo el mismo episodio.
+const ultimaFechaPorSeudonimoYNombreTipo = async (idSeudonimo, nombreTipo) => {
+  const query = `
+    SELECT a.fecha_hora
+    FROM alerta a
+    JOIN tipo_alerta t ON t.id = a.id_tipo_alerta
+    LEFT JOIN medicion m ON m.id = a.id_medicion
+    WHERE COALESCE(m.id_seudonimo, a.id_seudonimo) = $1
+      AND t.nombre = $2
+    ORDER BY a.fecha_hora DESC, a.id DESC
+    LIMIT 1;
+  `;
+  const res = await db.query(query, [idSeudonimo, nombreTipo]);
+  return res.rows[0]?.fecha_hora ?? null;
+};
+
 module.exports = {
   crear,
+  ultimaFechaPorSeudonimoYNombreTipo,
   existeActivaParaSeudonimoYTipo,
   listarTiposEnVentana,
   cerrarActivasPorSeudonimoYTipo,
