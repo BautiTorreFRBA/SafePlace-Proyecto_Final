@@ -369,12 +369,13 @@ function dibujarGraficoFc() {
     <g clip-path="url(#fcChartClip)">
       ${marcaAlerta}
       <path class="fc-chart__line" d="${linea}" />
-      ${visibles.map((p) => `<circle class="fc-chart__point" cx="${x(tsDe(p))}" cy="${y(p.fcPromedio)}" r="${radio}"><title>${p.fcPromedio} BPM · ${horaFc(tsDe(p))} · ${p.lecturas} lectura(s)</title></circle>`).join('')}
+      ${visibles.map((p) => `<circle class="fc-chart__point" cx="${x(tsDe(p))}" cy="${y(p.fcPromedio)}" r="${radio}" tabindex="0" role="img" aria-label="${p.fcPromedio} BPM a las ${horaFc(tsDe(p))}, ${p.lecturas} lectura(s)" data-fc="${p.fcPromedio}" data-hora="${horaFc(tsDe(p))}" data-min="${p.fcMin}" data-max="${p.fcMax}" data-lecturas="${p.lecturas}" />`).join('')}
     </g>
     ${ticksX.map((t) => `<text class="fc-chart__hour" x="${x(t)}" y="${height - 12}" text-anchor="middle">${horaFc(t)}</text>`).join('')}
     <text class="fc-chart__label--fatigue" x="${left + 5}" y="${y(fatiga) - 5}">Fatiga ${fatiga}</text>
     <text class="fc-chart__label--critical" x="${left + 5}" y="${y(sobreesfuerzo) - 5}">Sobreesfuerzo ${sobreesfuerzo}</text>
-  </svg>`;
+  </svg>
+  <div class="fc-chart__tip" id="fcChartTip" hidden></div>`;
 
   const completo = v0 <= t0 && v1 >= t1;
   const minimo = v1 - v0 <= Math.min(FC_ZOOM_MIN_MS, t1 - t0) + 1;
@@ -617,3 +618,55 @@ cargarAlertas().catch((error) => {
   tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
 });
 setInterval(() => cargarAlertas().catch((error) => console.error(error)), POLL_INTERVAL_MS);
+
+
+// --- Tooltip del gráfico de FC ---------------------------------------------
+// Los puntos traian un <title> de SVG: el navegador lo muestra recien al
+// segundo de hover, sin seguir al cursor. Se reemplaza por un tooltip propio
+// que aparece al instante y se ancla al punto.
+
+function ocultarTipFc() {
+  document.getElementById('fcChartTip')?.setAttribute('hidden', '');
+}
+
+function mostrarTipFc(punto) {
+  const tip = document.getElementById('fcChartTip');
+  const canvas = document.getElementById('fcChartCanvas');
+  if (!tip || !canvas) return;
+
+  const { fc, hora, min, max, lecturas } = punto.dataset;
+  const n = Number(lecturas);
+  // Min y max sólo aportan cuando el punto agrupa varias lecturas.
+  const rango = n > 1 && min !== max ? `<span class="fc-chart__tip-rango">${min}–${max} BPM</span>` : '';
+  tip.innerHTML = `<strong>${fc} BPM</strong><span class="fc-chart__tip-hora">${hora}</span>${rango}`
+    + `<span class="fc-chart__tip-lecturas">${n} lectura${n === 1 ? '' : 's'}</span>`;
+  tip.removeAttribute('hidden');
+
+  // El SVG escala con viewBox, así que la posición del punto se toma del DOM
+  // ya renderizado y no de las coordenadas del viewBox.
+  const r = punto.getBoundingClientRect();
+  const c = canvas.getBoundingClientRect();
+  const centroX = r.left - c.left + r.width / 2;
+  const arriba = r.top - c.top;
+  tip.style.left = `${Math.max(8, Math.min(centroX, c.width - 8))}px`;
+  tip.style.top = `${Math.max(4, arriba - 12)}px`;
+}
+
+document.addEventListener('mouseover', (event) => {
+  const punto = event.target.closest?.('.fc-chart__point');
+  if (punto) mostrarTipFc(punto);
+});
+document.addEventListener('mouseout', (event) => {
+  const punto = event.target.closest?.('.fc-chart__point');
+  // Si el punto quedó fijado con un clic, el tooltip sobrevive a que el mouse
+  // se vaya: se cierra recién al hacer clic afuera o mover el foco.
+  if (punto && document.activeElement !== punto) ocultarTipFc();
+});
+// Teclado: los puntos son focusables para que el dato no dependa del mouse.
+document.addEventListener('focusin', (event) => {
+  const punto = event.target.closest?.('.fc-chart__point');
+  if (punto) mostrarTipFc(punto);
+});
+document.addEventListener('focusout', (event) => {
+  if (event.target.closest?.('.fc-chart__point')) ocultarTipFc();
+});

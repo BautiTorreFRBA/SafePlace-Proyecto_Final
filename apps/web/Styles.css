@@ -4957,6 +4957,34 @@ select.cfg-input {
 .fc-chart__line { fill: none; stroke: var(--teal-400); stroke-width: 2; stroke-linejoin: round; }
 .fc-chart__point { fill: var(--teal-400); cursor: pointer; transition: r 0.15s; }
 .fc-chart__point:hover { r: 5; }
+.fc-chart__point:focus { r: 5; outline: none; }
+.fc-chart__point:focus-visible { stroke: var(--text-primary); stroke-width: 2; }
+
+/* El tooltip se posiciona contra el canvas, que por eso tiene que ser el
+   contenedor de referencia. translate(-50%,-100%) lo centra sobre el punto. */
+.fc-chart__canvas { position: relative; }
+.fc-chart__tip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bg-card, #11161f);
+  border: 1px solid var(--border, rgba(255,255,255,.14));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  font: 12px var(--font);
+  color: var(--text-primary, #e8eef7);
+  white-space: nowrap;
+}
+.fc-chart__tip[hidden] { display: none; }
+.fc-chart__tip strong { font-size: 14px; }
+.fc-chart__tip-hora { color: var(--teal-400, #2dd4bf); font-weight: 600; }
+.fc-chart__tip-rango,
+.fc-chart__tip-lecturas { color: var(--text-secondary, #93a1b5); font-size: 11px; }
 .fc-chart__alert { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .fc-chart text.fc-chart__hour { fill: var(--text-primary); }
 .fc-chart text.fc-chart__label--fatigue { fill: var(--alert-fatiga); font-size: 9px; }
