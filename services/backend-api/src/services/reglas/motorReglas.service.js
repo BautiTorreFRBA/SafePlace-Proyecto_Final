@@ -26,17 +26,25 @@ const aNumero = (valor) => {
   return Number.isNaN(n) ? null : n;
 };
 
-// Una condición está "sostenida" cuando la ventana de mediciones recientes
-// ya cubre el tiempo mínimo configurado (la más antigua tiene esa
-// antigüedad) y TODAS las mediciones de la ventana cumplen la condición.
+// Una condición está "sostenida" cuando hay mediciones que cubren el tiempo
+// mínimo configurado y TODAS las de ese período cumplen la condición.
+//
+// La consulta trae un margen extra (MARGEN_VENTANA_SEGUNDOS) para absorber el
+// intervalo de reporte del gateway y garantizar que la ventana quede cubierta.
+// Ese margen sirve sólo para eso: la condición se evalúa únicamente sobre el
+// período configurado. Incluirlo en el `every` exigía `minutos + margen` de
+// condición sostenida — con ventanas cortas eso duplicaba el tiempo pedido
+// (0.5 min configurados exigían 60 s reales) y la alerta no saltaba.
 const sostenidaEnVentana = (ventana, minutos, cumpleCondicion) => {
   if (ventana.length === 0) return false;
 
-  const masAntigua = new Date(ventana[0].fecha_hora).getTime();
-  const antiguedadMs = Date.now() - masAntigua;
-  if (antiguedadMs < minutos * 60 * 1000) return false;
+  const desde = Date.now() - minutos * 60 * 1000;
+  // La más antigua tiene que ser anterior al inicio del período: si no, todavía
+  // no hay historia suficiente para afirmar que la condición se sostuvo.
+  if (new Date(ventana[0].fecha_hora).getTime() > desde) return false;
 
-  return ventana.every(cumpleCondicion);
+  const delPeriodo = ventana.filter((m) => new Date(m.fecha_hora).getTime() >= desde);
+  return delPeriodo.length > 0 && delPeriodo.every(cumpleCondicion);
 };
 
 // H0010: FC sostenida por encima del umbral durante el tiempo configurado.
