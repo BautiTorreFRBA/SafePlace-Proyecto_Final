@@ -5,6 +5,35 @@ const logAuditoriaRepository = require('../../repositories/logAuditoria.reposito
 const consentimientoCache = require('./consentimiento.cache');
 const { ErrorValidacion, MOTIVOS } = require('./errores');
 
+// Estimación de nivelActividad cuando el gateway no lo manda (ADR-14).
+//
+// No todos los productores de mediciones lo calculan: hoy sólo el gateway del
+// Garmin. La Band 9 Active y el simulador de carga mandan sólo la pulsación, y
+// sin actividad la regla de sobreesfuerzo (H0011) corta en seco y nunca puede
+// dispararse para esos operarios. Estimarlo acá cubre a todos de una vez, sin
+// depender de que cada hub implemente lo mismo por su cuenta.
+//
+// La estimación es deliberadamente simple: cuánto supera la FC al reposo,
+// como fracción. Se descartó el término de variabilidad del estimador del hub
+// porque depende de la cadencia de muestreo — con el Garmin a 1 Hz da valores
+// razonables, pero con la Band muestreada cada 6 s daba ~0.8 a una persona
+// sentada, porque entre muestras tan espaciadas el pulso salta por muestreo y
+// no por movimiento. Con sólo el nivel, 1 Hz y 6 s dan lo mismo.
+//
+// Limitación asumida: derivada de la FC, la actividad es en buena medida una
+// reformulación de la FC. Sin acelerómetro no hay forma de separarlas; la
+// distinción real entre fatiga y sobreesfuerzo la dan los umbrales de FC y la
+// ventana sostenida.
+const FC_REPOSO = Number(process.env.ACTIVIDAD_FC_REPOSO || 65);
+const FC_RANGO_ESFUERZO = Number(process.env.ACTIVIDAD_FC_RANGO || 60);
+
+const estimarActividad = (frecuenciaCardiaca) => {
+  if (frecuenciaCardiaca == null || Number.isNaN(Number(frecuenciaCardiaca))) return null;
+  const exceso = Number(frecuenciaCardiaca) - FC_REPOSO;
+  const nivel = Math.min(1, Math.max(0, exceso / FC_RANGO_ESFUERZO));
+  return Math.round(nivel * 1000) / 1000;
+};
+
 /**
  * Servicio de Validación de Datos — V1 (RF-04 / H0008 / PB-04, Release 2).
  *
@@ -183,7 +212,14 @@ const validarPaquete = async (paquete) => {
     // manda el paquete se guarda como texto. No existe columna para
     // "nivel de inactividad" en el esquema real (era un campo asumido antes
     // de esta historia, sin respaldo en el DER real), se descarta.
-    actividad: paquete.nivelActividad != null ? String(paquete.nivelActividad) : null,
+    // Si el gateway la manda, se respeta; si no, se estima de la FC para que
+    // sobreesfuerzo sea alcanzable también desde los hubs que no la calculan.
+    actividad: paquete.nivelActividad != null
+      ? String(paquete.nivelActividad)
+      : (() => {
+        const estimada = estimarActividad(paquete.frecuenciaCardiaca);
+        return estimada != null ? String(estimada) : null;
+      })(),
     temperaturaCorporal: paquete.temperaturaCorporal ?? null,
     spo2: paquete.spo2 ?? null,
   };
