@@ -287,8 +287,18 @@ function renderStatsFc(puntos) {
     : null;
   const min = puntos.length ? Math.min(...puntos.map((p) => p.fcMin)) : null;
   const max = puntos.length ? Math.max(...puntos.map((p) => p.fcMax)) : null;
-  const stat = (label, valor, unidad = 'BPM') => `<div class="fc-modal__stat"><span>${label}</span><strong>${valor ?? '--'}${unidad && valor != null ? ` <small>${unidad}</small>` : ''}</strong></div>`;
-  fcModalStats.innerHTML = stat('Promedio FC', promedio) + stat('Mínimo', min) + stat('Máximo', max) + stat('Lecturas', lecturas, '');
+  // Mismos iconos que las tarjetas del "Historial del operario" (assets/fc-*.svg).
+  // El alt va vacío a propósito: el dato ya lo dice la etiqueta de al lado.
+  const stat = (label, valor, unidad = 'BPM', icono = '') => {
+    const cuerpo = `<span>${label}</span><strong>${valor ?? '--'}${unidad && valor != null ? ` <small>${unidad}</small>` : ''}</strong>`;
+    return icono
+      ? `<div class="fc-modal__stat fc-modal__stat--icono"><img src="assets/${icono}" alt="" /><div>${cuerpo}</div></div>`
+      : `<div class="fc-modal__stat">${cuerpo}</div>`;
+  };
+  fcModalStats.innerHTML = stat('Promedio FC', promedio, 'BPM', 'fc-promedio.svg')
+    + stat('Mínimo', min, 'BPM', 'fc-minimo.svg')
+    + stat('Máximo', max, 'BPM', 'fc-maximo.svg')
+    + stat('Lecturas', lecturas, '');
 }
 
 // Estado del gráfico: la serie completa del día y la ventana visible [v0, v1]

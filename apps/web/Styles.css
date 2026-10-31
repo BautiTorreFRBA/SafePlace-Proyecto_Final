@@ -4947,6 +4947,10 @@ select.cfg-input {
 .fc-modal__stat span { display: block; margin-bottom: 4px; color: var(--text-secondary); font-size: 0.68rem; }
 .fc-modal__stat strong { color: var(--text-primary); font-size: 1.12rem; }
 .fc-modal__stat small { color: var(--text-secondary); font-size: 0.65rem; }
+/* Tarjetas con el icono de FC a la izquierda (mismo criterio que .empleado-stat--promedio). */
+.fc-modal__stat--icono { display: flex; align-items: center; gap: 10px; }
+.fc-modal__stat--icono img { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; }
+.fc-modal__stat--icono > div { min-width: 0; }
 .fc-modal__chart { border: 1px solid var(--border); border-radius: 13px; background: var(--bg-main); }
 .fc-modal__empty { padding: 48px 16px; color: var(--text-secondary); text-align: center; font-size: 0.85rem; }
 .fc-chart { display: block; width: 100%; height: auto; padding: 12px 15px 6px; box-sizing: border-box; }
@@ -4992,6 +4996,8 @@ select.cfg-input {
 .fc-chart text.fc-chart__label--alert { fill: var(--orange); font-size: 9px; }
 @media (max-width: 640px) {
   .fc-modal__stats { grid-template-columns: repeat(2, 1fr); }
+  .fc-modal__stat--icono { gap: 8px; }
+  .fc-modal__stat--icono img { width: 30px; height: 30px; flex-basis: 30px; }
 }
 
 /* Zoom del gráfico de FC */
