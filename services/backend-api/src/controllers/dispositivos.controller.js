@@ -57,15 +57,16 @@ const registrarEstadoConexion = async (req, res, next) => {
       estado,
     );
 
-    // CP-E2E-04: al reconectar, la condición de inactividad prolongada dejó
-    // de sostenerse — se cierran sus alertas Activas del operario asignado.
+    // CP-E2E-04: al reconectar se re-arma el detector para el próximo corte.
+    // La alerta en curso NO se cierra: queda Activa hasta que una persona la
+    // atienda (ver inactividadProlongada.service).
     if (estado === 'CONECTADO') {
       const asignacion = await asignacionDispositivoRepository
         .obtenerVigentePorDispositivo(Number(req.params.id));
       if (asignacion) {
         await inactividadProlongadaService
           .resolverPorReconexion(asignacion.id_trabajador, Number(req.params.id))
-          .catch((err) => console.error('[dispositivos.controller] cierre por reconexión:', err.message));
+          .catch((err) => console.error('[dispositivos.controller] re-armado por reconexión:', err.message));
       }
     }
 

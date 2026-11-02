@@ -3,8 +3,6 @@ const horarioOperarioRepository = require('../repositories/horarioOperario.repos
 const umbralRiesgoRepository = require('../repositories/umbralRiesgo.repository');
 const trabajoRepository = require('../repositories/trabajo.repository');
 const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
-const tipoAlertaRepository = require('../repositories/tipoAlerta.repository');
-const alertaRepository = require('../repositories/alerta.repository');
 const medicionRepository = require('../repositories/medicion.repository');
 const inactividadCandidatoRepository = require('../repositories/inactividadCandidato.repository');
 const alertasService = require('./alertas.service');
@@ -22,8 +20,11 @@ const alertasService = require('./alertas.service');
  * H0006 (estadoDispositivo.service) tras DESCONEXION_MINUTOS sin datos.
  *
  * Antiduplicado (H0013): una sola alerta INACTIVIDAD_PROLONGADA Activa por
- * operario a la vez. Se cierra cuando el wearable vuelve a CONECTADO
- * (dispositivos.controller / mediciones.service).
+ * operario a la vez, y queda Activa HASTA QUE UNA PERSONA LA ATIENDA. La
+ * reconexión del wearable NO la cierra: la alerta documenta que el operario
+ * estuvo sin wearable durante su turno, y eso ya ocurrió — que el reloj
+ * vuelva no lo desmiente. La reconexión sólo re-arma el detector para el
+ * próximo corte (dispositivos.controller / mediciones.service).
  */
 
 const TIPO = 'INACTIVIDAD_PROLONGADA';
@@ -92,80 +93,63 @@ const chequear = async () => {
   }
 };
 
-// Cierre por seudónimo ya resuelto — compartido entre el camino de
-// reconexión (H0007) y el de medición real (ver resolverPorMedicionReal).
-//
-// `rearmar` indica si además se borra el candidato, que es lo que habilita un
-// aviso nuevo para el próximo corte. Sólo la reconexión declarada lo hace: una
-// medición suelta cierra la alerta pero no re-arma. Con un enlace inestable el
-// wearable alterna desconexión y lecturas sueltas, y re-armar en cada lectura
-// convertía un mismo corte en una alerta por ciclo del chequeo.
-const cerrarActivasPorSeudonimo = async (idSeudonimo, idDispositivo = null, rearmar = true) => {
-  if (idDispositivo != null && rearmar) {
-    await inactividadCandidatoRepository.limpiar(idDispositivo);
-  }
-  if (!idSeudonimo) return [];
-
-  const tipo = await tipoAlertaRepository.obtenerPorNombre(TIPO);
-  if (!tipo) return [];
-
-  return alertaRepository.cerrarActivasPorSeudonimoYTipo(idSeudonimo, tipo.id);
+// Borra el candidato, que es lo que habilita un aviso nuevo para el próximo
+// corte. NO cierra la alerta: una INACTIVIDAD_PROLONGADA Activa queda Activa
+// hasta que una persona la atienda. Mientras siga Activa, el antiduplicado de
+// alertas.service.generar impide que se cree otra para el mismo operario, que
+// es exactamente "una sola hasta que se atienda".
+const rearmarDetector = async (idDispositivo = null) => {
+  if (idDispositivo == null) return;
+  await inactividadCandidatoRepository.limpiar(idDispositivo);
 };
 
-// Cierre de la alerta cuando el wearable se reconecta. Llamado desde el
-// registro de estado CONECTADO. Limpia también el candidato de inactividad
-// del dispositivo: el próximo corte tiene que arrancar el reloj de cero, no
+// Reconexión del wearable (registro de estado CONECTADO). Limpia el candidato
+// de inactividad: el próximo corte tiene que arrancar el reloj de cero, no
 // seguir contando desde la desconexión anterior.
-const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
-  const seudonimo = await operarioSeudonimoRepository.obtenerPorOperario(idOperario);
-  return cerrarActivasPorSeudonimo(seudonimo?.id, idDispositivo);
-};
+//
+// Deliberadamente NO cierra la alerta en curso. Antes sí lo hacía, y el
+// resultado era que un corte durante el turno desaparecía del tablero en
+// cuanto el operario se volvía a poner el wearable: nadie llegaba a verlo.
+// Cerrarla es una decisión humana (H0013).
+const resolverPorReconexion = async (idOperario, idDispositivo = null) => rearmarDetector(idDispositivo);
 
-// Cierre por evidencia directa (no por el reporte de conexión, que puede
-// llegar fuera de orden — ver sesión-qa-hub-ble): si el gateway logró
-// persistir una medición real del wearable, es prueba objetiva de que está
-// conectado y transmitiendo, sin importar qué diga el último reporte de
-// estado. Enganchado best-effort desde mediciones.service.registrarMedicion,
-// nunca debe romper el 201 al gateway.
+// Corrección de estado por evidencia directa. El reporte de conexión del hub
+// puede llegar fuera de orden o no llegar nunca; una medición persistida es
+// prueba objetiva de que el wearable está transmitiendo. Enganchado
+// best-effort desde mediciones.service.registrarMedicion, nunca debe romper
+// el 201 al gateway.
 //
 // Si el último evento de estado dice DESCONECTADO y sin embargo siguen
 // entrando mediciones reales, el estado está mintiendo: se corrige
-// registrando CONECTADO y se re-arma el candidato. No alcanza con cerrar la
-// alerta — dejar el estado en DESCONECTADO con el candidato ya alertado deja
-// la inactividad MUERTA para ese dispositivo: el próximo corte de verdad no
-// avisa nunca, porque listarDesconectadosParaAlerta lo sigue viendo
-// desconectado y marcarPrimeraDeteccion le devuelve el candidato viejo con
-// alertado = true.
+// registrando CONECTADO y se re-arma el detector. Dejar el estado en
+// DESCONECTADO con el candidato ya alertado deja la inactividad MUERTA para
+// ese dispositivo: el próximo corte de verdad no avisa nunca, porque
+// listarDesconectadosParaAlerta lo sigue viendo desconectado y
+// marcarPrimeraDeteccion le devuelve el candidato viejo con alertado = true.
 //
 // Pero UNA sola medición posterior al corte no desmiente nada: el gateway
 // suele tener una lectura en el buffer y la postea justo después de haber
-// reportado DESCONECTADO. Tomarla como prueba de conexión cerraba la alerta
-// ~1 segundo después de haberla generado y dejaba el estado en CONECTADO con
-// el wearable realmente apagado (caso real: alerta 149, corte 18:30:42,
+// reportado DESCONECTADO. Tomarla como prueba de conexión re-armaba el
+// detector con el wearable realmente apagado (caso real: corte 18:30:42,
 // rezagada 18:30:43, y después nada más). Por eso se exigen
 // MEDICIONES_PARA_CONFIRMAR_CONEXION lecturas capturadas DESPUÉS del evento
 // de desconexión: dos seguidas sólo pueden venir de un enlace vivo.
 //
-// Mientras no haya esa evidencia la alerta se deja Activa, que es lo correcto
-// — el corte sigue en curso.
-//
-// Si el estado ya dice CONECTADO (reporte del hub en orden), se cierra la
-// alerta sin tocar el candidato, como antes.
+// Nada de esto toca la alerta: siga o no el corte, una
+// INACTIVIDAD_PROLONGADA Activa queda Activa hasta que alguien la atienda.
 const MEDICIONES_PARA_CONFIRMAR_CONEXION = 2;
 
 const resolverPorMedicionReal = async (idSeudonimo, idDispositivo = null) => {
-  if (idDispositivo == null) return cerrarActivasPorSeudonimo(idSeudonimo, null, false);
+  if (idDispositivo == null) return;
 
   const ultimo = await historialEstadoDispositivoRepository.obtenerUltimoEstado(idDispositivo);
-  if (ultimo?.estado !== 'DESCONECTADO') {
-    return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, false);
-  }
+  if (ultimo?.estado !== 'DESCONECTADO') return;
 
   const posteriores = await medicionRepository.contarDesde(idDispositivo, ultimo.fecha_hora);
-  if (posteriores < MEDICIONES_PARA_CONFIRMAR_CONEXION) return [];
+  if (posteriores < MEDICIONES_PARA_CONFIRMAR_CONEXION) return;
 
   await historialEstadoDispositivoRepository.registrarEstado(idDispositivo, 'CONECTADO');
-  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, true);
+  await rearmarDetector(idDispositivo);
 };
 
 module.exports = {
