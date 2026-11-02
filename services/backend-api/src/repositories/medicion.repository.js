@@ -142,8 +142,24 @@ const huboLecturaPorDebajo = async (idSeudonimo, desde, umbral) => {
   return res.rowCount > 0;
 };
 
+// Cuántas mediciones de este wearable fueron CAPTURADAS después de `desde`.
+// Se usa para decidir si el enlace está realmente vivo: una sola lectura
+// posterior a un corte puede ser una rezagada que el gateway tenía en el
+// buffer, dos o más seguidas ya no.
+const contarDesde = async (idDispositivo, desde) => {
+  const query = `
+    SELECT count(*)::int AS n
+    FROM medicion
+    WHERE id_dispositivo = $1
+      AND fecha_hora > $2;
+  `;
+  const res = await db.query(query, [idDispositivo, desde]);
+  return res.rows[0].n;
+};
+
 module.exports = {
   crear,
+  contarDesde,
   huboLecturaPorDebajo,
   existeDuplicado,
   obtenerPorId,

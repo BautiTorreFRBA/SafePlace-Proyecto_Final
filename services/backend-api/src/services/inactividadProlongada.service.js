@@ -5,6 +5,7 @@ const trabajoRepository = require('../repositories/trabajo.repository');
 const operarioSeudonimoRepository = require('../repositories/operarioSeudonimo.repository');
 const tipoAlertaRepository = require('../repositories/tipoAlerta.repository');
 const alertaRepository = require('../repositories/alerta.repository');
+const medicionRepository = require('../repositories/medicion.repository');
 const inactividadCandidatoRepository = require('../repositories/inactividadCandidato.repository');
 const alertasService = require('./alertas.service');
 
@@ -127,32 +128,44 @@ const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
 // estado. Enganchado best-effort desde mediciones.service.registrarMedicion,
 // nunca debe romper el 201 al gateway.
 //
-// Si el último evento de estado dice DESCONECTADO y sin embargo entra una
-// medición real, el estado está mintiendo: se corrige registrando CONECTADO,
-// y recién entonces se re-arma el candidato. No alcanza con cerrar la alerta
-// — dejar el estado en DESCONECTADO con el candidato ya alertado deja la
-// inactividad MUERTA para ese dispositivo: el próximo corte de verdad no
+// Si el último evento de estado dice DESCONECTADO y sin embargo siguen
+// entrando mediciones reales, el estado está mintiendo: se corrige
+// registrando CONECTADO y se re-arma el candidato. No alcanza con cerrar la
+// alerta — dejar el estado en DESCONECTADO con el candidato ya alertado deja
+// la inactividad MUERTA para ese dispositivo: el próximo corte de verdad no
 // avisa nunca, porque listarDesconectadosParaAlerta lo sigue viendo
 // desconectado y marcarPrimeraDeteccion le devuelve el candidato viejo con
 // alertado = true.
 //
-// Esto no reabre el flood del 31/10: durante un corte real no entra NINGUNA
-// medición, así que la corrección no puede dispararse en medio de un corte.
-// El único caso en que estado y mediciones se contradicen es un
-// DESCONECTADO espurio, y ahí corregir es exactamente lo que corresponde.
+// Pero UNA sola medición posterior al corte no desmiente nada: el gateway
+// suele tener una lectura en el buffer y la postea justo después de haber
+// reportado DESCONECTADO. Tomarla como prueba de conexión cerraba la alerta
+// ~1 segundo después de haberla generado y dejaba el estado en CONECTADO con
+// el wearable realmente apagado (caso real: alerta 149, corte 18:30:42,
+// rezagada 18:30:43, y después nada más). Por eso se exigen
+// MEDICIONES_PARA_CONFIRMAR_CONEXION lecturas capturadas DESPUÉS del evento
+// de desconexión: dos seguidas sólo pueden venir de un enlace vivo.
+//
+// Mientras no haya esa evidencia la alerta se deja Activa, que es lo correcto
+// — el corte sigue en curso.
 //
 // Si el estado ya dice CONECTADO (reporte del hub en orden), se cierra la
 // alerta sin tocar el candidato, como antes.
+const MEDICIONES_PARA_CONFIRMAR_CONEXION = 2;
+
 const resolverPorMedicionReal = async (idSeudonimo, idDispositivo = null) => {
-  let rearmar = false;
-  if (idDispositivo != null) {
-    const ultimo = await historialEstadoDispositivoRepository.obtenerUltimoEstado(idDispositivo);
-    if (ultimo?.estado === 'DESCONECTADO') {
-      await historialEstadoDispositivoRepository.registrarEstado(idDispositivo, 'CONECTADO');
-      rearmar = true;
-    }
+  if (idDispositivo == null) return cerrarActivasPorSeudonimo(idSeudonimo, null, false);
+
+  const ultimo = await historialEstadoDispositivoRepository.obtenerUltimoEstado(idDispositivo);
+  if (ultimo?.estado !== 'DESCONECTADO') {
+    return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, false);
   }
-  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, rearmar);
+
+  const posteriores = await medicionRepository.contarDesde(idDispositivo, ultimo.fecha_hora);
+  if (posteriores < MEDICIONES_PARA_CONFIRMAR_CONEXION) return [];
+
+  await historialEstadoDispositivoRepository.registrarEstado(idDispositivo, 'CONECTADO');
+  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, true);
 };
 
 module.exports = {
