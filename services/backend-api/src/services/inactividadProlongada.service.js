@@ -93,8 +93,14 @@ const chequear = async () => {
 
 // Cierre por seudónimo ya resuelto — compartido entre el camino de
 // reconexión (H0007) y el de medición real (ver resolverPorMedicionReal).
-const cerrarActivasPorSeudonimo = async (idSeudonimo, idDispositivo = null) => {
-  if (idDispositivo != null) {
+//
+// `rearmar` indica si además se borra el candidato, que es lo que habilita un
+// aviso nuevo para el próximo corte. Sólo la reconexión declarada lo hace: una
+// medición suelta cierra la alerta pero no re-arma. Con un enlace inestable el
+// wearable alterna desconexión y lecturas sueltas, y re-armar en cada lectura
+// convertía un mismo corte en una alerta por ciclo del chequeo.
+const cerrarActivasPorSeudonimo = async (idSeudonimo, idDispositivo = null, rearmar = true) => {
+  if (idDispositivo != null && rearmar) {
     await inactividadCandidatoRepository.limpiar(idDispositivo);
   }
   if (!idSeudonimo) return [];
@@ -120,8 +126,13 @@ const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
 // conectado y transmitiendo, sin importar qué diga el último reporte de
 // estado. Enganchado best-effort desde mediciones.service.registrarMedicion,
 // nunca debe romper el 201 al gateway.
+//
+// No re-arma el candidato: una lectura aislada alcanza para dar por atendido
+// el corte en curso, pero no para declarar recuperado el wearable. Eso lo
+// decide la reconexión (resolverPorReconexion). Así un mismo corte avisa una
+// sola vez aunque entren lecturas intermitentes en el medio.
 const resolverPorMedicionReal = async (idSeudonimo, idDispositivo = null) => {
-  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo);
+  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, false);
 };
 
 module.exports = {
