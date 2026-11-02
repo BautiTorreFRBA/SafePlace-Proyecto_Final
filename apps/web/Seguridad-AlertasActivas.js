@@ -280,7 +280,28 @@ async function obtenerUmbrales(idTrabajador) {
   };
 }
 
-function renderStatsFc(puntos) {
+// Alertas del operario en el día que se está revisando (el quinto tile, igual que
+// el "Historial del operario"). Se piden un día de más a cada lado porque /alertas
+// recorta por fecha con el calendario del servidor, y después se filtra con el
+// calendario argentino. Si falla, devuelve null y el tile muestra "--" sin romper
+// el resto del modal.
+async function contarAlertasDelDia(idTrabajador, dia) {
+  const correrDias = (dias) => {
+    const fecha = new Date(`${dia}T12:00:00-03:00`);
+    fecha.setDate(fecha.getDate() + dias);
+    return diaAR(fecha);
+  };
+  try {
+    const payload = await apiFetch(`/alertas?desde=${correrDias(-1)}&hasta=${correrDias(1)}`);
+    return (payload?.data || []).filter((item) => String(item.id_trabajador) === String(idTrabajador)
+      && diaAR(new Date(item.fecha_hora)) === dia).length;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+function renderStatsFc(puntos, alertasDelDia = null) {
   const lecturas = puntos.reduce((acc, p) => acc + p.lecturas, 0);
   const promedio = lecturas
     ? Math.round(puntos.reduce((acc, p) => acc + p.fcPromedio * p.lecturas, 0) / lecturas)
@@ -298,7 +319,8 @@ function renderStatsFc(puntos) {
   fcModalStats.innerHTML = stat('Promedio FC', promedio, 'BPM', 'fc-promedio.svg')
     + stat('Mínimo', min, 'BPM', 'fc-minimo.svg')
     + stat('Máximo', max, 'BPM', 'fc-maximo.svg')
-    + stat('Lecturas', lecturas, '');
+    + stat('Lecturas', lecturas, '')
+    + stat('Alertas', alertasDelDia, '');
 }
 
 // Estado del gráfico: la serie completa del día y la ventana visible [v0, v1]
@@ -496,13 +518,14 @@ window.revisarAlerta = async (id) => {
   const fechaAlerta = new Date(alerta.fechaHora);
   const dia = diaAR(Number.isNaN(fechaAlerta.getTime()) ? new Date() : fechaAlerta);
   try {
-    const [serie, umbrales] = await Promise.all([
+    const [serie, umbrales, alertasDelDia] = await Promise.all([
       apiFetch(`/mediciones?desde=${dia}&hasta=${dia}&id_trabajador=${alerta.idTrabajador}&bucket=1m`),
       obtenerUmbrales(alerta.idTrabajador),
+      contarAlertasDelDia(alerta.idTrabajador, dia),
     ]);
     if (fcModalAlertaId !== id) return; // se cerró o se abrió otra alerta mientras cargaba
     const puntos = serie?.data || [];
-    renderStatsFc(puntos);
+    renderStatsFc(puntos, alertasDelDia);
     renderGraficoFc(puntos, umbrales, alerta.fechaHora);
   } catch (error) {
     if (fcModalAlertaId !== id) return;

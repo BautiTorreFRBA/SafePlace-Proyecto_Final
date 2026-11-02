@@ -4942,14 +4942,16 @@ select.cfg-input {
 .fc-modal { max-width: 860px; max-height: calc(100vh - 32px); }
 .fc-modal__subtitle { margin-top: 4px; color: var(--text-secondary); font-size: 0.78rem; }
 .fc-modal__body { overflow-y: auto; }
-.fc-modal__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+/* Cinco tarjetas (Promedio, Mínimo, Máximo, Lecturas, Alertas), igual que el
+   "Historial del operario". auto-fit las acomoda solas cuando el modal se angosta. */
+.fc-modal__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(142px, 1fr)); gap: 10px; }
 .fc-modal__stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg-main); }
 .fc-modal__stat span { display: block; margin-bottom: 4px; color: var(--text-secondary); font-size: 0.68rem; }
 .fc-modal__stat strong { color: var(--text-primary); font-size: 1.12rem; }
 .fc-modal__stat small { color: var(--text-secondary); font-size: 0.65rem; }
 /* Tarjetas con el icono de FC a la izquierda (mismo criterio que .empleado-stat--promedio). */
 .fc-modal__stat--icono { display: flex; align-items: center; gap: 10px; }
-.fc-modal__stat--icono img { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; }
+.fc-modal__stat--icono img { width: 36px; height: 36px; flex: 0 0 36px; object-fit: contain; }
 .fc-modal__stat--icono > div { min-width: 0; }
 .fc-modal__chart { border: 1px solid var(--border); border-radius: 13px; background: var(--bg-main); }
 .fc-modal__empty { padding: 48px 16px; color: var(--text-secondary); text-align: center; font-size: 0.85rem; }
