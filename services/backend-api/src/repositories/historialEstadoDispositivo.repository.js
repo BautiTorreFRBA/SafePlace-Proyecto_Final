@@ -24,11 +24,19 @@ const obtenerUltimoEstado = async (idDispositivo) => {
   return res.rows[0];
 };
 
-// H0006: dispositivos con asignación vigente cuya última actividad (la
-// medición más reciente, o el inicio de la asignación si nunca mandó
-// ninguna) tiene más de `minutos` de antigüedad, y cuyo último estado
-// registrado todavía no es DESCONECTADO (para no insertar filas repetidas
-// en cada corrida del chequeo periódico).
+// H0006: dispositivos con asignación vigente cuya última actividad tiene
+// más de `minutos` de antigüedad, y cuyo último estado registrado todavía
+// no es DESCONECTADO (para no insertar filas repetidas en cada corrida del
+// chequeo periódico).
+//
+// "Última actividad" es la MÁS RECIENTE entre la última medición y el último
+// evento CONECTADO. Mirar sólo la última medición generaba un falso
+// DESCONECTADO en cada reconexión: el hub reporta CONECTADO y tarda unos
+// segundos en mandar la primera medición, y si la anterior era vieja (otra
+// sesión, u otro día), este chequeo corría en ese hueco y marcaba
+// DESCONECTADO un par de segundos después de haberse conectado. Eso dejaba
+// el estado mintiendo mientras entraban mediciones normales y, peor, quemaba
+// el candidato de inactividad del dispositivo (ver inactividadProlongada).
 const listarDispositivosInactivos = async (minutos) => {
   const query = `
     SELECT d.id AS id_dispositivo
@@ -46,7 +54,15 @@ const listarDispositivosInactivos = async (minutos) => {
       WHERE h.id_dispositivo = d.id
       ORDER BY fecha_hora DESC LIMIT 1
     ) ultimo_estado ON true
-    WHERE COALESCE(ultima_medicion.fecha_hora, ad.fecha_desde) < now() - ($1 || ' minutes')::interval
+    LEFT JOIN LATERAL (
+      SELECT fecha_hora FROM historial_estado_dispositivo h
+      WHERE h.id_dispositivo = d.id AND h.estado = 'CONECTADO'
+      ORDER BY fecha_hora DESC LIMIT 1
+    ) ultima_conexion ON true
+    WHERE GREATEST(
+            COALESCE(ultima_medicion.fecha_hora, ad.fecha_desde),
+            COALESCE(ultima_conexion.fecha_hora, ad.fecha_desde)
+          ) < now() - ($1 || ' minutes')::interval
       AND COALESCE(ultimo_estado.estado, '') != 'DESCONECTADO';
   `;
   const res = await db.query(query, [minutos]);

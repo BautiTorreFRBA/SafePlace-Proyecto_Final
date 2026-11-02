@@ -127,12 +127,32 @@ const resolverPorReconexion = async (idOperario, idDispositivo = null) => {
 // estado. Enganchado best-effort desde mediciones.service.registrarMedicion,
 // nunca debe romper el 201 al gateway.
 //
-// No re-arma el candidato: una lectura aislada alcanza para dar por atendido
-// el corte en curso, pero no para declarar recuperado el wearable. Eso lo
-// decide la reconexión (resolverPorReconexion). Así un mismo corte avisa una
-// sola vez aunque entren lecturas intermitentes en el medio.
+// Si el último evento de estado dice DESCONECTADO y sin embargo entra una
+// medición real, el estado está mintiendo: se corrige registrando CONECTADO,
+// y recién entonces se re-arma el candidato. No alcanza con cerrar la alerta
+// — dejar el estado en DESCONECTADO con el candidato ya alertado deja la
+// inactividad MUERTA para ese dispositivo: el próximo corte de verdad no
+// avisa nunca, porque listarDesconectadosParaAlerta lo sigue viendo
+// desconectado y marcarPrimeraDeteccion le devuelve el candidato viejo con
+// alertado = true.
+//
+// Esto no reabre el flood del 31/10: durante un corte real no entra NINGUNA
+// medición, así que la corrección no puede dispararse en medio de un corte.
+// El único caso en que estado y mediciones se contradicen es un
+// DESCONECTADO espurio, y ahí corregir es exactamente lo que corresponde.
+//
+// Si el estado ya dice CONECTADO (reporte del hub en orden), se cierra la
+// alerta sin tocar el candidato, como antes.
 const resolverPorMedicionReal = async (idSeudonimo, idDispositivo = null) => {
-  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, false);
+  let rearmar = false;
+  if (idDispositivo != null) {
+    const ultimo = await historialEstadoDispositivoRepository.obtenerUltimoEstado(idDispositivo);
+    if (ultimo?.estado === 'DESCONECTADO') {
+      await historialEstadoDispositivoRepository.registrarEstado(idDispositivo, 'CONECTADO');
+      rearmar = true;
+    }
+  }
+  return cerrarActivasPorSeudonimo(idSeudonimo, idDispositivo, rearmar);
 };
 
 module.exports = {
