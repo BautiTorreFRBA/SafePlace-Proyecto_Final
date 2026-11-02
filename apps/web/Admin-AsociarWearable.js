@@ -11,7 +11,10 @@ const modalClose = document.getElementById('modalClose');
 const modalCancel = document.getElementById('modalCancel');
 const modalSave = document.getElementById('modalSave');
 const fechaHastaInput = document.getElementById('fechaHastaInput');
+const searchInput = document.getElementById('asocSearchInput');
+const filtroCount = document.getElementById('asocFiltroCount');
 
+let busqueda = '';
 let trabajadores = [];
 let wearables = [];
 let asociaciones = [];
@@ -143,14 +146,42 @@ async function cargarAsociacionesVigentes() {
   renderTable();
 }
 
+// Texto sobre el que busca el filtro de la tabla: lo que se ve en las columnas
+// Wearable, Trabajador, Legajo y MAC BLE (una fila sin asignar también se
+// encuentra escribiendo la marca del dispositivo o "sin asignar").
+function textoBuscable(dispositivo, asoc) {
+  return [
+    descripcionWearable(dispositivo),
+    dispositivo.direccion_mac,
+    asoc ? asoc.trabajadorNombre : 'Sin asignar',
+    asoc ? asoc.legajo : '',
+  ].filter(Boolean).join(' ').toLocaleLowerCase('es');
+}
+
 function renderTable() {
   const activas = asociaciones.filter((asoc) => !asoc.finalizada);
   asocCount.textContent = `${activas.length} asociaci${activas.length === 1 ? 'ón activa' : 'ones activas'} · ${dispositivosEstado.length} dispositivo${dispositivosEstado.length === 1 ? '' : 's'}`;
 
   const porDispositivo = new Map(asociaciones.map((asoc) => [String(asoc.idDispositivo), asoc]));
-  tableBody.innerHTML = dispositivosEstado.length === 0
-    ? '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">No hay dispositivos registrados</td></tr>'
-    : dispositivosEstado.map((dispositivo) => rowHTML(dispositivo, porDispositivo.get(String(dispositivo.id)))).join('');
+  const consulta = busqueda.trim().toLocaleLowerCase('es');
+  const visibles = consulta
+    ? dispositivosEstado.filter((dispositivo) => textoBuscable(dispositivo, porDispositivo.get(String(dispositivo.id))).includes(consulta))
+    : dispositivosEstado;
+
+  if (filtroCount) {
+    filtroCount.textContent = consulta
+      ? `${visibles.length} de ${dispositivosEstado.length} dispositivo${dispositivosEstado.length === 1 ? '' : 's'}`
+      : '';
+  }
+
+  const vacio = (mensaje) => `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.875rem;">${escapeHtml(mensaje)}</td></tr>`;
+  if (dispositivosEstado.length === 0) {
+    tableBody.innerHTML = vacio('No hay dispositivos registrados');
+    return;
+  }
+  tableBody.innerHTML = visibles.length === 0
+    ? vacio(`Ningún dispositivo coincide con "${busqueda.trim()}"`)
+    : visibles.map((dispositivo) => rowHTML(dispositivo, porDispositivo.get(String(dispositivo.id)))).join('');
 }
 
 function badgeConexion(estado) {
@@ -351,6 +382,15 @@ tableBody.addEventListener('click', (e) => {
   }
 
   if (button.dataset.action === 'guardar-mac') guardarMac(button.dataset.id, button);
+});
+
+// Filtro de la tabla. Redibujar descarta lo que se esté tipeando en un campo MAC,
+// así que sólo se redibuja cuando cambia el texto de la búsqueda.
+searchInput?.addEventListener('input', (event) => {
+  const valor = event.target.value;
+  if (valor === busqueda) return;
+  busqueda = valor;
+  renderTable();
 });
 
 btnAsociar.addEventListener('click', asociarWearable);
