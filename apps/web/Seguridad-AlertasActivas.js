@@ -388,10 +388,21 @@ function dibujarGraficoFc() {
   const ticksY = Array.from({ length: 5 }, (_, i) => Math.round(min + ((max - min) * i) / 4));
   const ticksX = Array.from({ length: 6 }, (_, i) => v0 + ((v1 - v0) * i) / 5);
   const radio = visibles.length <= 120 ? 3.5 : 2.5;
+  // Marca del momento de la alerta. El texto va dentro del clip del área de dibujo,
+  // así que cuando la línea cae cerca del borde derecho (el caso habitual: la alerta
+  // suele ser la última lectura del día) se escribe hacia la izquierda de la línea.
+  // Si no, quedaba cortado y sólo se veía la primera letra.
   const tA = fcZoom.momentoAlerta;
-  const marcaAlerta = tA >= v0 && tA <= v1
-    ? `<line class="fc-chart__alert" x1="${x(tA)}" x2="${x(tA)}" y1="${top}" y2="${height - bottom}" /><text class="fc-chart__label--alert" x="${x(tA) + 4}" y="${top + 9}">Alerta ${horaFc(tA)}</text>`
-    : '';
+  let marcaAlerta = '';
+  if (tA >= v0 && tA <= v1) {
+    const px = x(tA);
+    const etiqueta = `Alerta ${horaFc(tA)}`;
+    // ~6px por carácter con la tipografía de 9px del gráfico, más el margen de 4px.
+    const anchoTexto = etiqueta.length * 6 + 4;
+    const haciaLaIzquierda = px + anchoTexto > left + FC_PLOT_W;
+    marcaAlerta = `<line class="fc-chart__alert" x1="${px}" x2="${px}" y1="${top}" y2="${height - bottom}" />`
+      + `<text class="fc-chart__label--alert" x="${haciaLaIzquierda ? px - 4 : px + 4}" y="${top + 9}"${haciaLaIzquierda ? ' text-anchor="end"' : ''}>${etiqueta}</text>`;
+  }
 
   canvas.innerHTML = `<svg class="fc-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Frecuencia cardíaca del día">
     <defs><clipPath id="fcChartClip"><rect x="${left}" y="0" width="${FC_PLOT_W}" height="${height}" /></clipPath></defs>
