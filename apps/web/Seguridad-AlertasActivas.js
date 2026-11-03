@@ -192,7 +192,11 @@ function renderTabla() {
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
-      <td class="alert-td-acciones">${a.revisada ? '<span class="alert-action-done">Revisada</span>' : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
+      <td class="alert-td-acciones">${a.revisada
+        // Una alerta ya revisada no se vuelve a atender, pero su gráfico del día
+        // sigue siendo útil para revisar qué pasó. Antes era un texto muerto.
+        ? `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`
+        : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
     </tr>`).join('') : '<tr><td colspan="6" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
 }
 
@@ -516,6 +520,9 @@ window.revisarAlerta = async (id) => {
 
   fcModalAlertaId = id;
   fcModalSubtitle.textContent = `${alerta.empleado} · ${alerta.tipo} · ${alerta.fecha} ${alerta.hora}`;
+  // Una alerta ya revisada se abre en modo lectura: el gráfico se ve igual, pero
+  // no se ofrece volver a atenderla.
+  fcModalAtender.hidden = Boolean(alerta.revisada);
   fcModalStats.innerHTML = '';
   fcModalChart.innerHTML = '<div class="fc-modal__empty">Cargando mediciones del día...</div>';
   fcModal.classList.add('modal-overlay--visible');
