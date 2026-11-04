@@ -11,7 +11,7 @@ const eventBus = require('../utils/eventBus');
 //  - acumula ALERTAS_PARA_EMERGENCIA alertas o más (reincidencia).
 const TIPO_EMERGENCIA = 'EMERGENCIA';
 const VENTANA_EMERGENCIA_MIN = 60;
-const ALERTAS_PARA_EMERGENCIA = 3;
+const ALERTAS_PARA_EMERGENCIA = 4;
 const TIPOS_PREVIOS_A_INACTIVIDAD = ['FATIGA', 'SOBREESFUERZO'];
 
 // SUPER_EMERGENCIA ("super super alerta"): el mismo operario acumula más de dos

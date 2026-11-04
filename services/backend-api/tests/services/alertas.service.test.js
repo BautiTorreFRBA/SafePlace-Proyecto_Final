@@ -71,8 +71,8 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
     expect(alertaRepository.crear).toHaveBeenCalledTimes(1);
   });
 
-  it('3 alertas en la ventana (incluida la nueva) generan EMERGENCIA', async () => {
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'SOBREESFUERZO']);
+  it('4 alertas en la ventana (incluida la nueva) generan EMERGENCIA', async () => {
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'SOBREESFUERZO', 'SOBREESFUERZO']);
 
     await alertasService.generar({ nombreTipo: 'SOBREESFUERZO', idSeudonimo: 7, idMedicion: 500 });
 
@@ -80,8 +80,8 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
     expect(alertaRepository.crear).toHaveBeenLastCalledWith(crearConTipo(4));
   });
 
-  it('2 alertas en la ventana no escalan', async () => {
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA']);
+  it('3 alertas en la ventana no escalan', async () => {
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA']);
 
     await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
 
@@ -89,7 +89,7 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
   });
 
   it('las EMERGENCIA previas no cuentan para la reincidencia', async () => {
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'EMERGENCIA']);
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA', 'EMERGENCIA']);
 
     await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
 
@@ -97,7 +97,7 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
   });
 
   it('antiduplicado: con una EMERGENCIA ya activa no crea otra', async () => {
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA']);
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA', 'FATIGA']);
     alertaRepository.existeActivaParaSeudonimoYTipo.mockImplementation(
       async (idSeudonimo, idTipo) => idTipo === 4,
     );
@@ -129,7 +129,7 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
   });
 
   it('las SUPER_EMERGENCIA previas no cuentan como alertas ni como emergencias', async () => {
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'SUPER_EMERGENCIA']);
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA', 'SUPER_EMERGENCIA']);
 
     await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
 
@@ -138,7 +138,7 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
 
   it('encadena alerta -> EMERGENCIA -> SUPER_EMERGENCIA cuando corresponde', async () => {
     alertaRepository.listarTiposEnVentana
-      .mockResolvedValueOnce(['FATIGA', 'FATIGA', 'FATIGA'])
+      .mockResolvedValueOnce(['FATIGA', 'FATIGA', 'FATIGA', 'FATIGA'])
       .mockResolvedValueOnce(['EMERGENCIA', 'EMERGENCIA', 'EMERGENCIA']);
 
     await alertasService.generar({ nombreTipo: 'FATIGA', idSeudonimo: 7 });
@@ -169,7 +169,7 @@ describe('alertas.service — escalada a EMERGENCIA', () => {
 
   it('si el tipo EMERGENCIA no existe en el catálogo (migración sin correr), no rompe', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA']);
+    alertaRepository.listarTiposEnVentana.mockResolvedValue(['FATIGA', 'FATIGA', 'FATIGA', 'FATIGA']);
     tipoAlertaRepository.obtenerPorNombre.mockImplementation(
       async (nombre) => (nombre === 'EMERGENCIA' ? undefined : TIPOS_MOCK[nombre]),
     );
