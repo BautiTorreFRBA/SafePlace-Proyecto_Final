@@ -3,7 +3,7 @@
 exports.shorthands = undefined;
 
 // Tipo de alerta SUPER_EMERGENCIA ("super super alerta"): la genera alertas.service
-// cuando un operario acumula más de dos EMERGENCIA en la ventana. Prioridad Crítica.
+// cuando un operario acumula dos EMERGENCIA o más en la ventana. Prioridad Crítica.
 exports.up = (pgm) => {
   pgm.sql(`
     INSERT INTO tipo_alerta (nombre, prioridad)

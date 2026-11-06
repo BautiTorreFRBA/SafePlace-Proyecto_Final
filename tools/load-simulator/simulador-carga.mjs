@@ -84,7 +84,7 @@ const PCT = {
 
 // ── Duración de la fase "emitiendo" para perfiles de emergencia ───────────────
 const EMISION_EMERGENCIA_MS = 90_000;
-const CICLOS_SUPER = 4;
+const CICLOS_SUPER = 3;
 const PAUSA_CICLO_MS = 20_000;
 
 // ── Inyección on-demand ───────────────────────────────────────────────────────

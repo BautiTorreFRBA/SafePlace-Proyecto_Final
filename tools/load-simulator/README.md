@@ -64,7 +64,7 @@ node tools/load-simulator/simulador-carga.mjs --dry-run
 | `sobreesfuerzo` | ~185 BPM | 1.0 (fijo) | SOBREESFUERZO (Crítica) |
 | `inactividad` | normal 30 s → desconexión | — | INACTIVIDAD_PROLONGADA (~15 min después) |
 | `emergencia` | ~185 BPM + act 1.0 por 90 s → desconecta | 1.0 | FATIGA + SOBREESFUERZO → INACTIVIDAD → **EMERGENCIA** automática |
-| `super_emergencia` | igual a `emergencia`, repite 4 ciclos | 1.0 | Acumula ≥3 EMERGENCIAS → **SUPER_EMERGENCIA** automática |
+| `super_emergencia` | igual a `emergencia`, repite 3 ciclos | 1.0 | Acumula ≥2 EMERGENCIAS → **SUPER_EMERGENCIA** automática |
 
 ### ⚡ Para ver EMERGENCIA en < 2 minutos
 

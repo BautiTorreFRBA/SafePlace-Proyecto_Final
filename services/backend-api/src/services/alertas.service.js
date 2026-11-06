@@ -14,12 +14,12 @@ const VENTANA_EMERGENCIA_MIN = 60;
 const ALERTAS_PARA_EMERGENCIA = 4;
 const TIPOS_PREVIOS_A_INACTIVIDAD = ['FATIGA', 'SOBREESFUERZO'];
 
-// SUPER_EMERGENCIA ("super super alerta"): el mismo operario acumula más de dos
-// EMERGENCIA (o sea EMERGENCIAS_PARA_SUPER o más) dentro de la ventana. Como sólo
-// puede haber una EMERGENCIA Activa por operario, las anteriores tienen que
+// SUPER_EMERGENCIA ("super super alerta"): el mismo operario acumula dos
+// EMERGENCIA o más (EMERGENCIAS_PARA_SUPER) dentro de la ventana. Como sólo
+// puede haber una EMERGENCIA Activa por operario, la anterior tiene que
 // haberse cerrado para que se cree una nueva y sume.
 const TIPO_SUPER_EMERGENCIA = 'SUPER_EMERGENCIA';
-const EMERGENCIAS_PARA_SUPER = 3;
+const EMERGENCIAS_PARA_SUPER = 2;
 const TIPOS_ESCALADA = [TIPO_EMERGENCIA, TIPO_SUPER_EMERGENCIA];
 
 // Devuelve el motivo de la super emergencia o null. Se evalúa al crear una
