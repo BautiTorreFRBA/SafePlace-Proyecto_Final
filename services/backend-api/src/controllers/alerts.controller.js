@@ -26,8 +26,6 @@ const getHistorialAlertas = async (req, res, next) => {
       empleado: normalizarFiltro(req.query.empleado),
       area: normalizarFiltro(req.query.area),
       turno: normalizarFiltro(req.query.turno),
-      // El historial del Responsable sólo lista alertas que un supervisor atendió.
-      soloAtendidasPorSupervisor: req.query.atendidas === 'true',
       usuario: req.user,
     });
 

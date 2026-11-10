@@ -213,57 +213,15 @@ function renderEstadoInicial(mensaje) {
   renderAnalisis();
 }
 
-// Paginado: ALERTAS_POR_PAGINA filas por hoja. Los gráficos, el análisis y las
-// exportaciones siguen usando todas las alertas filtradas, no sólo la hoja visible.
-const ALERTAS_POR_PAGINA = 15;
-let paginaActual = 1;
-const paginacion = document.getElementById('histPagination');
-
-// Páginas a mostrar: siempre la primera y la última, y las vecinas de la actual.
-function paginasVisibles(total, actual) {
-  const set = new Set([1, total, actual - 1, actual, actual + 1]);
-  const lista = [...set].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-  return lista.flatMap((p, i) => (i > 0 && p - lista[i - 1] > 1 ? ['…', p] : [p]));
-}
-
-function renderPaginacion(total) {
-  if (!paginacion) return;
-  const paginas = Math.ceil(total / ALERTAS_POR_PAGINA);
-  if (paginas <= 1) {
-    paginacion.innerHTML = '';
-    return;
-  }
-  const desde = (paginaActual - 1) * ALERTAS_POR_PAGINA + 1;
-  const hasta = Math.min(paginaActual * ALERTAS_POR_PAGINA, total);
-  paginacion.innerHTML = `<span class="hist-pagination__info">Mostrando ${desde}–${hasta} de ${total}</span>
-    <div class="hist-pagination__controls">
-      <button type="button" class="hist-pagination__btn" data-pagina="${paginaActual - 1}" ${paginaActual === 1 ? 'disabled' : ''}>Anterior</button>
-      ${paginasVisibles(paginas, paginaActual).map((p) => (p === '…'
-    ? '<span class="hist-pagination__gap" aria-hidden="true">…</span>'
-    : `<button type="button" class="hist-pagination__btn${p === paginaActual ? ' is-active' : ''}" data-pagina="${p}"${p === paginaActual ? ' aria-current="page"' : ''}>${p}</button>`)).join('')}
-      <button type="button" class="hist-pagination__btn" data-pagina="${paginaActual + 1}" ${paginaActual === paginas ? 'disabled' : ''}>Siguiente</button>
-    </div>`;
-}
-
-paginacion?.addEventListener('click', (event) => {
-  const boton = event.target.closest('[data-pagina]');
-  if (!boton || boton.disabled) return;
-  paginaActual = Number(boton.dataset.pagina);
-  renderTabla();
-});
-
 function renderTabla() {
   actualizarContador(historicoAlertas.length);
 
   if (historicoAlertas.length === 0) {
     renderEstadoInicial('No se encontraron alertas para los filtros seleccionados.');
-    renderPaginacion(0);
     return;
   }
 
-  const inicio = (paginaActual - 1) * ALERTAS_POR_PAGINA;
   tableBody.innerHTML = historicoAlertas
-    .slice(inicio, inicio + ALERTAS_POR_PAGINA)
     .map((a) => `
       <tr>
         <td class="hist-td-tipo hist-td-tipo--${a.tipoClase}"><span class="hist-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</td>
@@ -276,7 +234,6 @@ function renderTabla() {
         </td>
       </tr>`)
     .join('');
-  renderPaginacion(historicoAlertas.length);
 }
 
 function renderGraficas() {
@@ -396,8 +353,6 @@ async function cargarHistorial() {
   if (empleado) params.set('empleado', empleado);
   if (area) params.set('area', area);
   if (turno) params.set('turno', turno);
-  // No se listan las alertas sin supervisor asociado ("Sin atender" o "Cerrada").
-  params.set('atendidas', 'true');
 
   const url = `${API_BASE_URL}/alertas/historico?${params.toString()}`;
 
@@ -436,9 +391,6 @@ async function cargarHistorial() {
     };
   });
 
-  // Cronológico: de la más reciente a la más antigua.
-  historicoAlertas.sort((x, y) => new Date(y.fechaHora) - new Date(x.fechaHora));
-  paginaActual = 1;
   renderTabla();
   renderAnalisis();
   renderGraficas();

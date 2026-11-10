@@ -10,7 +10,6 @@ const listarHistorialAlertas = async ({
   empleado = null,
   area = null,
   turno = null,
-  soloAtendidasPorSupervisor = false,
   usuario = {},
 } = {}) => {
   const turnoSeguridad = turnoSeguridadActual(usuario);
@@ -46,11 +45,10 @@ const listarHistorialAlertas = async ({
       AND ($5::text IS NULL OR o.area = $5)
       AND ($6::text IS NULL OR o.turno = $6)
       AND ($7::text IS NULL OR o.turno = $7)
-      AND (NOT $8::boolean OR a.id_usuario_atendio IS NOT NULL)
     ORDER BY a.fecha_hora DESC, a.id DESC;
   `;
 
-  const res = await db.query(query, [desde, hasta, tipo, empleado, area, turno, turnoSeguridad, soloAtendidasPorSupervisor]);
+  const res = await db.query(query, [desde, hasta, tipo, empleado, area, turno, turnoSeguridad]);
   return res.rows;
 };
 

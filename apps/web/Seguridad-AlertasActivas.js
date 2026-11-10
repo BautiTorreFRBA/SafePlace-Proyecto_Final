@@ -115,6 +115,9 @@ async function cargarAlertas() {
 // La página de Alertas Atendidas usa este mismo script con SAFEPLACE_ALERTAS_VIEW = 'atendidas'.
 const pestana = window.SAFEPLACE_ALERTAS_VIEW === 'atendidas' ? 'atendidas' : 'pendientes';
 const estaAtendida = (a) => a.revisada;
+// Alertas Atendidas sólo lista las que un supervisor atendió: sin supervisor la columna
+// "Atendida" diría "Sin atender" o "Cerrada", y esas no se muestran.
+const esAtendidaListable = (a) => a.revisada && a.atendidaPor !== '';
 // La bandeja del supervisor sólo muestra lo que nadie atendió todavía.
 const pendienteParaSupervisor = (a) => a.estadoClase !== 'cerrada' && a.atendidaPor === '';
 
@@ -124,8 +127,8 @@ function actualizarContador() {
     alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
     return;
   }
-  const atendidas = alertas.filter(estaAtendida).length;
-  const activas = alertas.length - atendidas;
+  const atendidas = alertas.filter(esAtendidaListable).length;
+  const activas = alertas.filter((a) => !estaAtendida(a)).length;
   alertCount.textContent = pestana === 'atendidas'
     ? `${atendidas} ${atendidas === 1 ? 'alerta atendida' : 'alertas atendidas'}`
     : `${activas} ${activas === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
@@ -158,13 +161,16 @@ function filasVisibles() {
   const terminos = normalizarTexto(vista.busqueda).split(/\s+/).filter(Boolean);
   const filas = alertas.filter((a) => {
     if (!tiposActivos.has(a.tipoAlerta)) return false;
-    if (pestana === 'atendidas' ? !estaAtendida(a) : estaAtendida(a)) return false;
+    if (pestana === 'atendidas' ? !esAtendidaListable(a) : estaAtendida(a)) return false;
     if (terminos.length) {
       const pajar = normalizarTexto(Object.values(COLUMNAS).map((c) => c.texto(a)).join(' '));
       if (!terminos.every((t) => pajar.includes(t))) return false;
     }
     return true;
   });
+  if (!vista.orden && pestana === 'atendidas') {
+    filas.sort((x, y) => new Date(y.fechaHora) - new Date(x.fechaHora) || y.id - x.id);
+  }
   if (vista.orden) {
     const { orden } = COLUMNAS[vista.orden.col];
     const signo = vista.orden.dir === 'desc' ? -1 : 1;
@@ -176,6 +182,43 @@ function filasVisibles() {
   }
   return filas;
 }
+
+// Alertas Atendidas se pagina de a ALERTAS_POR_PAGINA filas; la exportación usa todas las filtradas.
+const ALERTAS_POR_PAGINA = 15;
+let paginaActual = 1;
+const paginacion = document.getElementById('alertPagination');
+
+// Páginas a mostrar: la primera, la última y las vecinas de la actual.
+function paginasVisibles(total, actual) {
+  const lista = [...new Set([1, total, actual - 1, actual, actual + 1])].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  return lista.flatMap((p, i) => (i > 0 && p - lista[i - 1] > 1 ? ['…', p] : [p]));
+}
+
+function renderPaginacion(total) {
+  if (!paginacion) return;
+  const paginas = Math.ceil(total / ALERTAS_POR_PAGINA);
+  if (paginas <= 1) {
+    paginacion.innerHTML = '';
+    return;
+  }
+  const desde = (paginaActual - 1) * ALERTAS_POR_PAGINA + 1;
+  const hasta = Math.min(paginaActual * ALERTAS_POR_PAGINA, total);
+  paginacion.innerHTML = `<span class="hist-pagination__info">Mostrando ${desde}–${hasta} de ${total}</span>
+    <div class="hist-pagination__controls">
+      <button type="button" class="hist-pagination__btn" data-pagina="${paginaActual - 1}" ${paginaActual === 1 ? 'disabled' : ''}>Anterior</button>
+      ${paginasVisibles(paginas, paginaActual).map((p) => (p === '…'
+    ? '<span class="hist-pagination__gap" aria-hidden="true">…</span>'
+    : `<button type="button" class="hist-pagination__btn${p === paginaActual ? ' is-active' : ''}" data-pagina="${p}"${p === paginaActual ? ' aria-current="page"' : ''}>${p}</button>`)).join('')}
+      <button type="button" class="hist-pagination__btn" data-pagina="${paginaActual + 1}" ${paginaActual === paginas ? 'disabled' : ''}>Siguiente</button>
+    </div>`;
+}
+
+paginacion?.addEventListener('click', (event) => {
+  const boton = event.target.closest('[data-pagina]');
+  if (!boton || boton.disabled) return;
+  paginaActual = Number(boton.dataset.pagina);
+  renderTabla();
+});
 
 function renderTabla() {
   if (window.SAFEPLACE_ALERTAS_VIEW === 'tarjetas') {
@@ -190,7 +233,11 @@ function renderTabla() {
     </button>`).join('') : '<div class="notif-empty"><div class="notif-empty__title">No hay alertas activas</div><div class="notif-empty__desc">No hay situaciones pendientes de atención.</div></div>';
     return;
   }
-  const filtrados = filasVisibles();
+  const todas = filasVisibles();
+  const paginas = Math.max(1, Math.ceil(todas.length / ALERTAS_POR_PAGINA));
+  if (paginaActual > paginas) paginaActual = paginas; // p. ej. si una recarga dejó menos alertas
+  const filtrados = pestana === 'atendidas' ? todas.slice((paginaActual - 1) * ALERTAS_POR_PAGINA, paginaActual * ALERTAS_POR_PAGINA) : todas;
+  if (pestana === 'atendidas') renderPaginacion(todas.length);
   tableBody.innerHTML = filtrados.length ? filtrados.map((a) => `<tr>
       <td class="alert-td-tipo"><div class="alert-tipo alert-tipo--${a.claseTipo}"><span class="alert-tipo-dot" aria-hidden="true"></span>${escapeHtml(a.tipo)}</div></td>
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
@@ -588,18 +635,21 @@ encabezadosOrdenables.forEach((th) => th.addEventListener('click', () => {
   if (vista.orden?.col !== col) vista.orden = { col, dir: 'asc' };
   else if (vista.orden.dir === 'asc') vista.orden = { col, dir: 'desc' };
   else vista.orden = null;
+  paginaActual = 1;
   sincronizarControles();
   renderTabla();
 }));
 
 buscador?.addEventListener('input', () => {
   vistaPorPestana[pestana].busqueda = buscador.value;
+  paginaActual = 1;
   renderTabla();
 });
 
 document.getElementById('alertClearFilters')?.addEventListener('click', () => {
   vistaPorPestana[pestana] = nuevaVista();
   aplicarTipos(todosLosTipos);
+  paginaActual = 1;
   sincronizarControles();
   renderTabla();
 });
@@ -648,6 +698,7 @@ botonesTipo.forEach((button) => {
     const tipo = button.dataset.tipo;
     const soloEste = tiposActivos.size === 1 && tiposActivos.has(tipo);
     aplicarTipos(soloEste ? todosLosTipos : [tipo]);
+    paginaActual = 1;
     renderTabla();
   });
 });
