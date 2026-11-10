@@ -140,12 +140,12 @@ const COLUMNAS = {
   hora: { titulo: 'Hora', texto: (a) => a.hora, orden: (a) => a.hora },
   atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || 'Sin atender', orden: (a) => a.atendidaPor || 'Sin atender' },
 };
+// En Alertas Atendidas también se exporta/busca si la alerta se cerró.
 if (pestana === 'atendidas') {
-  // Quién la revisó en Seguridad e Higiene; si se cerró, queda dicho.
-  const textoRevisada = (a) => `${a.revisadaPor || '--'}${a.cerrada ? ' (alerta cerrada)' : ''}`;
-  COLUMNAS.revisada = { titulo: 'Revisada por', texto: textoRevisada, orden: textoRevisada };
+  const estado = (a) => (a.cerrada ? 'Cerrada' : 'Atendida');
+  COLUMNAS.estado = { titulo: 'Estado', texto: estado, orden: estado };
 }
-const COLUMNAS_TABLA = pestana === 'atendidas' ? 7 : 6;
+const COLUMNAS_TABLA = 6;
 const normalizarTexto = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Cada pestaña recuerda su propio orden y búsqueda.
@@ -198,8 +198,7 @@ function renderTabla() {
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
-      ${pestana === 'atendidas' ? `<td class="alert-td-revisada">${a.revisadaPor ? escapeHtml(a.revisadaPor) : '<span class="alert-action-done">--</span>'}${a.cerrada ? ' <span class="alert-badge-estado alert-badge-cerrada">Cerrada</span>' : ''}</td>` : ''}
-      <td class="alert-td-acciones">${a.revisada
+      <td class="alert-td-acciones">${a.cerrada ? '<div class="alert-estado-cerrada"><span class="alert-badge-estado alert-badge-cerrada">Cerrada</span></div>' : ''}${a.revisada
         // Una alerta ya revisada no se vuelve a atender, pero su gráfico del día
         // sigue siendo útil para revisar qué pasó. Antes era un texto muerto.
         ? `<div class="alert-actions alert-actions--solo"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`
