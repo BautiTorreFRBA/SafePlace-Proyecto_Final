@@ -3849,7 +3849,8 @@ select.cfg-input {
 
 /* Celda de empleado */
 .alert-td-empleado {
-  width: 160px;
+  min-width: 230px;
+  white-space: nowrap;
   color: var(--text-primary);
   font-weight: 500;
 }
@@ -4336,9 +4337,63 @@ select.cfg-input {
 .hist-td-tipo--emergencia .hist-tipo-dot { background: #ffd60a; }
 .hist-td-tipo--super-emergencia .hist-tipo-dot { background: #ff1a1a; }
 
-/* Celda de empleado */
+/* Celda de empleado: el nombre completo entra en una línea */
 .hist-td-empleado {
+  min-width: 240px;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Paginado del historial */
+.hist-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 4px 0;
+}
+
+.hist-pagination:empty {
+  display: none;
+}
+
+.hist-pagination__info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.hist-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hist-pagination__btn {
+  min-width: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 600 0.8rem var(--font);
+  cursor: pointer;
+}
+
+.hist-pagination__btn:hover:not(:disabled),
+.hist-pagination__btn.is-active {
+  color: var(--teal-400);
+  border-color: var(--teal-500);
+  background: var(--teal-dim);
+}
+
+.hist-pagination__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hist-pagination__gap {
+  color: var(--text-muted);
 }
 
 /* Celda de fecha */
