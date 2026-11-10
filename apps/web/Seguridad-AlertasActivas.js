@@ -54,9 +54,11 @@ function normalizarAlerta(a) {
     ...separarFechaHora(a.fecha_hora),
     estado,
     atendidaPor: `${a.atendida_por || ''}`.trim(),
-    // Atendida = el Responsable de Seguridad e Higiene ya hizo su chequeo. Que
-    // un supervisor la haya visto (atendidaPor) no alcanza.
-    revisada: estadoNormalizado.includes('atend'),
+    revisadaPor: `${a.revisada_por || ''}`.trim(),
+    cerrada: estadoNormalizado.includes('cerr'),
+    // Revisada = el Responsable de Seguridad e Higiene ya hizo su chequeo (la atendió
+    // o la cerró). Que un supervisor la haya visto (atendidaPor) no alcanza.
+    revisada: estadoNormalizado.includes('atend') || estadoNormalizado.includes('cerr'),
     estadoClase: estadoNormalizado.includes('cerr') || estadoNormalizado.includes('atend') || estadoNormalizado.includes('resuel')
       ? 'cerrada'
       : estadoNormalizado.includes('rev') ? 'enrevision' : 'activo',
@@ -100,7 +102,7 @@ async function apiFetch(path, options = {}) {
 }
 
 async function cargarAlertas() {
-  const payload = await apiFetch('/alertas/activas');
+  const payload = await apiFetch(window.SAFEPLACE_ALERTAS_VIEW === 'atendidas' ? '/alertas/activas?cerradas=true' : '/alertas/activas');
   // Sin columna de prioridad: las emergencias quedan arriba y, dentro de cada tipo, la más reciente primero.
   alertas = (payload.data || []).map(normalizarAlerta).sort((a, b) => (ORDEN_TIPO[a.tipoAlerta] ?? 9) - (ORDEN_TIPO[b.tipoAlerta] ?? 9)
     || new Date(b.fechaHora) - new Date(a.fechaHora));
@@ -114,7 +116,6 @@ async function cargarAlertas() {
 // La página de Alertas Atendidas usa este mismo script con SAFEPLACE_ALERTAS_VIEW = 'atendidas'.
 const pestana = window.SAFEPLACE_ALERTAS_VIEW === 'atendidas' ? 'atendidas' : 'pendientes';
 const estaAtendida = (a) => a.revisada;
-const noCerrada = (a) => !String(a.estado).toLowerCase().includes('cerr');
 // La bandeja del supervisor sólo muestra lo que nadie atendió todavía.
 const pendienteParaSupervisor = (a) => a.estadoClase !== 'cerrada' && a.atendidaPor === '';
 
@@ -124,9 +125,8 @@ function actualizarContador() {
     alertCount.textContent = `${total} ${total === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
     return;
   }
-  const vigentes = alertas.filter(noCerrada);
-  const atendidas = vigentes.filter(estaAtendida).length;
-  const activas = vigentes.length - atendidas;
+  const atendidas = alertas.filter(estaAtendida).length;
+  const activas = alertas.length - atendidas;
   alertCount.textContent = pestana === 'atendidas'
     ? `${atendidas} ${atendidas === 1 ? 'alerta atendida' : 'alertas atendidas'}`
     : `${activas} ${activas === 1 ? 'alerta pendiente' : 'alertas pendientes'}`;
@@ -140,6 +140,12 @@ const COLUMNAS = {
   hora: { titulo: 'Hora', texto: (a) => a.hora, orden: (a) => a.hora },
   atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || 'Sin atender', orden: (a) => a.atendidaPor || 'Sin atender' },
 };
+if (pestana === 'atendidas') {
+  // Quién la revisó en Seguridad e Higiene; si se cerró, queda dicho.
+  const textoRevisada = (a) => `${a.revisadaPor || '--'}${a.cerrada ? ' (alerta cerrada)' : ''}`;
+  COLUMNAS.revisada = { titulo: 'Revisada por', texto: textoRevisada, orden: textoRevisada };
+}
+const COLUMNAS_TABLA = pestana === 'atendidas' ? 7 : 6;
 const normalizarTexto = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Cada pestaña recuerda su propio orden y búsqueda.
@@ -152,7 +158,7 @@ function filasVisibles() {
   const vista = vistaPorPestana[pestana];
   const terminos = normalizarTexto(vista.busqueda).split(/\s+/).filter(Boolean);
   const filas = alertas.filter((a) => {
-    if (!tiposActivos.has(a.tipoAlerta) || !noCerrada(a)) return false;
+    if (!tiposActivos.has(a.tipoAlerta)) return false;
     if (pestana === 'atendidas' ? !estaAtendida(a) : estaAtendida(a)) return false;
     if (terminos.length) {
       const pajar = normalizarTexto(Object.values(COLUMNAS).map((c) => c.texto(a)).join(' '));
@@ -192,12 +198,13 @@ function renderTabla() {
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
+      ${pestana === 'atendidas' ? `<td class="alert-td-revisada">${a.revisadaPor ? escapeHtml(a.revisadaPor) : '<span class="alert-action-done">--</span>'}${a.cerrada ? ' <span class="alert-badge-estado alert-badge-cerrada">Cerrada</span>' : ''}</td>` : ''}
       <td class="alert-td-acciones">${a.revisada
         // Una alerta ya revisada no se vuelve a atender, pero su gráfico del día
         // sigue siendo útil para revisar qué pasó. Antes era un texto muerto.
-        ? `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`
+        ? `<div class="alert-actions alert-actions--solo"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`
         : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>';
+    </tr>`).join('') : `<tr><td colspan="${COLUMNAS_TABLA}" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>`;
 }
 
 async function cambiarEstado(id, estado) {

@@ -3951,6 +3951,12 @@ select.cfg-input {
   gap: 8px;
 }
 
+/* Un único botón (p. ej. "Ver gráfico") queda centrado en la columna. */
+.alert-actions--solo {
+  grid-template-columns: minmax(0, 150px);
+  justify-content: center;
+}
+
 .alert-btn {
   display: inline-flex;
   align-items: center;
