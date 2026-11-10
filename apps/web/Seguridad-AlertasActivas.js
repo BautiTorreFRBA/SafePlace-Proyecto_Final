@@ -197,7 +197,7 @@ function renderTabla() {
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
       <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : a.cerrada ? '<span class="alert-badge-estado alert-badge-cerrada">Cerrada</span>' : '<span class="alert-action-done">Sin atender</span>'}</td>
-      <td class="alert-td-acciones">${a.cerrada && a.atendidaPor ? '<div class="alert-estado-cerrada"><span class="alert-badge-estado alert-badge-cerrada">Cerrada</span></div>' : ''}${a.revisada
+      <td class="alert-td-acciones">${a.revisada
         // Una alerta ya revisada no se vuelve a atender, pero su gráfico del día
         // sigue siendo útil para revisar qué pasó. Antes era un texto muerto.
         ? `<div class="alert-actions alert-actions--solo"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`

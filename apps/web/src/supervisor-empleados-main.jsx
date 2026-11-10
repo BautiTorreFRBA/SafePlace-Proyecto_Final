@@ -70,17 +70,20 @@ function resolverUmbralesFc(idOperario, globalPayload, particularesPayload) {
 function MenuIcon({ type }) {
   const paths = {
     home: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>,
-    employees: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+    operarios: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
     measurements: <><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></>,
     wearable: <><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></>,
-    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
-    notifications: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
-    team: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
-    clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-    check: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
-    broadcast: <><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></>,
+    devices: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
     document: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></>,
+    notifications: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
     audit: <><path d="M9 11h6"/><path d="M9 15h6"/><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L15 12.6 11 14l1.4-4 6-6.4z"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+    play: <><path d="m5 3 14 9-14 9V3z"/></>,
+    userplus: <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>,
+    alert: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>,
+    check: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+    clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
   };
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{paths[type]}</svg>;
 }
@@ -89,10 +92,10 @@ function MenuIcon({ type }) {
 // indica su rol en <div id="root" data-rol="..."> y se arma el menú de ese rol.
 const PAGE_ROL = document.getElementById('root').dataset.rol || 'supervisor';
 const NAV_LINKS = {
-  supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['employees', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['notifications', 'Alertas activas', 'Supervisor-Notificaciones.html']],
+  supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['operarios', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['alert', 'Alertas Activas', 'Supervisor-Notificaciones.html']],
   // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
-  admin: [['home', 'Home', 'Admin-Home.html', true], ['employees', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Wearables', 'Admin-AsociarWearable.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['broadcast', 'Configuración', 'Admin-Configuracion.html', false], ['clock', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
-  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['team', 'Operarios', 'Seguridad-Empleados.html'], ['employees', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['check', 'Alertas Atendidas', 'Seguridad-AlertasAtendidas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html']],
+  admin: [['home', 'Home', 'Admin-Home.html', true], ['operarios', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Asociar Wearable', 'Admin-AsociarWearable.html', false], ['devices', 'Estado Dispositivos', 'Admin-EstadoDispositivos.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['settings', 'Configuración', 'Admin-Configuracion.html', false], ['play', 'Simulación', 'Admin-Simulacion.html', false], ['userplus', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
+  seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['operarios', 'Operarios', 'Seguridad-Empleados.html'], ['alert', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['check', 'Alertas Atendidas', 'Seguridad-AlertasAtendidas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html']],
 };
 
 function ThemeToggle() {
