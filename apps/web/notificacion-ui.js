@@ -154,15 +154,24 @@ function openSupervisorAlertsModal(alertas, destino = 'Supervisor-Notificaciones
     ? items.map((alerta) => {
       const person = `${alerta.operario_nombre || ''} ${alerta.operario_apellido || ''}`.trim() || 'Sin operario asignado';
       const when = alerta.fecha_hora ? fmtAR(new Date(alerta.fecha_hora)) : 'Fecha no disponible';
-      return `<button class="notif-preview notif-preview--${mapNotifType(alerta.prioridad || '')}" type="button" data-alert-target="${destino}">
+      return `<button class="notif-preview notif-preview--${mapNotifType(alerta.prioridad || '')}" type="button" data-alert-id="${alerta.id}" data-alert-target="${destino}">
         <div class="notif-preview__top"><strong>${escapeHtml(person)}</strong><span class="notif-preview__state">Activa</span></div>
         <div class="notif-preview__summary">${escapeHtml(`${etiquetaTipo(alerta.tipo_alerta)} · ${when}`)}</div>
       </button>`;
     }).join('')
     : '<div class="notif-preview notif-preview--empty">No hay alertas activas.</div>';
 
+  // Si la pantalla actual ya tiene la alerta cargada se abre ahí mismo; si no, se va a
+  // la bandeja con ?alerta=<id>, que la abre apenas carga (sin buscarla en la lista).
   body.querySelectorAll('[data-alert-target]').forEach((button) => {
-    button.addEventListener('click', () => { window.location.href = button.dataset.alertTarget; });
+    button.addEventListener('click', () => {
+      const id = Number(button.dataset.alertId);
+      if (window.abrirAlertaDesdeCampana?.(id)) {
+        closeNotifModal();
+        return;
+      }
+      window.location.href = `${button.dataset.alertTarget}?alerta=${encodeURIComponent(id)}`;
+    });
   });
   modal.classList.add('notif-modal--open');
 }
@@ -179,7 +188,8 @@ async function loadHomeNotifications() {
   const payload = await notifApiFetch(cuentaAlertas ? '/alertas/activas' : '/notificaciones?leida=false');
   // Supervisor y Responsable cuentan alertas en estado Activa. Para el Responsable
   // son las que todavía no atendió (aunque un supervisor ya la haya visto).
-  const notificaciones = (payload?.data || []).filter((item) => !cuentaAlertas || String(item.estado).toLowerCase() === 'activa');
+  const notificaciones = (payload?.data || []).filter((item) => !cuentaAlertas || (String(item.estado).toLowerCase() === 'activa'
+    && !(esSupervisor && String(item.atendida_por || '').trim())));
 
   badge.textContent = String(notificaciones.length);
   badge.style.display = notificaciones.length > 0 ? 'flex' : 'none';

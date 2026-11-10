@@ -137,7 +137,7 @@ const COLUMNAS = {
   operario: { titulo: 'Operario', texto: (a) => a.empleado, orden: (a) => a.empleado },
   fecha: { titulo: 'Fecha', texto: (a) => a.fecha, orden: (a) => new Date(a.fechaHora).getTime() || 0 },
   hora: { titulo: 'Hora', texto: (a) => a.hora, orden: (a) => a.hora },
-  atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || 'Sin atender', orden: (a) => a.atendidaPor || 'Sin atender' },
+  atendida: { titulo: 'Atendida por', texto: (a) => a.atendidaPor || (a.cerrada ? 'Cerrada' : 'Sin atender'), orden: (a) => a.atendidaPor || (a.cerrada ? 'Cerrada' : 'Sin atender') },
 };
 // En Alertas Atendidas también se exporta/busca si la alerta se cerró.
 if (pestana === 'atendidas') {
@@ -196,12 +196,12 @@ function renderTabla() {
       <td class="alert-td-empleado">${escapeHtml(a.empleado)}</td>
       <td class="alert-td-fecha">${escapeHtml(a.fecha)}</td>
       <td class="alert-td-hora">${escapeHtml(a.hora)}</td>
-      <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : '<span class="alert-action-done">Sin atender</span>'}</td>
-      <td class="alert-td-acciones">${a.cerrada ? '<div class="alert-estado-cerrada"><span class="alert-badge-estado alert-badge-cerrada">Cerrada</span></div>' : ''}${a.revisada
+      <td class="alert-td-atendida">${a.atendidaPor ? escapeHtml(a.atendidaPor) : a.cerrada ? '<span class="alert-badge-estado alert-badge-cerrada">Cerrada</span>' : '<span class="alert-action-done">Sin atender</span>'}</td>
+      <td class="alert-td-acciones">${a.cerrada && a.atendidaPor ? '<div class="alert-estado-cerrada"><span class="alert-badge-estado alert-badge-cerrada">Cerrada</span></div>' : ''}${a.revisada
         // Una alerta ya revisada no se vuelve a atender, pero su gráfico del día
         // sigue siendo útil para revisar qué pasó. Antes era un texto muerto.
         ? `<div class="alert-actions alert-actions--solo"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Ver gráfico</button></div>`
-        : `<div class="alert-actions"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button><button class="alert-btn alert-btn--cerrar" onclick="cerrarAlerta(${a.id})">Cerrar</button></div>`}</td>
+        : `<div class="alert-actions alert-actions--solo"><button class="alert-btn alert-btn--revisar" onclick="revisarAlerta(${a.id})">Revisar</button></div>`}</td>
     </tr>`).join('') : `<tr><td colspan="${COLUMNAS_TABLA}" class="alert-empty">No hay alertas para los filtros seleccionados.</td></tr>`;
 }
 
@@ -230,23 +230,6 @@ async function confirmarSiEmergencia(id, texto) {
   const confirmar = window.confirmarAtencion || ((n) => Promise.resolve(window.confirm(`¿Está mejor ${n || 'el operario'}?`)));
   return confirmar(nombre, texto);
 }
-
-// Cerrar siempre pide confirmación. En una (súper) emergencia esa confirmación es
-// el "¿Está mejor <operario>?", así no se pregunta dos veces.
-async function confirmarCierre(id) {
-  const alerta = alertas.find((a) => String(a.id) === String(id));
-  if (alerta && TIPOS_CON_CONFIRMACION.has(alerta.tipoAlerta)) {
-    return confirmarSiEmergencia(id, 'Al confirmar, la alerta se cierra.');
-  }
-  const titulo = '¿Estás seguro que querés cerrar esta alerta?';
-  if (!window.confirmarAccion) return window.confirm(titulo);
-  const detalle = alerta ? `${alerta.tipo} · ${alerta.empleado} · ${alerta.fecha} ${alerta.hora}` : '';
-  return window.confirmarAccion({ titulo, texto: detalle, ok: 'Confirmar' });
-}
-
-window.cerrarAlerta = async (id) => {
-  if (await confirmarCierre(id)) await cambiarEstado(id, 'Cerrada');
-};
 
 // ── Modal "Revisar": FC del día del empleado ──────────────────────────────
 // Mismo gráfico que el "Historial del empleado" del supervisor, acotado al día
@@ -669,7 +652,21 @@ botonesTipo.forEach((button) => {
   });
 });
 
-cargarAlertas().catch((error) => {
+// La campana abre la alerta tocada: aquí mismo si está en la lista, o al llegar con ?alerta=<id>.
+window.abrirAlertaDesdeCampana = (id) => {
+  if (!alertas.some((a) => a.id === id)) return false;
+  window.revisarAlerta(id);
+  return true;
+};
+
+function abrirAlertaDeLaUrl() {
+  const pedida = Number(new URLSearchParams(window.location.search).get('alerta'));
+  if (!pedida) return;
+  window.history.replaceState(null, '', window.location.pathname);
+  window.abrirAlertaDesdeCampana(pedida);
+}
+
+cargarAlertas().then(abrirAlertaDeLaUrl).catch((error) => {
   console.error(error);
   tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;">No se pudieron cargar las alertas activas</td></tr>';
 });

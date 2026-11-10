@@ -3,9 +3,10 @@ const alertaRepository = require('../repositories/alerta.repository');
 const alertasService = require('../services/alertas.service');
 
 // H0013: "cada alerta posee estado: Activa, Atendida o Cerrada" — el
-// endpoint de cambio de estado sólo acepta pasar a Atendida/Cerrada; volver
-// a Activa es responsabilidad exclusiva del Motor de Reglas, no de un PATCH.
-const ESTADOS_PERMITIDOS_PATCH = ['Atendida', 'Cerrada'];
+// endpoint de cambio de estado sólo acepta pasar a Atendida: ninguna persona
+// cierra alertas a mano (las cierra el sistema) y volver a Activa es
+// responsabilidad exclusiva del Motor de Reglas, no de un PATCH.
+const ESTADOS_PERMITIDOS_PATCH = ['Atendida'];
 
 const normalizarFiltro = (value) => {
   if (value === undefined || value === null) {
