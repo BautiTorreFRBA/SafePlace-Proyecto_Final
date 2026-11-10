@@ -66,17 +66,14 @@ const actualizarEstado = async (req, res, next) => {
     // registrado quién la vio (id_usuario_atendio) y la alerta sigue Activa; el
     // estado pasa a Atendida recién cuando el Responsable de Seguridad e Higiene
     // hace su segundo chequeo.
-    const esSeguridad = req.user?.role === 'seguridad';
-    const atiendeSupervisor = estado === 'Atendida' && !esSeguridad;
-    let actualizada;
-    if (atiendeSupervisor) actualizada = await alertaRepository.registrarAtencionSupervisor(id, req.user?.sub);
-    else if (esSeguridad) actualizada = await alertaRepository.registrarRevision(id, estado, req.user?.sub);
-    else actualizada = await alertaRepository.actualizarEstado(id, estado);
+    const atiendeSupervisor = estado === 'Atendida' && req.user?.role !== 'seguridad';
+    const actualizada = atiendeSupervisor
+      ? await alertaRepository.registrarAtencionSupervisor(id, req.user?.sub)
+      : await alertaRepository.actualizarEstado(id, estado);
     const arrastradas = await alertasService.resolverEmergenciasSubordinadas(
       existente,
       estado,
       atiendeSupervisor ? req.user?.sub : null,
-      esSeguridad ? req.user?.sub : null,
     );
     res.json({
       message: 'Estado de la alerta actualizado.',

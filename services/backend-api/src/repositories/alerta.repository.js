@@ -73,11 +73,10 @@ const cerrarActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta) => {
 
 // Pasa a `estado` (Atendida/Cerrada) las alertas Activas de ese seudónimo y tipo.
 // Se usa al resolver una SUPER_EMERGENCIA, que arrastra a la EMERGENCIA abierta.
-const actualizarEstadoActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta, estado, idUsuarioReviso = null) => {
+const actualizarEstadoActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlerta, estado) => {
   const query = `
     UPDATE alerta a
-    SET estado = $3,
-        id_usuario_reviso = COALESCE($4, a.id_usuario_reviso)
+    SET estado = $3
     WHERE a.id_tipo_alerta = $2
       AND a.estado = 'Activa'
       AND COALESCE(
@@ -86,22 +85,12 @@ const actualizarEstadoActivasPorSeudonimoYTipo = async (idSeudonimo, idTipoAlert
       ) = $1
     RETURNING a.*;
   `;
-  const res = await db.query(query, [idSeudonimo, idTipoAlerta, estado, idUsuarioReviso]);
+  const res = await db.query(query, [idSeudonimo, idTipoAlerta, estado]);
   return res.rows;
 };
 
 const obtenerPorId = async (id) => {
   const res = await db.query('SELECT * FROM alerta WHERE id = $1;', [id]);
-  return res.rows[0];
-};
-
-// El Responsable de Seguridad e Higiene atiende o cierra la alerta: además del
-// estado queda registrado quién fue (id_usuario_reviso).
-const registrarRevision = async (id, estado, idUsuarioReviso) => {
-  const res = await db.query(
-    'UPDATE alerta SET estado = $2::varchar(20), id_usuario_reviso = $3 WHERE id = $1 RETURNING *;',
-    [id, estado, idUsuarioReviso],
-  );
   return res.rows[0];
 };
 
@@ -160,8 +149,6 @@ const listarActivas = async (usuario = {}, { incluirCerradas = false } = {}) => 
       a.fecha_hora,
       a.id_usuario_atendio,
       CONCAT_WS(' ', u.nombre, u.apellido) AS atendida_por,
-      a.id_usuario_reviso,
-      CONCAT_WS(' ', r.nombre, r.apellido) AS revisada_por,
       o.id AS id_trabajador,
       o.nombre AS operario_nombre,
       o.apellido AS operario_apellido
@@ -169,7 +156,6 @@ const listarActivas = async (usuario = {}, { incluirCerradas = false } = {}) => 
     JOIN tipo_alerta ta ON ta.id = a.id_tipo_alerta
     ${JOIN_IDENTIDAD}
     LEFT JOIN usuario u ON u.id = a.id_usuario_atendio
-    LEFT JOIN usuario r ON r.id = a.id_usuario_reviso
     WHERE a.estado = ANY($2::text[])
       AND ($1::text IS NULL OR o.turno = $1)
     ORDER BY a.fecha_hora DESC, a.id DESC;
@@ -205,7 +191,6 @@ module.exports = {
   actualizarEstadoActivasPorSeudonimoYTipo,
   obtenerPorId,
   actualizarEstado,
-  registrarRevision,
   registrarAtencionSupervisor,
   registrarAtencionActivasPorSeudonimoYTipo,
   listarActivas,

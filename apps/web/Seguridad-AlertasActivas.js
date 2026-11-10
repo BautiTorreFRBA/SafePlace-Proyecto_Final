@@ -54,7 +54,6 @@ function normalizarAlerta(a) {
     ...separarFechaHora(a.fecha_hora),
     estado,
     atendidaPor: `${a.atendida_por || ''}`.trim(),
-    revisadaPor: `${a.revisada_por || ''}`.trim(),
     cerrada: estadoNormalizado.includes('cerr'),
     // Revisada = el Responsable de Seguridad e Higiene ya hizo su chequeo (la atendió
     // o la cerró). Que un supervisor la haya visto (atendidaPor) no alcanza.
