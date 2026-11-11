@@ -2,7 +2,7 @@ const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-
 
 // H0015: bandeja "en tiempo cercano al real" — polling simple (no hay
 // WebSockets/SSE en el proyecto).
-const POLL_INTERVAL_MS = 20000;
+const POLL_INTERVAL_MS = 5000;
 
 const tableBody = document.getElementById('alertTableBody');
 const alertCount = document.getElementById('alertCount');

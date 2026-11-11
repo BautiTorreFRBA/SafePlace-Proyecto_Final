@@ -1,5 +1,5 @@
 const API_BASE_URL = window.__SAFEPLACE_API_URL__ || 'https://safeplace-backend-9vhx.onrender.com/api/v1';
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 5000;
 // Mismo límite que el backend (estado.repository): una lectura de más de 5 min se considera desactualizada.
 const LIMITE_DESACTUALIZADO_S = 5 * 60;
 // Home compartido por Admin, Supervisor y Seguridad e Higiene: cada HTML indica en
