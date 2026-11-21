@@ -25,7 +25,7 @@ function agregarInterruptorTema() {
     const control = document.createElement('label');
     control.className = 'theme-switch';
     control.title = 'Modo oscuro a la izquierda · modo claro a la derecha';
-    control.innerHTML = '<span aria-hidden="true">☾</span><input type="checkbox" aria-label="Cambiar entre modo oscuro y modo claro"><span class="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span>';
+    control.innerHTML = '<span class="theme-switch__luna" aria-hidden="true">☾</span><input type="checkbox" aria-label="Cambiar entre modo oscuro y modo claro"><span class="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span>';
     const input = control.querySelector('input');
     input.checked = document.documentElement.dataset.theme === 'light';
     input.addEventListener('change', () => aplicarTema(input.checked ? 'light' : 'dark'));
@@ -130,6 +130,69 @@ function applySessionUI() {
   if (wearableLink) wearableLink.childNodes[wearableLink.childNodes.length - 1].textContent = ' Wearables';
   estadoDispositivosLink?.remove();
   agregarInterruptorTema();
+  seguirSimulacion();
+}
+
+// ── Luna del simulador ───────────────────────────────────────────────────────
+// La luna del interruptor de tema se pinta con el cuadro que esta inyectando el
+// simulador de demo, con los mismos colores que la consola de PowerShell. Es
+// solo para el supervisor, que es quien mira el tablero durante la demo.
+const LUNA_CLASES = {
+  normal: 'theme-switch__luna--normal',
+  fatiga: 'theme-switch__luna--fatiga',
+  sobreesfuerzo: 'theme-switch__luna--sobreesfuerzo',
+  inactividad: 'theme-switch__luna--inactividad',
+};
+
+const LUNA_TITULOS = {
+  normal: 'Simulacion activa — NORMAL',
+  fatiga: 'Simulacion activa — FATIGA',
+  sobreesfuerzo: 'Simulacion activa — SOBREESFUERZO',
+  inactividad: 'Simulacion activa — INACTIVIDAD',
+};
+
+// session-ui.js se carga ANTES que api-config.js, asi que la URL se resuelve en
+// cada llamada y no al cargar el archivo: si no, quedaria undefined.
+function baseApi() {
+  if (window.__SAFEPLACE_API_URL__) return window.__SAFEPLACE_API_URL__;
+  const esLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  return esLocal ? 'http://localhost:8000/api/v1' : 'https://safeplace-backend-9vhx.onrender.com/api/v1';
+}
+
+function pintarLuna(estado) {
+  document.querySelectorAll('.theme-switch__luna').forEach((luna) => {
+    Object.values(LUNA_CLASES).forEach((clase) => luna.classList.remove(clase));
+    const clase = estado && estado.activa ? LUNA_CLASES[estado.cuadro] : null;
+    if (clase) {
+      luna.classList.add(clase);
+      luna.title = LUNA_TITULOS[estado.cuadro];
+    } else {
+      luna.removeAttribute('title');
+    }
+  });
+}
+
+async function mirarSimulacion() {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) return;
+  try {
+    const respuesta = await fetch(`${baseApi()}/simulacion/latido`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!respuesta.ok) return;
+    const { data } = await respuesta.json();
+    pintarLuna(data);
+  } catch {
+    // La luna simplemente se queda como esta: no vale romper la pagina por esto.
+  }
+}
+
+function seguirSimulacion() {
+  const rol = String(sessionStorage.getItem('userRole') || '').trim().toLowerCase();
+  if (rol !== 'supervisor') return;
+  mirarSimulacion();
+  // Mismo ritmo que el simulador (5s); el backend vence el latido a los 15s.
+  setInterval(mirarSimulacion, 5000);
 }
 
 applySessionUI();

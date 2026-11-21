@@ -10,6 +10,12 @@ const eitherAuth = (req, res, next) => {
   return auth(req, res, next);
 };
 router.get('/', eitherAuth, simulacionController.obtenerEstado);
+
+// Latido del simulador de demo. El POST entra con la API key del gateway (el
+// script no tiene JWT); el GET lo usa el frontend para pintar la luna, y queda
+// abierto a cualquier sesion valida porque es estado de demo, no dato sensible.
+router.post('/latido', deviceAuth, simulacionController.registrarLatido);
+router.get('/latido', eitherAuth, simulacionController.obtenerLatido);
 router.get('/operarios', auth, authorize(['admin']), simulacionController.listarOperarios);
 // Solo admin puede prender / apagar
 router.put('/', auth, authorize(['admin']), simulacionController.actualizarEstado);

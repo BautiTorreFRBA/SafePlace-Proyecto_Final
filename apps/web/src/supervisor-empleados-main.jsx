@@ -98,16 +98,53 @@ const NAV_LINKS = {
   seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['operarios', 'Operarios', 'Seguridad-Empleados.html'], ['alert', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['check', 'Alertas Atendidas', 'Seguridad-AlertasAtendidas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html']],
 };
 
+// La luna se pinta con el cuadro que esta inyectando el simulador de demo, con
+// los mismos colores que la consola de PowerShell. Solo para el supervisor.
+const LUNA_CLASES = {
+  normal: 'theme-switch__luna--normal',
+  fatiga: 'theme-switch__luna--fatiga',
+  sobreesfuerzo: 'theme-switch__luna--sobreesfuerzo',
+  inactividad: 'theme-switch__luna--inactividad',
+};
+
+const LUNA_TITULOS = {
+  normal: 'Simulacion activa — NORMAL',
+  fatiga: 'Simulacion activa — FATIGA',
+  sobreesfuerzo: 'Simulacion activa — SOBREESFUERZO',
+  inactividad: 'Simulacion activa — INACTIVIDAD',
+};
+
 function ThemeToggle() {
   const [light, setLight] = useState(() => {
     try { return localStorage.getItem('safeplace-theme') === 'light'; } catch { return false; }
   });
+  const [simulacion, setSimulacion] = useState(null);
   useEffect(() => {
     const theme = light ? 'light' : 'dark';
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('safeplace-theme', theme); } catch { /* almacenamiento no disponible */ }
   }, [light]);
-  return <label className="theme-switch" title="Modo oscuro a la izquierda · modo claro a la derecha"><span aria-hidden="true">☾</span><input type="checkbox" checked={light} onChange={(event) => setLight(event.target.checked)} aria-label="Cambiar entre modo oscuro y modo claro" /><span className="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span></label>;
+  useEffect(() => {
+    const rol = String(sessionStorage.getItem('userRole') || '').trim().toLowerCase();
+    if (rol !== 'supervisor') return undefined;
+    let vivo = true;
+    const mirar = async () => {
+      const token = sessionStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const respuesta = await fetch(`${API_BASE_URL}/simulacion/latido`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!respuesta.ok) return;
+        const { data } = await respuesta.json();
+        if (vivo) setSimulacion(data);
+      } catch { /* la luna se queda como esta */ }
+    };
+    mirar();
+    // Mismo ritmo que el simulador (5s); el backend vence el latido a los 15s.
+    const id = setInterval(mirar, 5000);
+    return () => { vivo = false; clearInterval(id); };
+  }, []);
+  const claseLuna = simulacion && simulacion.activa ? LUNA_CLASES[simulacion.cuadro] : null;
+  return <label className="theme-switch" title="Modo oscuro a la izquierda · modo claro a la derecha"><span className={`theme-switch__luna${claseLuna ? ` ${claseLuna}` : ''}`} title={claseLuna ? LUNA_TITULOS[simulacion.cuadro] : undefined} aria-hidden="true">☾</span><input type="checkbox" checked={light} onChange={(event) => setLight(event.target.checked)} aria-label="Cambiar entre modo oscuro y modo claro" /><span className="theme-switch__track" aria-hidden="true"></span><span aria-hidden="true">☀</span></label>;
 }
 
 function Sidebar() {

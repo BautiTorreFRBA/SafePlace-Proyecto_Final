@@ -312,6 +312,15 @@ html[data-theme="light"] .alert-btn--revisar:disabled:hover { color:var(--text-s
 .theme-switch input:checked + .theme-switch__track::after { transform:translateX(17px); background:var(--teal-400); }
 .theme-switch input:focus-visible + .theme-switch__track { outline:2px solid var(--teal-400); outline-offset:3px; }
 
+/* La luna se pinta con el cuadro que esta inyectando el simulador de demo, con
+   los mismos colores que la consola de PowerShell. Apagada = sin simulacion.
+   Solo se enciende para el supervisor (ver session-ui.js). */
+.theme-switch__luna { transition:color .25s ease, text-shadow .25s ease; }
+.theme-switch__luna--normal        { color:#22c55e; text-shadow:0 0 8px rgba(34,197,94,.7); }
+.theme-switch__luna--fatiga        { color:#eab308; text-shadow:0 0 8px rgba(234,179,8,.7); }
+.theme-switch__luna--sobreesfuerzo { color:#ef4444; text-shadow:0 0 9px rgba(239,68,68,.75); }
+.theme-switch__luna--inactividad   { color:#d946ef; text-shadow:0 0 8px rgba(217,70,239,.7); }
+
 /* ============================================================
    MAIN CONTENT
    ============================================================ */
