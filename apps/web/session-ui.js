@@ -145,10 +145,10 @@ const LUNA_CLASES = {
 };
 
 const LUNA_TITULOS = {
-  normal: 'Simulacion activa — NORMAL',
-  fatiga: 'Simulacion activa — FATIGA',
-  sobreesfuerzo: 'Simulacion activa — SOBREESFUERZO',
-  inactividad: 'Simulacion activa — INACTIVIDAD',
+  normal: 'Monitoreo activo — NORMAL',
+  fatiga: 'Monitoreo activo — FATIGA',
+  sobreesfuerzo: 'Monitoreo activo — SOBREESFUERZO',
+  inactividad: 'Monitoreo activo — INACTIVIDAD',
 };
 
 // session-ui.js se carga ANTES que api-config.js, asi que la URL se resuelve en

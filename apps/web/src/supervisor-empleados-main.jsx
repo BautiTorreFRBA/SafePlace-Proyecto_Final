@@ -94,7 +94,7 @@ const PAGE_ROL = document.getElementById('root').dataset.rol || 'supervisor';
 const NAV_LINKS = {
   supervisor: [['home', 'Home', 'Supervisor-Home.html'], ['operarios', 'Operarios', 'Supervisor-Empleados.html'], ['measurements', 'Mediciones', 'Supervisor-Mediciones.html'], ['wearable', 'Wearables', 'Supervisor-Wearables.html'], ['alert', 'Alertas Activas', 'Supervisor-Notificaciones.html']],
   // El admin llega desde las tarjetas del Home (Admin-HistorialEmpleado.html?empleado=<id>).
-  admin: [['home', 'Home', 'Admin-Home.html', true], ['operarios', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Asociar Wearable', 'Admin-AsociarWearable.html', false], ['devices', 'Estado Dispositivos', 'Admin-EstadoDispositivos.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['settings', 'Configuración', 'Admin-Configuracion.html', false], ['play', 'Simulación', 'Admin-Simulacion.html', false], ['userplus', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
+  admin: [['home', 'Home', 'Admin-Home.html', true], ['operarios', 'Operarios', 'Admin-Empleados.html', false], ['wearable', 'Asociar Wearable', 'Admin-AsociarWearable.html', false], ['devices', 'Estado Dispositivos', 'Admin-EstadoDispositivos.html', false], ['document', 'Consentimientos', 'Admin-Consentimientos.html', false], ['audit', 'Auditoría', 'Admin-Auditoria.html', false], ['settings', 'Configuración', 'Admin-Configuracion.html', false], ['play', 'Monitoreo', 'Admin-Simulacion.html', false], ['userplus', 'Crear Usuarios', 'Admin-Usuarios.html', false]],
   seguridad: [['home', 'Home', 'Seguridad-Home.html'], ['operarios', 'Operarios', 'Seguridad-Empleados.html'], ['alert', 'Alertas Activas', 'Seguridad-AlertasActivas.html'], ['check', 'Alertas Atendidas', 'Seguridad-AlertasAtendidas.html'], ['clock', 'Historial Alertas', 'Seguridad-Historial.html']],
 };
 
@@ -108,10 +108,10 @@ const LUNA_CLASES = {
 };
 
 const LUNA_TITULOS = {
-  normal: 'Simulacion activa — NORMAL',
-  fatiga: 'Simulacion activa — FATIGA',
-  sobreesfuerzo: 'Simulacion activa — SOBREESFUERZO',
-  inactividad: 'Simulacion activa — INACTIVIDAD',
+  normal: 'Monitoreo activo — NORMAL',
+  fatiga: 'Monitoreo activo — FATIGA',
+  sobreesfuerzo: 'Monitoreo activo — SOBREESFUERZO',
+  inactividad: 'Monitoreo activo — INACTIVIDAD',
 };
 
 function ThemeToggle() {

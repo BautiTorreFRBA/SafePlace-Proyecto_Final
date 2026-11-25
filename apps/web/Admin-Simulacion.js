@@ -24,17 +24,17 @@ async function apiFetch(path, options = {}) {
 
 function actualizarControlSimulacion() {
   toggleButton.disabled = false;
-  toggleButton.textContent = simActiva ? 'Detener simulación' : 'Iniciar simulación';
+  toggleButton.textContent = simActiva ? 'Detener monitoreo' : 'Iniciar monitoreo';
   toggleButton.style.background = simActiva ? '#ef4444' : '';
   statusDot.className = `dot ${simActiva ? 'dot--green' : 'dot--gray'}`;
   statusText.textContent = simActiva ? 'Activa' : 'Inactiva';
 }
 
 function renderOperarios(operarios) {
-  count.textContent = `${operarios.length} operario${operarios.length === 1 ? '' : 's'} incluido${operarios.length === 1 ? '' : 's'} en la simulación`;
+  count.textContent = `${operarios.length} operario${operarios.length === 1 ? '' : 's'} monitoreado${operarios.length === 1 ? '' : 's'}`;
   tableBody.innerHTML = operarios.length
     ? operarios.map((o) => `<tr><td><strong>${escapeHtml(o.nombre)}</strong></td><td>${escapeHtml(o.apellido)}</td><td class="emp-id">${escapeHtml(o.legajo)}</td><td>${escapeHtml(o.area)}</td><td>${escapeHtml(o.turno)}</td><td style="color:var(--text-secondary)">${escapeHtml([o.marca, o.modelo].filter(Boolean).join(' ') || 'Wearable')}<br><small>${escapeHtml(o.direccion_mac)}</small></td></tr>`).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No hay operarios con wearables de simulación asignados.</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No hay operarios con wearables asignados.</td></tr>';
 }
 
 async function cargar() {
@@ -46,7 +46,7 @@ async function cargar() {
     actualizarControlSimulacion();
     await cargarSlots();
   } catch (error) {
-    count.textContent = 'No se pudo cargar la simulación';
+    count.textContent = 'No se pudieron cargar los operarios';
     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:#fca5a5">${escapeHtml(error.message)}</td></tr>`;
     statusText.textContent = 'No disponible';
   }
@@ -78,9 +78,9 @@ async function cargarSlots() {
     slotSelect.innerHTML = libres.length
       ? libres.map((d) => `<option value="${d.id}">${escapeHtml(d.modelo)}</option>`).join('')
       : '<option value="">Sin wearables libres</option>';
-    slotsInfo.textContent = `${libres.length} wearable${libres.length === 1 ? '' : 's'} del simulador libre${libres.length === 1 ? '' : 's'}`;
+    slotsInfo.textContent = `${libres.length} wearable${libres.length === 1 ? '' : 's'} libre${libres.length === 1 ? '' : 's'}`;
     btnAlta.disabled = libres.length === 0;
-    if (!libres.length) aviso('No quedan wearables del simulador libres. Liberá uno desde Wearables o cargá otro dispositivo con marca "SafePlace Sim".', true);
+    if (!libres.length) aviso('No quedan wearables libres. Liberá uno desde Wearables o cargá otro dispositivo con marca "SafePlace Sim".', true);
     else aviso('');
   } catch (error) {
     slotsInfo.textContent = 'No se pudieron cargar los wearables libres';
@@ -119,7 +119,7 @@ btnAlta.addEventListener('click', async () => {
     document.getElementById('altaNombre').value = '';
     document.getElementById('altaApellido').value = '';
     await cargar();
-    aviso(`${nombre} ${apellido} agregado. Entra a la simulación en el próximo ciclo (hasta 15 s).`);
+    aviso(`${nombre} ${apellido} agregado. Entra al monitoreo en el próximo ciclo (hasta 15 s).`);
   } catch (error) {
     aviso(error.message, true);
     btnAlta.disabled = false;
@@ -137,7 +137,7 @@ toggleButton.addEventListener('click', async () => {
     simActiva = Boolean(response?.data?.activa ?? !simActiva);
     actualizarControlSimulacion();
   } catch (error) {
-    alert(`Error al cambiar estado de simulación: ${error.message}`);
+    alert(`Error al cambiar el estado del monitoreo: ${error.message}`);
     actualizarControlSimulacion();
   }
 });
